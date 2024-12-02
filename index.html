@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat-Help</title>
+  <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between; 
+      height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      color: #333;
+      margin-top: 20px;
+    }
+
+    #chat-log {
+      width: 100%;
+      max-width: 600px;
+      height: calc(100vh - 160px); 
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background-color: #fff;
+      margin-bottom: 20px;
+    }
+
+    #message-input {
+      width: 80%;
+      padding: 10px;
+      font-size: 16px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    #send-button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #send-button:hover {
+      background-color: #0056b3;
+    }
+
+    .input-container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+      #message-input {
+        width: 70%;
+      }
+
+      #send-button {
+        width: 20%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Chat-Help</h1>
+  <div id="chat-log"></div>
+  <div class="input-container">
+    <input id="message-input" type="text" placeholder="Input message...">
+    <button id="send-button">Send</button>
+  </div>
+
+  <script>
+    const socket = io();
+
+    function addMessageToChat(message, isBot = false) {
+      const chatLog = document.getElementById('chat-log');
+      const messageElement = document.createElement('p');
+      messageElement.textContent = message;
+
+      if (isBot) {
+        messageElement.style.color = '#007bff';
+        messageElement.style.fontStyle = 'italic';
+      } else {
+        messageElement.style.color = '#333';
+      }
+
+      chatLog.appendChild(messageElement);
+      chatLog.scrollTop = chatLog.scrollHeight;  
+    }
+
+    socket.on('connect', () => {
+      console.log('Connect to server');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('disconnect of server');
+    });
+
+    socket.on('message', (message) => {
+      console.log('message received:', message);
+      addMessageToChat(message, true); 
+    });
+
+    document.getElementById('send-button').addEventListener('click', () => {
+      sendMessage();
+    });
+
+    document.getElementById('message-input').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    function sendMessage() {
+      const message = document.getElementById('message-input').value;
+
+      if (message.trim()) {
+        addMessageToChat(message);
+
+        socket.emit('message', message);
+
+        document.getElementById('message-input').value = '';
+      }
+    }
+  </script>
+</body>
+</html>

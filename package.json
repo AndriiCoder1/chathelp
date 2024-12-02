@@ -1,0 +1,32 @@
+{
+  "name": "chathelp",
+  "version": "1.0.0",
+  "description": "Чат-бот ChatHelp с использованием OpenAI и Socket.IO",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "chathelp",
+    "chatbot",
+    "OpenAI",
+    "Socket.IO",
+    "Node.js"
+  ],
+  "author": "Твоё Имя",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "openai": "^4.73.1",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": "16.x"
+  }
+}
+
