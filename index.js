@@ -14,7 +14,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'https://chathelp-8763d47e225a.herokuapp.com', 
+    origin: 'https://chathelp-y22r.onrender.com',
   },
 });
 
