@@ -8,24 +8,26 @@
   <style>
     body {
       font-family: Arial, sans-serif;
+      background-color: #f4f7fa;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between;
+      justify-content: space-between; 
       height: 100vh;
       margin: 0;
       transition: background-color 0.3s, color 0.3s;
     }
-  
+
     h1 {
+      color: #333;
       margin-top: 20px;
       transition: color 0.3s;
     }
-  
+
     #chat-log {
       width: 100%;
       max-width: 600px;
-      height: calc(100vh - 160px);
+      height: calc(100vh - 160px); 
       overflow-y: auto;
       border: 1px solid #ccc;
       padding: 10px;
@@ -33,68 +35,70 @@
       margin-bottom: 20px;
       transition: background-color 0.3s, border-color 0.3s;
     }
-  
-    #message-input, #send-button {
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 5px;
-      transition: background-color 0.3s, color 0.3s;
-    }
-  
+
     #message-input {
       width: 80%;
+      padding: 10px;
+      font-size: 16px;
       margin-right: 10px;
       border: 1px solid #ccc;
+      border-radius: 5px;
     }
-  
+
     #send-button {
+      padding: 10px 20px;
+      font-size: 16px;
       background-color: #007bff;
       color: white;
       border: none;
+      border-radius: 5px;
       cursor: pointer;
     }
-  
+
     #send-button:hover {
       background-color: #0056b3;
     }
-  
-    /* Стили для светлой темы */
-    .light-theme {
-      background-color: #f4f7fa;
-      color: #333;
+
+    .input-container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
     }
-  
-    .light-theme #chat-log {
-      background-color: #fff;
-      border-color: #ccc;
+
+    @media (max-width: 768px) {
+      #message-input {
+        width: 70%;
+      }
+
+      #send-button {
+        width: 20%;
+      }
     }
-  
-    .light-theme #message-input {
-      background-color: #fff;
-      border: 1px solid #ccc;
-    }
-  
+
     /* Стили для темной темы */
     .dark-theme {
       background-color: #333;
       color: #fff;
     }
-  
+
     .dark-theme #chat-log {
       background-color: #444;
       border-color: #666;
     }
-  
+
     .dark-theme #message-input {
       background-color: #666;
       border: 1px solid #444;
       color: #fff;
     }
-  
+
     .dark-theme #send-button {
       background-color: #0056b3;
     }
-  
+
     .dark-theme #send-button:hover {
       background-color: #003f7f;
     }
@@ -127,8 +131,59 @@
   </div>
 
   <script>
+    const socket = io();
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
+
+    // Функция для добавления сообщений в чат
+    function addMessageToChat(message, isBot = false) {
+      const chatLog = document.getElementById('chat-log');
+      const messageElement = document.createElement('p');
+      messageElement.textContent = message;
+
+      if (isBot) {
+        messageElement.style.color = '#007bff';
+        messageElement.style.fontStyle = 'italic';
+      } else {
+        messageElement.style.color = '#333';
+      }
+
+      chatLog.appendChild(messageElement);
+      chatLog.scrollTop = chatLog.scrollHeight;  
+    }
+
+    socket.on('connect', () => {
+      console.log('Connected to server');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from server');
+    });
+
+    socket.on('message', (message) => {
+      console.log('Message received:', message);
+      addMessageToChat(message, true); // Добавляем сообщение от бота в чат
+    });
+
+    document.getElementById('send-button').addEventListener('click', () => {
+      sendMessage();
+    });
+
+    document.getElementById('message-input').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    function sendMessage() {
+      const message = document.getElementById('message-input').value;
+
+      if (message.trim()) {
+        addMessageToChat(message);  // Добавляем отправленное сообщение в чат
+        socket.emit('message', message);  // Отправляем сообщение на сервер
+        document.getElementById('message-input').value = '';  // Очищаем поле ввода
+      }
+    }
 
     // Функция для переключения темы
     function toggleTheme() {
@@ -144,11 +199,10 @@
       }
     }
 
-    // Добавление обработчика события для кнопки переключения темы
+    // Добавляем обработчик на кнопку переключения темы
     themeToggleButton.addEventListener('click', toggleTheme);
 
     // Инициализация темы при загрузке страницы
-    // Если в localStorage есть сохраненная тема, применяем ее
     if (localStorage.getItem('theme') === 'dark') {
       bodyElement.classList.add('dark-theme');
       themeToggleButton.textContent = 'Switch to Light Theme';
@@ -157,7 +211,7 @@
       themeToggleButton.textContent = 'Switch to Dark Theme';
     }
 
-    // Сохраняем выбранную тему в localStorage при ее изменении
+    // Сохраняем тему в localStorage при изменении
     themeToggleButton.addEventListener('click', () => {
       const currentTheme = bodyElement.classList.contains('dark-theme') ? 'dark' : 'light';
       localStorage.setItem('theme', currentTheme);
