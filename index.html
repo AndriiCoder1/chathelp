@@ -69,12 +69,19 @@
     }
 
     @media (max-width: 768px) {
+      h1 {
+        margin-top: 50px;
+      }
       #message-input {
         width: 70%;
       }
-
       #send-button {
         width: 20%;
+      }
+      #theme-toggle {
+        top: 5px;
+        right: 5px;
+        padding: 8px 16px;
       }
     }
 
@@ -114,6 +121,7 @@
       padding: 10px 20px;
       border-radius: 5px;
       cursor: pointer;
+      z-index: 1000;
     }
 
     #theme-toggle:hover {
@@ -162,7 +170,7 @@
 
     socket.on('message', (message) => {
       console.log('Message received:', message);
-      addMessageToChat(message, true); // Добавляем сообщение от бота в чат
+      addMessageToChat(message, true); 
     });
 
     document.getElementById('send-button').addEventListener('click', () => {
@@ -179,43 +187,24 @@
       const message = document.getElementById('message-input').value;
 
       if (message.trim()) {
-        addMessageToChat(message);  // Добавляем отправленное сообщение в чат
-        socket.emit('message', message);  // Отправляем сообщение на сервер
-        document.getElementById('message-input').value = '';  // Очищаем поле ввода
+        addMessageToChat(message);
+        socket.emit('message', message);
+        document.getElementById('message-input').value = '';
       }
     }
 
-    // Функция для переключения темы
     function toggleTheme() {
-      const isDarkMode = bodyElement.classList.contains('dark-theme');
-      if (isDarkMode) {
-        bodyElement.classList.remove('dark-theme');
-        bodyElement.classList.add('light-theme');
-        themeToggleButton.textContent = 'Switch to Dark Theme';
-      } else {
-        bodyElement.classList.remove('light-theme');
-        bodyElement.classList.add('dark-theme');
-        themeToggleButton.textContent = 'Switch to Light Theme';
-      }
+      const isDarkMode = bodyElement.classList.toggle('dark-theme');
+      themeToggleButton.textContent = isDarkMode ? 'Switch to Light Theme' : 'Switch to Dark Theme';
+      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
     }
 
-    // Добавляем обработчик на кнопку переключения темы
     themeToggleButton.addEventListener('click', toggleTheme);
 
-    // Инициализация темы при загрузке страницы
     if (localStorage.getItem('theme') === 'dark') {
       bodyElement.classList.add('dark-theme');
       themeToggleButton.textContent = 'Switch to Light Theme';
-    } else {
-      bodyElement.classList.add('light-theme');
-      themeToggleButton.textContent = 'Switch to Dark Theme';
     }
-
-    // Сохраняем тему в localStorage при изменении
-    themeToggleButton.addEventListener('click', () => {
-      const currentTheme = bodyElement.classList.contains('dark-theme') ? 'dark' : 'light';
-      localStorage.setItem('theme', currentTheme);
-    });
   </script>
 </body>
 </html>

@@ -42,7 +42,7 @@ io.on('connection', (socket) => {
 
       // Отправка истории сообщений в OpenAI
       const response = await openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-3.5-turbo', 
         messages: userMessages[socket.id],  // Отправка всей истории сообщений для этого пользователя
       });
 
