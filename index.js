@@ -14,7 +14,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'https://chathelp-y22r.onrender.com',  // Замените на ваш адрес фронтенда
+    origin: 'https://chathelp-y22r.onrender.com',  
   },
 });
 
@@ -24,33 +24,33 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-// История сообщений для каждого клиента
+
 const userMessages = {};
 
 io.on('connection', (socket) => {
   console.log('Новое подключение');
 
-  // Инициализация истории сообщений для нового пользователя
+  
   userMessages[socket.id] = [];
 
   socket.on('message', async (message) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
 
     try {
-      // Добавление сообщения в историю
+     
       userMessages[socket.id].push({ role: 'user', content: message });
 
-      // Отправка истории сообщений в OpenAI
+     
       const response = await openai.chat.completions.create({
         model: "gpt-4o", 
-        messages: userMessages[socket.id],  // Отправка всей истории сообщений для этого пользователя
+        messages: userMessages[socket.id],  
       });
 
       const botResponse = response.choices[0].message.content;
-      // Отправка ответа на тот же сокет, который отправил сообщение
+      
       socket.emit('message', botResponse);
 
-      // Добавление ответа бота в историю
+     
       userMessages[socket.id].push({ role: 'assistant', content: botResponse });
     } catch (error) {
       console.error('Ошибка при получении ответа от OpenAI:', error);
@@ -60,7 +60,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('Пользователь отключился');
-    // Очистка истории сообщений при отключении
+    
     delete userMessages[socket.id];
   });
 });

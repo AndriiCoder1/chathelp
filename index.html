@@ -68,7 +68,7 @@
       margin-bottom: 20px;
     }
 
-    /* Кнопка переключения темы */
+    
     #theme-toggle {
       position: fixed;
       top: 10px;
@@ -83,15 +83,15 @@
       z-index: 1000;
     }
 
-    /* Адаптация для мобильных устройств */
+    
     @media (max-width: 768px) {
       #theme-toggle {
-        font-size: 12px; /* Уменьшаем размер текста */
+        font-size: 12px; 
         padding: 5px 8px;
       }
     }
 
-    /* Стили для темной темы */
+    
     .dark-theme {
       background-color: #202123;
       color: #e8e8e8;
@@ -103,11 +103,11 @@
     }
 
     .dark-theme #chat-log p {
-      color: #e8e8e8; /* Цвет твоих сообщений — светлый */
+      color: #e8e8e8; 
     }
 
     .dark-theme .bot-message {
-      color: #b0bec5; /* Мягкий бежево-серый цвет для бота */
+      color: #b0bec5; 
     }
 
     .dark-theme #message-input {
@@ -129,7 +129,7 @@
 </head>
 <body>
   <h1>Chat-Help</h1>
-  <button id="theme-toggle">L / D</button> <!-- Кнопка с текстом L / D -->
+  <button id="theme-toggle">L / D</button> 
   <div id="chat-log"></div>
   <div class="input-container">
     <input id="message-input" type="text" placeholder="Input message...">
@@ -141,14 +141,14 @@
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
 
-    // Функция для добавления сообщений в чат
+    
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log');
       const messageElement = document.createElement('p');
       messageElement.textContent = message;
 
       if (isBot) {
-        messageElement.classList.add('bot-message'); // Добавляем класс для сообщений бота
+        messageElement.classList.add('bot-message'); 
       }
 
       chatLog.appendChild(messageElement);
@@ -190,7 +190,7 @@
 
     function toggleTheme() {
       const isDarkMode = bodyElement.classList.toggle('dark-theme');
-      themeToggleButton.textContent = isDarkMode ? 'L / D' : 'L / D'; // Текст кнопки остается тот же
+      themeToggleButton.textContent = isDarkMode ? 'L / D' : 'L / D';
       localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
     }
 
@@ -198,7 +198,7 @@
 
     if (localStorage.getItem('theme') === 'dark') {
       bodyElement.classList.add('dark-theme');
-      themeToggleButton.textContent = 'L / D'; // Убедитесь, что начальная тема отображается правильно
+      themeToggleButton.textContent = 'L / D'; 
     }
   </script>
 </body>
