@@ -1,6 +1,6 @@
 require('dotenv').config();
 console.log(process.env.OPENAI_API_KEY);
-console.log(process.env.SERPAPI_KEY);  
+console.log(process.env.SERPAPI_KEY);
 
 const express = require('express');
 const http = require('http');
@@ -37,24 +37,22 @@ io.on('connection', (socket) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
 
     try {
-      
       if (message.toLowerCase().includes('поиск') || message.toLowerCase().includes('найди')) {
         const searchQuery = message.replace(/поиск|найди/gi, '').trim();
         const serpApiResponse = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(searchQuery)}&engine=google&api_key=${process.env.SERPAPI_KEY}`);
         const searchResults = await serpApiResponse.json();
 
         if (searchResults.error) {
+          console.error("Ошибка от SerpAPI:", searchResults.error);
           throw new Error(searchResults.error);
         }
 
-        
         const formattedResults = searchResults.organic_results.slice(0, 3).map(result => `${result.title}: ${result.link}`).join('\n');
         socket.emit('message', `Вот результаты поиска:\n${formattedResults}`);
       } else {
-        
         userMessages[socket.id].push({ role: 'user', content: message });
         const response = await openai.chat.completions.create({
-          model: "gpt-4o", 
+          model: "gpt-4o",  
           messages: userMessages[socket.id],
         });
 
