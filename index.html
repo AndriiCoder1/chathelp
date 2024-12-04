@@ -68,7 +68,6 @@
       margin-bottom: 20px;
     }
 
-    
     #theme-toggle {
       position: fixed;
       top: 10px;
@@ -83,7 +82,6 @@
       z-index: 1000;
     }
 
-    
     @media (max-width: 768px) {
       #theme-toggle {
         font-size: 12px; 
@@ -91,7 +89,6 @@
       }
     }
 
-    
     .dark-theme {
       background-color: #202123;
       color: #e8e8e8;
@@ -129,6 +126,8 @@
 </head>
 <body>
   <h1>Chat-Help</h1>
+  <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
+
   <button id="theme-toggle">L / D</button> 
   <div id="chat-log"></div>
   <div class="input-container">
@@ -141,7 +140,6 @@
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
 
-    
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log');
       const messageElement = document.createElement('p');
@@ -190,7 +188,7 @@
 
     function toggleTheme() {
       const isDarkMode = bodyElement.classList.toggle('dark-theme');
-      themeToggleButton.textContent = isDarkMode ? 'L / D' : 'L / D';
+      themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark'; // Меняем текст кнопки
       localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
     }
 
@@ -198,8 +196,26 @@
 
     if (localStorage.getItem('theme') === 'dark') {
       bodyElement.classList.add('dark-theme');
-      themeToggleButton.textContent = 'L / D'; 
+      themeToggleButton.textContent = 'Light'; // Уже в темной теме
     }
+
+    function updateDateTime() {
+      const datetimeElement = document.getElementById('datetime');
+      const now = new Date();
+      const options = {
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+      };
+      datetimeElement.textContent = now.toLocaleDateString('en-GB', options);
+    }
+
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
   </script>
 </body>
 </html>
