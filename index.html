@@ -68,6 +68,29 @@
       margin-bottom: 20px;
     }
 
+    /* Кнопка переключения темы */
+    #theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 1000;
+    }
+
+    /* Адаптация для мобильных устройств */
+    @media (max-width: 768px) {
+      #theme-toggle {
+        font-size: 12px; /* Уменьшаем размер текста */
+        padding: 5px 8px;
+      }
+    }
+
     /* Стили для темной темы */
     .dark-theme {
       background-color: #202123;
@@ -79,47 +102,34 @@
       border-color: #444;
     }
 
-    #chat-log p {
-      color: #333;
-    }
-
-    .bot-message {
-      color: #b0bec5; /* Цвет бота */
-      font-style: italic;
-    }
-
     .dark-theme #chat-log p {
-      color: #e8e8e8;
+      color: #e8e8e8; /* Цвет твоих сообщений — светлый */
     }
 
     .dark-theme .bot-message {
-      color: #b0bec5;
+      color: #b0bec5; /* Мягкий бежево-серый цвет для бота */
     }
 
-    .dark-theme #message-input, 
-    .dark-theme #send-button {
+    .dark-theme #message-input {
       background-color: #343541;
-      border-color: #444;
+      border: 1px solid #444;
       color: #e8e8e8;
     }
 
-    #theme-toggle {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      z-index: 1000;
+    .dark-theme #send-button {
+      background-color: #3c3f42;
+      color: #e8e8e8;
     }
+
+    .dark-theme #send-button:hover {
+      background-color: #4a4e51;
+    }
+
   </style>
 </head>
 <body>
   <h1>Chat-Help</h1>
-  <button id="theme-toggle">Switch to Dark Theme</button>
+  <button id="theme-toggle">L / D</button> <!-- Кнопка с текстом L / D -->
   <div id="chat-log"></div>
   <div class="input-container">
     <input id="message-input" type="text" placeholder="Input message...">
@@ -131,40 +141,64 @@
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
 
+    // Функция для добавления сообщений в чат
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log');
       const messageElement = document.createElement('p');
       messageElement.textContent = message;
+
       if (isBot) {
-        messageElement.classList.add('bot-message');
+        messageElement.classList.add('bot-message'); // Добавляем класс для сообщений бота
       }
+
       chatLog.appendChild(messageElement);
       chatLog.scrollTop = chatLog.scrollHeight;
     }
 
-    socket.on('message', (message) => addMessageToChat(message, true));
+    socket.on('connect', () => {
+      console.log('Connected to server');
+    });
 
-    document.getElementById('send-button').addEventListener('click', sendMessage);
+    socket.on('disconnect', () => {
+      console.log('Disconnected from server');
+    });
+
+    socket.on('message', (message) => {
+      console.log('Message received:', message);
+      addMessageToChat(message, true); 
+    });
+
+    document.getElementById('send-button').addEventListener('click', () => {
+      sendMessage();
+    });
+
     document.getElementById('message-input').addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') sendMessage();
+      if (event.key === 'Enter') {
+        sendMessage();
+      }
     });
 
     function sendMessage() {
-      const message = document.getElementById('message-input').value.trim();
-      if (message) {
+      const message = document.getElementById('message-input').value;
+
+      if (message.trim()) {
         addMessageToChat(message);
         socket.emit('message', message);
         document.getElementById('message-input').value = '';
       }
     }
 
-    themeToggleButton.addEventListener('click', toggleTheme);
-    if (localStorage.getItem('theme') === 'dark') toggleTheme();
-
     function toggleTheme() {
-      const isDark = bodyElement.classList.toggle('dark-theme');
-      themeToggleButton.textContent = isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme';
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      const isDarkMode = bodyElement.classList.toggle('dark-theme');
+      themeToggleButton.textContent = isDarkMode ? 'L / D' : 'L / D'; // Текст кнопки остается тот же
+      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    }
+
+    themeToggleButton.addEventListener('click', toggleTheme);
+
+    if (localStorage.getItem('theme') === 'dark') {
+      bodyElement.classList.add('dark-theme');
+      themeToggleButton.textContent = 'L / D'; // Убедитесь, что начальная тема отображается правильно
     }
   </script>
 </body>
