@@ -13,8 +13,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const app = express();
-const server = http.createServer(app);
+const app = express();const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: 'https://chathelp-y22r.onrender.com',
