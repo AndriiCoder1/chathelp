@@ -35,43 +35,42 @@ io.on('connection', (socket) => {
 
   socket.on('message', async (message) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
-
+  
     try {
-      if (message.toLowerCase().includes('поиск') || message.toLowerCase().includes('найди')) {
-        const searchQuery = message.replace(/поиск|найди/gi, '').trim();
-        console.log("Обрабатываю запрос для поиска:", searchQuery);
-
-        // Лог перед запросом
-        console.log("Отправляю запрос к SerpAPI...");
-        const serpApiResponse = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(searchQuery)}&engine=google&api_key=${process.env.SERPAPI_KEY}`);
-        console.log("Запрос к SerpAPI выполнен, ожидаю ответ...");
-
+      // Проверка на запрос поиска
+      if (/поиск|найди|погода|информация|найти/i.test(message)) {
+        console.log("Обрабатываю запрос через SerpAPI...");
+        const searchQuery = message.replace(/поиск|найди|погода|информация|найти/gi, '').trim();
+        
+        // Добавлен тайм-аут
+        const serpApiResponse = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(searchQuery)}&engine=google&api_key=${process.env.SERPAPI_KEY}`, {
+          timeout: 10000, // 10 секунд
+        });
         const searchResults = await serpApiResponse.json();
-        console.log("Ответ от SerpAPI:", searchResults);
-
-        // Проверка на наличие ошибок в ответе
+  
         if (searchResults.error) {
           console.error("Ошибка от SerpAPI:", searchResults.error);
           throw new Error(searchResults.error);
         }
+  
+        // Обработка случая, если organic_results отсутствуют
+        const results = searchResults.organic_results || [];
+        if (results.length === 0) {
+          socket.emit('message', 'Не удалось найти результаты для вашего запроса.');
+          return;
+        }
 
-        // Форматирование результата
-        const formattedResults = searchResults.organic_results?.slice(0, 3).map(result => `${result.title}: ${result.link}`).join('\n') || "Результаты не найдены.";
-        console.log("Форматированные результаты:", formattedResults);
-
+        const formattedResults = results.slice(0, 3).map(result => `${result.title}: ${result.link}`).join('\n');
         socket.emit('message', `Вот результаты поиска:\n${formattedResults}`);
       } else {
         console.log("Обрабатываю сообщение с OpenAI...");
         userMessages[socket.id].push({ role: 'user', content: message });
-
         const response = await openai.chat.completions.create({
-          model: "gpt-4o",  
+          model: "gpt-4o",
           messages: userMessages[socket.id],
         });
-
-        const botResponse = response.choices[0]?.message?.content || "Ответ не был получен.";
-        console.log("Ответ OpenAI:", botResponse);
-
+  
+        const botResponse = response.choices[0].message.content;
         socket.emit('message', botResponse);
         userMessages[socket.id].push({ role: 'assistant', content: botResponse });
       }
@@ -80,6 +79,7 @@ io.on('connection', (socket) => {
       socket.emit('message', 'Произошла ошибка при обработке вашего запроса.');
     }
   });
+  
 
   socket.on('disconnect', () => {
     console.log('Пользователь отключился:', socket.id);
