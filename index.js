@@ -37,14 +37,14 @@ io.on('connection', (socket) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
   
     try {
-      // Проверка на запрос поиска
+      
       if (/поиск|найди|погода|информация|найти/i.test(message)) {
         console.log("Обрабатываю запрос через SerpAPI...");
         const searchQuery = message.replace(/поиск|найди|погода|информация|найти/gi, '').trim();
         
-        // Добавлен тайм-аут
+        
         const serpApiResponse = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(searchQuery)}&engine=google&api_key=${process.env.SERPAPI_KEY}`, {
-          timeout: 10000, // 10 секунд
+          timeout: 10000, 
         });
         const searchResults = await serpApiResponse.json();
   
@@ -53,7 +53,7 @@ io.on('connection', (socket) => {
           throw new Error(searchResults.error);
         }
   
-        // Обработка случая, если organic_results отсутствуют
+        
         const results = searchResults.organic_results || [];
         if (results.length === 0) {
           socket.emit('message', 'Не удалось найти результаты для вашего запроса.');
