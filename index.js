@@ -37,49 +37,56 @@ io.on('connection', (socket) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
   
     try {
-      
-      if (/поиск|найди|погода|информация|найти/i.test(message)) {
-        console.log("Обрабатываю запрос через SerpAPI...");
-        const searchQuery = message.replace(/поиск|найди|погода|информация|найти/gi, '').trim();
-        
-        
-        const serpApiResponse = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(searchQuery)}&engine=google&api_key=${process.env.SERPAPI_KEY}`, {
-          timeout: 10000, 
-        });
-        const searchResults = await serpApiResponse.json();
-  
-        if (searchResults.error) {
-          console.error("Ошибка от SerpAPI:", searchResults.error);
-          throw new Error(searchResults.error);
-        }
-  
-        
-        const results = searchResults.organic_results || [];
-        if (results.length === 0) {
-          socket.emit('message', 'Не удалось найти результаты для вашего запроса.');
-          return;
-        }
-
-        const formattedResults = results.slice(0, 3).map(result => `${result.title}: ${result.link}`).join('\n');
-        socket.emit('message', `Вот результаты поиска:\n${formattedResults}`);
-      } else {
-        console.log("Обрабатываю сообщение с OpenAI...");
-        userMessages[socket.id].push({ role: 'user', content: message });
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: userMessages[socket.id],
-        });
-  
-        const botResponse = response.choices[0].message.content;
-        socket.emit('message', botResponse);
-        userMessages[socket.id].push({ role: 'assistant', content: botResponse });
+      if (/какой сегодня день|какое сейчас время|какая дата/i.test(message)) {
+        const now = new Date();
+        const formattedDate = now.toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const formattedTime = now.toLocaleTimeString('ru-RU');
+        socket.emit('message', `Сегодня ${formattedDate}, текущее время: ${formattedTime}`);
+        return;
       }
+
+      if (/поиск|найди|события|погода|мероприятия/i.test(message)) {
+        const searchQuery = message.replace(/поиск|найди|события|погода|мероприятия/gi, '').trim();
+        socket.emit('message', `Вы хотите, чтобы я нашёл эту информацию в интернете? Ответьте "да" или "нет".`);
+        
+        socket.once('confirmation', async (confirmation) => {
+          if (confirmation.toLowerCase() === 'да') {
+            console.log("Пользователь подтвердил поиск в интернете.");
+            const serpApiResponse = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(searchQuery)}&engine=google&api_key=${process.env.SERPAPI_KEY}`);
+            const searchResults = await serpApiResponse.json();
+
+            if (searchResults.error) {
+              socket.emit('message', 'Произошла ошибка при поиске.');
+              return;
+            }
+
+            const topResults = searchResults.organic_results.slice(0, 3);
+            const summaries = topResults.map(result => {
+              return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
+            }).join('\n');
+            socket.emit('message', `Вот результаты поиска:\n${summaries}`);
+          } else {
+            console.log("Пользователь отказался от поиска в интернете.");
+            socket.emit('message', 'Хорошо, ничего не ищу.');
+          }
+        });
+        return;
+      }
+
+      userMessages[socket.id].push({ role: 'user', content: message });
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: userMessages[socket.id],
+      });
+
+      const botResponse = response.choices[0].message.content;
+      socket.emit('message', botResponse);
+      userMessages[socket.id].push({ role: 'assistant', content: botResponse });
     } catch (error) {
       console.error('Ошибка при обработке сообщения:', error);
       socket.emit('message', 'Произошла ошибка при обработке вашего запроса.');
     }
   });
-  
 
   socket.on('disconnect', () => {
     console.log('Пользователь отключился:', socket.id);
