@@ -5,7 +5,7 @@ console.log("SerpAPI Key:", process.env.SERPAPI_KEY ? "Загружен" : "Не
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const { GoogleSearch } = require('serpapi'); 
+const { GoogleSearch } = require('serpapi');
 const { OpenAI } = require('openai'); 
 const path = require('path');
 
@@ -18,7 +18,8 @@ if (!serpApiKey) {
   console.error("SerpAPI Key отсутствует!");
   process.exit(1);
 }
-const search = new GoogleSearch(serpApiKey);
+const SerpApi = require('serpapi');
+const search = new SerpApi.SerpApiSearch(serpApiKey);
 
 const app = express();
 const server = http.createServer(app);
