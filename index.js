@@ -6,7 +6,16 @@ console.log("SerpAPI Key:", process.env.SERPAPI_KEY ? "Загружен" : "Не
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const fetch = require('node-fetch');
+
+// Асинхронная функция для импорта fetch
+async function fetchData() {
+  const { default: fetch } = await import('node-fetch');
+  // Теперь можно использовать fetch, например:
+  // const response = await fetch('https://api.example.com/data');
+  // const data = await response.json();
+  // console.log(data);
+}
+
 const cheerio = require('cheerio');
 const path = require('path');
 const { SerpApi } = require('serpapi'); // Для работы с SerpAPI
