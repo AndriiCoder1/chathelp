@@ -188,7 +188,7 @@
 
     function toggleTheme() {
       const isDarkMode = bodyElement.classList.toggle('dark-theme');
-      themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark'; // Меняем текст кнопки
+      themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark'; 
       localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
     }
 
@@ -196,7 +196,7 @@
 
     if (localStorage.getItem('theme') === 'dark') {
       bodyElement.classList.add('dark-theme');
-      themeToggleButton.textContent = 'Light'; // Уже в темной теме
+      themeToggleButton.textContent = 'Light'; 
     }
 
     function updateDateTime() {

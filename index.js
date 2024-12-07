@@ -7,6 +7,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { OpenAI } = require('openai');
 const fetch = require('node-fetch'); 
+const cheerio = require('cheerio'); 
 const path = require('path');
 
 const openai = new OpenAI({
