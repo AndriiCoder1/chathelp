@@ -5,8 +5,8 @@ console.log("SerpAPI Key:", process.env.SERPAPI_KEY ? "Загружен" : "Не
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const { GoogleSearch } = require('serpapi');
-const { OpenAI } = require('openai'); 
+const { SerpApi } = require('serpapi');
+const { OpenAI } = require('openai');
 const path = require('path');
 
 const openai = new OpenAI({
@@ -18,7 +18,7 @@ if (!serpApiKey) {
   console.error("SerpAPI Key отсутствует!");
   process.exit(1);
 }
-const SerpApi = require('serpapi');
+
 const search = new SerpApi.SerpApiSearch(serpApiKey);
 
 const app = express();
@@ -89,7 +89,7 @@ io.on('connection', (socket) => {
 
       userMessages[socket.id].push({ role: 'user', content: message });
       const response = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o",
         messages: userMessages[socket.id],
       });
 
