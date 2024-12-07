@@ -17,6 +17,7 @@
   "author": "Твоё Имя",
   "license": "ISC",
   "dependencies": {
+    "serpapi": "^2.0.0",
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
