@@ -76,7 +76,7 @@ io.on('connection', (socket) => {
 
       userMessages[socket.id].push({ role: 'user', content: message });
       const response = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o",
         messages: userMessages[socket.id],
       });
 
