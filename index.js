@@ -7,6 +7,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { OpenAI } = require('openai');
 const path = require('path');
+const { SerpAPI } = require('serpapi');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -27,16 +28,22 @@ app.get('/', (req, res) => {
 });
 
 const userMessages = {};
-const { SerpAPI } = require('serpapi');
 
-const serpApi = new SerpAPI.GoogleSearch(process.env.SERPAPI_KEY);
+const serpApi = new SerpAPI(process.env.SERPAPI_KEY);
 
 async function searchFutureEvent(message) {
-  const query = `выборы США ${message}`;  
-  
+  const query = `выборы США ${message}`;
+
   try {
-    const searchResults = await serpApi.json({ q: query });
-    return searchResults.organic_results[0].snippet || "Не удалось найти информацию по вашему запросу.";
+    const searchResults = await serpApi.getJson({
+      q: query,
+      location: "Russia",
+      hl: "ru",
+      gl: "ru",
+    });
+    return searchResults.organic_results && searchResults.organic_results[0]
+      ? searchResults.organic_results[0].snippet
+      : "Не удалось найти информацию по вашему запросу.";
   } catch (error) {
     console.error("Ошибка при поиске информации:", error);
     return "Произошла ошибка при поиске информации.";
@@ -49,9 +56,8 @@ async function handleYearBasedQuery(message, socket, userMessages) {
 
   if (yearMatch) {
     const year = parseInt(yearMatch[0]);
-    
+
     if (year <= currentYear) {
-      
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [...userMessages[socket.id], { role: 'user', content: message }],
@@ -59,12 +65,9 @@ async function handleYearBasedQuery(message, socket, userMessages) {
       const botResponse = response.choices[0].message.content;
       socket.emit('message', botResponse);
     } else {
-      
-      const internetResponse = await searchFutureEvent(message);
-      socket.emit('message', internetResponse);
+      socket.emit('message', "Извините, у меня нет информации о событиях в будущем.");
     }
   } else {
-    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [...userMessages[socket.id], { role: 'user', content: message }],
@@ -77,15 +80,16 @@ async function handleYearBasedQuery(message, socket, userMessages) {
 io.on('connection', (socket) => {
   console.log('Новое подключение от клиента:', socket.id);
   userMessages[socket.id] = [];
-  
+
   socket.on('message', async (message) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
-    
+
     try {
-      
-      await handleYearBasedQuery(message, socket, userMessages);
-      
-      
+      if (/кто победил|победитель/i.test(message)) {
+        await handleYearBasedQuery(message, socket, userMessages);
+        return;
+      }
+
       const simpleResponses = [
         /добрый вечер/i,
         /привет/i,
@@ -117,7 +121,6 @@ io.on('connection', (socket) => {
         return;
       }
 
-      
       userMessages[socket.id].push({ role: 'user', content: message });
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -126,7 +129,7 @@ io.on('connection', (socket) => {
       const botResponse = response.choices[0].message.content;
       socket.emit('message', botResponse);
       userMessages[socket.id].push({ role: 'assistant', content: botResponse });
-  
+
     } catch (error) {
       console.error('Ошибка при обработке сообщения:', error);
       socket.emit('message', 'Произошла ошибка при обработке вашего запроса.');
