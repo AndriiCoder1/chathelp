@@ -40,21 +40,23 @@ app.get('/', (req, res) => {
 
 const userMessages = {};
 
-// Вспомогательная функция для обработки запросов по годам
 async function handleYearBasedQuery(message, socket, userMessages) {
   const yearMatch = message.match(/\b\d{4}\b/); // Ищем год в запросе
+  const currentYear = new Date().getFullYear(); // Получаем текущий год
+
   if (yearMatch) {
     const year = parseInt(yearMatch[0]);
-    if (year <= 2023) {
-      // Если год до или равен 2023, отвечаем из базы
+    
+    if (year <= currentYear) {
+      // Если год меньше или равен текущему, отвечаем из базы
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o",  // Убедитесь, что модель правильная
         messages: [...userMessages[socket.id], { role: 'user', content: message }],
       });
       const botResponse = response.choices[0].message.content;
       socket.emit('message', botResponse);
     } else {
-      // Если год больше 2023, выполняем поиск в интернете
+      // Если год больше текущего, выполняем поиск в интернете
       const params = {
         q: message,
         google_domain: "google.com",
@@ -77,7 +79,7 @@ async function handleYearBasedQuery(message, socket, userMessages) {
   } else {
     // Если год не указан, возвращаем ответ из базы
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o",  // Убедитесь, что модель правильная
       messages: [...userMessages[socket.id], { role: 'user', content: message }],
     });
     const botResponse = response.choices[0].message.content;
