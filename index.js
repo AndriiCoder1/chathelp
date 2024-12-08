@@ -6,7 +6,6 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const { OpenAI } = require('openai');
-const axios = require('axios');
 const path = require('path');
 
 const openai = new OpenAI({
@@ -17,7 +16,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'https://chathelp-y22r.onrender.com',
+    origin: 'https://chathelp-y22r.onrender.com', // Проверьте этот URL
   },
 });
 
@@ -29,31 +28,12 @@ app.get('/', (req, res) => {
 
 const userMessages = {};
 
-// Функция для выполнения поиска с помощью SerpAPI
-async function searchFutureEvent(message) {
-  const query = `выборы США ${message}`;
-  const url = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&api_key=${process.env.SERPAPI_KEY}`;
-
-  try {
-    const response = await axios.get(url);
-    const results = response.data.organic_results;
-    if (results && results.length > 0) {
-      return results[0].snippet || "Не удалось найти информацию по вашему запросу.";
-    }
-    return "Информация не найдена.";
-  } catch (error) {
-    console.error("Ошибка при поиске через SerpAPI:", error);
-    return "Произошла ошибка при поиске информации.";
-  }
-}
-
 async function handleYearBasedQuery(message, socket, userMessages) {
-  const yearMatch = message.match(/\b\d{4}\b/); // Ищем год в запросе
+  const yearMatch = message.match(/\b\d{4}\b/);
   const currentYear = new Date().getFullYear();
 
   if (yearMatch) {
     const year = parseInt(yearMatch[0]);
-
     if (year <= currentYear) {
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -62,8 +42,7 @@ async function handleYearBasedQuery(message, socket, userMessages) {
       const botResponse = response.choices[0].message.content;
       socket.emit('message', botResponse);
     } else {
-      const futureInfo = await searchFutureEvent(year);
-      socket.emit('message', futureInfo);
+      socket.emit('message', "Извините, у меня нет информации о событиях в будущем.");
     }
   } else {
     const response = await openai.chat.completions.create({
@@ -76,15 +55,45 @@ async function handleYearBasedQuery(message, socket, userMessages) {
 }
 
 io.on('connection', (socket) => {
-  console.log('Новое подключение от клиента:', socket.id);
+  console.log(`Новое подключение от клиента: ${socket.id}`);
   userMessages[socket.id] = [];
-
+  
   socket.on('message', async (message) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
-
     try {
       if (/кто победил|победитель/i.test(message)) {
         await handleYearBasedQuery(message, socket, userMessages);
+        return;
+      }
+
+      const simpleResponses = [
+        /добрый вечер/i,
+        /привет/i,
+        /как дела/i,
+        /что нового/i,
+        /какой сегодня день/i,
+      ];
+      if (simpleResponses.some(regex => regex.test(message))) {
+        let botResponse = '';
+        if (/добрый вечер/i.test(message)) {
+          botResponse = 'Добрый вечер! Чем могу помочь?';
+        } else if (/привет/i.test(message)) {
+          botResponse = 'Привет! Как я могу помочь?';
+        } else if (/как дела/i.test(message)) {
+          botResponse = 'Все хорошо, спасибо! А у тебя как?';
+        } else if (/что нового/i.test(message)) {
+          botResponse = 'Всё по-прежнему, если хочешь, могу помочь чем-то еще!';
+        } else if (/какой сегодня день/i.test(message)) {
+          const currentDate = new Date();
+          const date = currentDate.toLocaleDateString('ru-RU', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          });
+          botResponse = `Сегодня ${date}`;
+        }
+        socket.emit('message', botResponse);
         return;
       }
 
@@ -96,7 +105,6 @@ io.on('connection', (socket) => {
       const botResponse = response.choices[0].message.content;
       socket.emit('message', botResponse);
       userMessages[socket.id].push({ role: 'assistant', content: botResponse });
-
     } catch (error) {
       console.error('Ошибка при обработке сообщения:', error);
       socket.emit('message', 'Произошла ошибка при обработке вашего запроса.');
@@ -104,7 +112,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('Пользователь отключился:', socket.id);
+    console.log(`Пользователь отключился: ${socket.id}`);
     delete userMessages[socket.id];
   });
 });
