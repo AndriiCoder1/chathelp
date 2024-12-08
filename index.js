@@ -89,7 +89,24 @@ async function handleYearBasedQuery(message, socket, userMessages) {
 io.on('connection', (socket) => {
   console.log('Новое подключение от клиента:', socket.id);
   userMessages[socket.id] = [];
-
+  function isCurrentOrFutureQuery(message) {
+    const currentOrFutureKeywords = [
+      /последний/i,
+      /новый/i,
+      /анонс/i,
+      /будут/i,
+      /обещают/i,
+      /строят/i,
+      /прошли тесты/i,
+      /анонсировали/i,
+      /планируют/i,
+      /в будущем/i,
+      /свежий/i,
+      /современный/i
+    ];
+    return currentOrFutureKeywords.some(regex => regex.test(message));
+  }
+  
   socket.on('message', async (message) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
     
@@ -99,7 +116,7 @@ io.on('connection', (socket) => {
         await handleYearBasedQuery(message, socket, userMessages);
         return;
       }
-
+  
       // Проверка на простые запросы
       const simpleResponses = [
         /добрый вечер/i,
@@ -131,11 +148,10 @@ io.on('connection', (socket) => {
         socket.emit('message', botResponse);
         return;
       }
-
-      // Обработка поисковых запросов
-      if (/поиск|найди|события|погода|мероприятия/i.test(message)) {
-        const searchQuery = message.replace(/поиск|найди|события|погода|мероприятия/gi, '').trim();
-        console.log(`Запрос к поиску: ${searchQuery}`);
+  
+      // Проверка на запросы современных/будущих событий
+      if (isCurrentOrFutureQuery(message)) {
+        const searchQuery = message.trim();
         const params = {
           q: searchQuery,
           google_domain: "google.com",
@@ -156,7 +172,7 @@ io.on('connection', (socket) => {
         }
         return;
       }
-
+  
       // OpenAI API для остальных запросов
       userMessages[socket.id].push({ role: 'user', content: message });
       const response = await openai.chat.completions.create({
@@ -166,12 +182,13 @@ io.on('connection', (socket) => {
       const botResponse = response.choices[0].message.content;
       socket.emit('message', botResponse);
       userMessages[socket.id].push({ role: 'assistant', content: botResponse });
-      
+  
     } catch (error) {
       console.error('Ошибка при обработке сообщения:', error);
       socket.emit('message', 'Произошла ошибка при обработке вашего запроса.');
     }
   });
+  
 
   socket.on('disconnect', () => {
     console.log('Пользователь отключился:', socket.id);
