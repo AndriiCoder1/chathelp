@@ -59,10 +59,11 @@ io.on('connection', (socket) => {
       if (/поиск|найди|события|погода|мероприятия/i.test(message)) {
         const searchQuery = message.replace(/поиск|найди|события|погода|мероприятия/gi, '').trim();
         socket.emit('message', `Вы хотите, чтобы я нашёл эту информацию в интернете? Ответьте "да" или "нет".`);
-      
+
         socket.once('confirmation', async (confirmation) => {
           if (confirmation.toLowerCase() === 'да') {
             console.log("Пользователь подтвердил поиск в интернете.");
+            
             const params = {
               q: searchQuery,
               location: "Europe",
@@ -71,9 +72,10 @@ io.on('connection', (socket) => {
               hl: "ru",
               api_key: serpApiKey,
             };
-      
+
             try {
               const results = await search(params);  
+              console.log("Результаты поиска:", results); 
               const topResults = results.organic_results.slice(0, 3);
               const summaries = topResults.map(result => {
                 return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
