@@ -18,8 +18,13 @@ if (!serpApiKey) {
   console.error("SerpAPI Key отсутствует!");
   process.exit(1);
 }
+console.log("SerpApi:", SerpApi);
+console.log("serpApiKey:", serpApiKey);
 
-const search = new SerpApi.SerpApiSearch(serpApiKey);
+const search = new SerpApi(serpApiKey);
+
+
+
 
 const app = express();
 const server = http.createServer(app);
