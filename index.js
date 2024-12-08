@@ -16,7 +16,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'https://chathelp-y22r.onrender.com', // Проверьте этот URL
+    origin: 'https://chathelp-y22r.onrender.com', 
   },
 });
 
@@ -34,7 +34,7 @@ async function handleYearBasedQuery(message, socket, userMessages) {
 
   if (yearMatch) {
     const year = parseInt(yearMatch[0]);
-    if (year <= currentYear) {
+    if (year < currentYear) {
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [...userMessages[socket.id], { role: 'user', content: message }],
