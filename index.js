@@ -54,7 +54,6 @@ io.on('connection', (socket) => {
   
         const params = {
           q: searchQuery,
-          location: "Europe",
           google_domain: "google.com",
           gl: "us",
           hl: "ru",
