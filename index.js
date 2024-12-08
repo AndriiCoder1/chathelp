@@ -5,7 +5,7 @@ console.log("SerpAPI Key:", process.env.SERPAPI_KEY ? "Загружен" : "Не
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const { SerpApi } = require('serpapi');
+const { getJson } = require('serpapi');
 const { OpenAI } = require('openai');
 const path = require('path');
 
@@ -18,13 +18,11 @@ if (!serpApiKey) {
   console.error("SerpAPI Key отсутствует!");
   process.exit(1);
 }
-console.log("SerpApi:", SerpApi);
+
+console.log("SerpApi:", getJson);
 console.log("serpApiKey:", serpApiKey);
 
-const search = new SerpApi(serpApiKey);
-
-
-
+const search = getJson;
 
 const app = express();
 const server = http.createServer(app);
@@ -61,20 +59,21 @@ io.on('connection', (socket) => {
       if (/поиск|найди|события|погода|мероприятия/i.test(message)) {
         const searchQuery = message.replace(/поиск|найди|события|погода|мероприятия/gi, '').trim();
         socket.emit('message', `Вы хотите, чтобы я нашёл эту информацию в интернете? Ответьте "да" или "нет".`);
-
+      
         socket.once('confirmation', async (confirmation) => {
           if (confirmation.toLowerCase() === 'да') {
             console.log("Пользователь подтвердил поиск в интернете.");
             const params = {
               q: searchQuery,
-              location: "Europe", 
+              location: "Europe",
               google_domain: "google.com",
-              gl: "us", 
-              hl: "ru",  
+              gl: "us",
+              hl: "ru",
+              api_key: serpApiKey,
             };
-
+      
             try {
-              const results = await search.json(params);
+              const results = await search(params);  
               const topResults = results.organic_results.slice(0, 3);
               const summaries = topResults.map(result => {
                 return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
