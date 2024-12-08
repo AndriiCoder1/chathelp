@@ -46,9 +46,9 @@ io.on('connection', (socket) => {
 
   socket.on('message', async (message) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
-  
+    
     try {
-      
+      // 1. Проверка запроса на дату, время или погоду
       if (/какой сегодня день|текущая дата|сегодняшняя дата|что за дата/i.test(message)) {
         const currentDate = new Date();
         const date = currentDate.toLocaleDateString('ru-RU', {
@@ -61,33 +61,36 @@ io.on('connection', (socket) => {
         return;
       }
 
-      if (/поиск|найди|события|погода|мероприятия/i.test(message)) {
-        const searchQuery = message.replace(/поиск|найди|события|погода|мероприятия/gi, '').trim();
-        console.log(`Запрос к поиску: ${searchQuery}`);
-  
-        const params = {
-          q: searchQuery,
-          google_domain: "google.com",
-          gl: "us",
-          hl: "ru",
-          api_key: serpApiKey,
-        };
-  
-        try {
-          const results = await search(params);  
-          console.log("Результаты поиска:", results); 
-          const topResults = results.organic_results.slice(0, 3);
-          const summaries = topResults.map(result => {
-            return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
-          }).join('\n');
-          socket.emit('message', `Вот результаты поиска:\n${summaries}`);
-        } catch (err) {
-          console.error("Ошибка при выполнении поиска:", err);
-          socket.emit('message', "Произошла ошибка при выполнении поиска.");
-        }
-        return; 
+      if (/время|текущее время/i.test(message)) {
+        const currentTime = new Date().toLocaleTimeString();
+        socket.emit('message', `Текущее время: ${currentTime}`);
+        return;
       }
-  
+
+      // 2. Поиск в интернете через SerpAPI
+      const searchQuery = message.trim();
+      const params = {
+        q: searchQuery,
+        google_domain: "google.com",
+        gl: "us",
+        hl: "ru",
+        api_key: serpApiKey,
+      };
+
+      // Выполнение поиска через SerpAPI
+      const results = await search(params);
+      console.log("Результаты поиска:", results);
+      
+      if (results && results.organic_results) {
+        const topResults = results.organic_results.slice(0, 3);
+        const summaries = topResults.map(result => {
+          return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
+        }).join('\n');
+        socket.emit('message', `Вот результаты поиска:\n${summaries}`);
+        return; // После поиска в интернете не выполняем дополнительный запрос в GPT
+      }
+      
+      // 3. Если поиск не дал результатов, использует модель GPT для ответа
       userMessages[socket.id].push({ role: 'user', content: message });
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -97,13 +100,13 @@ io.on('connection', (socket) => {
       const botResponse = response.choices[0].message.content;
       socket.emit('message', botResponse);
       userMessages[socket.id].push({ role: 'assistant', content: botResponse });
-  
+      
     } catch (error) {
       console.error('Ошибка при обработке сообщения:', error);
       socket.emit('message', 'Произошла ошибка при обработке вашего запроса.');
     }
   });
-  
+
   socket.on('disconnect', () => {
     console.log('Пользователь отключился:', socket.id);
     delete userMessages[socket.id];
