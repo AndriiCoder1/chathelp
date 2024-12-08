@@ -46,68 +46,52 @@ io.on('connection', (socket) => {
 
   socket.on('message', async (message) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
-
+  
     try {
-      if (/какой сегодня день|какое сейчас время|какая дата/i.test(message)) {
-        const now = new Date();
-        const formattedDate = now.toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        const formattedTime = now.toLocaleTimeString('ru-RU');
-        socket.emit('message', `Сегодня ${formattedDate}, текущее время: ${formattedTime}`);
-        return;
-      }
-
       if (/поиск|найди|события|погода|мероприятия/i.test(message)) {
         const searchQuery = message.replace(/поиск|найди|события|погода|мероприятия/gi, '').trim();
-        socket.emit('message', `Вы хотите, чтобы я нашёл эту информацию в интернете? Ответьте "да" или "нет".`);
-
-        socket.once('confirmation', async (confirmation) => {
-          if (confirmation.toLowerCase() === 'да') {
-            console.log("Пользователь подтвердил поиск в интернете.");
-            
-            const params = {
-              q: searchQuery,
-              location: "Europe",
-              google_domain: "google.com",
-              gl: "us",
-              hl: "ru",
-              api_key: serpApiKey,
-            };
-
-            try {
-              const results = await search(params);  
-              console.log("Результаты поиска:", results); 
-              const topResults = results.organic_results.slice(0, 3);
-              const summaries = topResults.map(result => {
-                return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
-              }).join('\n');
-              socket.emit('message', `Вот результаты поиска:\n${summaries}`);
-            } catch (err) {
-              console.error("Ошибка при выполнении поиска:", err);
-              socket.emit('message', "Произошла ошибка при выполнении поиска.");
-            }
-          } else {
-            console.log("Пользователь отказался от поиска в интернете.");
-            socket.emit('message', 'Хорошо, ничего не ищу.');
-          }
-        });
-        return;
+        console.log(`Запрос к поиску: ${searchQuery}`);
+  
+        const params = {
+          q: searchQuery,
+          location: "Europe",
+          google_domain: "google.com",
+          gl: "us",
+          hl: "ru",
+          api_key: serpApiKey,
+        };
+  
+        try {
+          const results = await search(params);  
+          console.log("Результаты поиска:", results); 
+          const topResults = results.organic_results.slice(0, 3);
+          const summaries = topResults.map(result => {
+            return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
+          }).join('\n');
+          socket.emit('message', `Вот результаты поиска:\n${summaries}`);
+        } catch (err) {
+          console.error("Ошибка при выполнении поиска:", err);
+          socket.emit('message', "Произошла ошибка при выполнении поиска.");
+        }
+        return; 
       }
-
+  
       userMessages[socket.id].push({ role: 'user', content: message });
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: userMessages[socket.id],
       });
-
+  
       const botResponse = response.choices[0].message.content;
       socket.emit('message', botResponse);
       userMessages[socket.id].push({ role: 'assistant', content: botResponse });
+  
     } catch (error) {
       console.error('Ошибка при обработке сообщения:', error);
       socket.emit('message', 'Произошла ошибка при обработке вашего запроса.');
     }
   });
-
+  
   socket.on('disconnect', () => {
     console.log('Пользователь отключился:', socket.id);
     delete userMessages[socket.id];
