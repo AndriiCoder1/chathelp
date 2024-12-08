@@ -27,16 +27,31 @@ app.get('/', (req, res) => {
 });
 
 const userMessages = {};
+const { SerpAPI } = require('serpapi');
+
+const serpApi = new SerpAPI.GoogleSearch(process.env.SERPAPI_KEY);
+
+async function searchFutureEvent(message) {
+  const query = `выборы США ${message}`;  
+  
+  try {
+    const searchResults = await serpApi.json({ q: query });
+    return searchResults.organic_results[0].snippet || "Не удалось найти информацию по вашему запросу.";
+  } catch (error) {
+    console.error("Ошибка при поиске информации:", error);
+    return "Произошла ошибка при поиске информации.";
+  }
+}
 
 async function handleYearBasedQuery(message, socket, userMessages) {
-  const yearMatch = message.match(/\b\d{4}\b/); // Ищем год в запросе
-  const currentYear = new Date().getFullYear(); // Получаем текущий год
+  const yearMatch = message.match(/\b\d{4}\b/); 
+  const currentYear = new Date().getFullYear(); 
 
   if (yearMatch) {
     const year = parseInt(yearMatch[0]);
     
     if (year <= currentYear) {
-      // Если год меньше или равен текущему, отвечаем из базы
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [...userMessages[socket.id], { role: 'user', content: message }],
@@ -44,11 +59,12 @@ async function handleYearBasedQuery(message, socket, userMessages) {
       const botResponse = response.choices[0].message.content;
       socket.emit('message', botResponse);
     } else {
-      // Если год больше текущего, сообщаем, что информация отсутствует
-      socket.emit('message', "Извините, у меня нет информации о событиях в будущем.");
+      
+      const internetResponse = await searchFutureEvent(message);
+      socket.emit('message', internetResponse);
     }
   } else {
-    // Если год не указан, возвращаем ответ из базы
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [...userMessages[socket.id], { role: 'user', content: message }],
@@ -58,7 +74,6 @@ async function handleYearBasedQuery(message, socket, userMessages) {
   }
 }
 
-// Главный обработчик подключений
 io.on('connection', (socket) => {
   console.log('Новое подключение от клиента:', socket.id);
   userMessages[socket.id] = [];
@@ -67,13 +82,10 @@ io.on('connection', (socket) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
     
     try {
-      if (/кто победил|победитель/i.test(message)) {
-        // Обработка запросов по годам
-        await handleYearBasedQuery(message, socket, userMessages);
-        return;
-      }
-  
-      // Проверка на простые запросы
+      
+      await handleYearBasedQuery(message, socket, userMessages);
+      
+      
       const simpleResponses = [
         /добрый вечер/i,
         /привет/i,
@@ -104,15 +116,8 @@ io.on('connection', (socket) => {
         socket.emit('message', botResponse);
         return;
       }
-  
-      // Обработка запросов на будущее
-      const futureEventMatch = /202[4-9]|20[3-9][0-9]/.test(message); // Проверка на будущее событие
-      if (futureEventMatch) {
-        socket.emit('message', "Извините, у меня нет информации о событиях в будущем.");
-        return;
-      }
 
-      // OpenAI API для остальных запросов
+      
       userMessages[socket.id].push({ role: 'user', content: message });
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
