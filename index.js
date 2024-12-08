@@ -48,6 +48,19 @@ io.on('connection', (socket) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
   
     try {
+      
+      if (/какой сегодня день|текущая дата|сегодняшняя дата|что за дата/i.test(message)) {
+        const currentDate = new Date();
+        const date = currentDate.toLocaleDateString('ru-RU', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+        socket.emit('message', `Сегодня ${date}`);
+        return;
+      }
+
       if (/поиск|найди|события|погода|мероприятия/i.test(message)) {
         const searchQuery = message.replace(/поиск|найди|события|погода|мероприятия/gi, '').trim();
         console.log(`Запрос к поиску: ${searchQuery}`);
