@@ -40,13 +40,11 @@ app.get('/', (req, res) => {
 
 const userMessages = {};
 
-// Вспомогательная функция для обработки запросов по годам
 async function handleYearBasedQuery(message, socket, userMessages) {
-  const yearMatch = message.match(/\b\d{4}\b/); // Ищем год в запросе
+  const yearMatch = message.match(/\b\d{4}\b/); 
   if (yearMatch) {
     const year = parseInt(yearMatch[0]);
     if (year <= 2023) {
-      // Если год до или равен 2023, отвечаем из базы
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [...userMessages[socket.id], { role: 'user', content: message }],
@@ -54,7 +52,6 @@ async function handleYearBasedQuery(message, socket, userMessages) {
       const botResponse = response.choices[0].message.content;
       socket.emit('message', botResponse);
     } else {
-      // Если год больше 2023, выполняем поиск в интернете
       const params = {
         q: message,
         google_domain: "google.com",
@@ -75,7 +72,6 @@ async function handleYearBasedQuery(message, socket, userMessages) {
       }
     }
   } else {
-    // Если год не указан, возвращаем ответ из базы
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [...userMessages[socket.id], { role: 'user', content: message }],
@@ -85,7 +81,6 @@ async function handleYearBasedQuery(message, socket, userMessages) {
   }
 }
 
-// Главный обработчик подключений
 io.on('connection', (socket) => {
   console.log('Новое подключение от клиента:', socket.id);
   userMessages[socket.id] = [];
@@ -107,7 +102,6 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Проверка на простые запросы
       const simpleResponses = [
         /добрый вечер/i,
         /привет/i,
@@ -139,7 +133,6 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Обработка поисковых запросов
       if (/поиск|найди|события|погода|мероприятия/i.test(message)) {
         const searchQuery = message.replace(/поиск|найди|события|погода|мероприятия/gi, '').trim();
         console.log(`Запрос к поиску: ${searchQuery}`);
@@ -164,7 +157,6 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // OpenAI API для остальных запросов
       userMessages[socket.id].push({ role: 'user', content: message });
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
