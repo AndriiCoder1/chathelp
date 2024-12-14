@@ -94,8 +94,15 @@ io.on('connection', (socket) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
     
     try {
-      if (/кто победил|победитель/i.test(message)) {
-        // Обработка запросов по годам
+      if (/кто победил|победитель|выиграл/i.test(message)) {
+        await handleYearBasedQuery(message, socket, userMessages);
+        return;
+      }
+      if (/новый|новая|новое/i.test(message)) {
+        await handleYearBasedQuery(message, socket, userMessages);
+        return;
+      }
+      if (/последний|последняя|последнее/i.test(message)) {
         await handleYearBasedQuery(message, socket, userMessages);
         return;
       }
