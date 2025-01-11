@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat-Help</title>
   <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/handpose"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -23,6 +25,23 @@
       margin-top: 20px;
       transition: color 0.3s;
     }
+
+    #video {
+      width: 100%;
+      max-width: 640px;
+      height: auto;
+      position: absolute; /* Используем absolute, чтобы разместить видео в фоне */
+      top: 0;
+      left: 0;
+      z-index: -1; /* Это ставит видео в фон, так что элементы чата остаются на переднем плане */
+   }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      height: 100vh;
+   }
 
     #chat-log {
       width: 100%;
@@ -125,13 +144,16 @@
   </style>
 </head>
 <body>
+  <div class="container">
   <h1>Chat-Help</h1>
   <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
-
+  <button id="start-video">Start Video</button>
+  <button id="stop-video" style="display: none;">Stop Video</button>
+  <video id="video" width="640" height="480" autoplay></video>
   <button id="theme-toggle">L / D</button> 
   <div id="chat-log"></div>
   <div class="input-container">
-    <input id="message-input" type="text" placeholder="Input message...">
+  <input id="message-input" type="text" placeholder="Input message...">
     <button id="send-button">Send</button>
   </div>
 
@@ -216,6 +238,60 @@
 
     setInterval(updateDateTime, 1000);
     updateDateTime();
-  </script>
+  
+
+    const startVideoButton = document.getElementById('start-video');
+    const stopVideoButton = document.getElementById('stop-video');
+    const videoElement = document.getElementById('video');
+
+    let videoStream;
+  
+    startVideoButton.addEventListener('click', () => {
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then((stream) => {
+        videoElement.srcObject = stream;
+        videoStream = stream;  // Сохраняем поток
+        startVideoButton.style.display = 'none'; // Скрыть кнопку после клика
+        stopVideoButton.style.display = 'block';  // Показать кнопку остановки
+      })
+      .catch((error) => {
+        console.error('Ошибка доступа к камере:', error);
+      });
+  });
+
+  // Обработчик для кнопки Stop Video
+  stopVideoButton.addEventListener('click', () => {
+    if (videoStream) {
+      // Остановить поток
+      videoStream.getTracks().forEach(track => track.stop());
+      videoElement.srcObject = null;  // Отключить видео элемент от потока
+      startVideoButton.style.display = 'block';  // Показать кнопку старта
+      stopVideoButton.style.display = 'none';  // Скрыть кнопку остановки
+    }
+  });
+
+// Использование MediaPipe для распознавания жестов
+let model;
+
+// Загружаем модель
+handpose.load().then((loadedModel) => {
+  model = loadedModel;
+  detectGestures(); // Модель загружена, теперь можем начать распознавание жестов
+});
+
+async function detectGestures() {
+  if (!model) return;
+
+  const videoElement = document.getElementById('video');
+  const predictions = await model.estimateHands(videoElement);
+
+if (predictions.length > 0) {
+  console.log(predictions); // Можете тут обрабатывать жесты, например, для передачи их в чат
+}
+
+requestAnimationFrame(detectGestures);
+}
+
+</script>
 </body>
 </html>
