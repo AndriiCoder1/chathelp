@@ -30,10 +30,10 @@
       width: 100%;
       max-width: 640px;
       height: auto;
-      position: absolute; /* Используем absolute, чтобы разместить видео в фоне */
+      position: absolute; 
       top: 0;
       left: 0;
-      z-index: -1; /* Это ставит видео в фон, так что элементы чата остаются на переднем плане */
+      z-index: -1; 
    }
 
     .container {
@@ -250,33 +250,33 @@
     navigator.mediaDevices.getUserMedia({ video: true })
       .then((stream) => {
         videoElement.srcObject = stream;
-        videoStream = stream;  // Сохраняем поток
-        startVideoButton.style.display = 'none'; // Скрыть кнопку после клика
-        stopVideoButton.style.display = 'block';  // Показать кнопку остановки
+        videoStream = stream; 
+        startVideoButton.style.display = 'none'; 
+        stopVideoButton.style.display = 'block';  
       })
       .catch((error) => {
         console.error('Ошибка доступа к камере:', error);
       });
   });
 
-  // Обработчик для кнопки Stop Video
+ 
   stopVideoButton.addEventListener('click', () => {
     if (videoStream) {
-      // Остановить поток
+      
       videoStream.getTracks().forEach(track => track.stop());
-      videoElement.srcObject = null;  // Отключить видео элемент от потока
-      startVideoButton.style.display = 'block';  // Показать кнопку старта
-      stopVideoButton.style.display = 'none';  // Скрыть кнопку остановки
+      videoElement.srcObject = null;  
+      startVideoButton.style.display = 'block';  
+      stopVideoButton.style.display = 'none';
     }
   });
 
-// Использование MediaPipe для распознавания жестов
+
 let model;
 
-// Загружаем модель
+
 handpose.load().then((loadedModel) => {
   model = loadedModel;
-  detectGestures(); // Модель загружена, теперь можем начать распознавание жестов
+  detectGestures(); 
 });
 
 async function detectGestures() {
@@ -286,7 +286,7 @@ async function detectGestures() {
   const predictions = await model.estimateHands(videoElement);
 
 if (predictions.length > 0) {
-  console.log(predictions); // Можете тут обрабатывать жесты, например, для передачи их в чат
+  console.log(predictions); 
 }
 
 requestAnimationFrame(detectGestures);
