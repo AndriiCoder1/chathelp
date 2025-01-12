@@ -10,7 +10,6 @@ const { getJson } = require('serpapi');
 const { OpenAI } = require('openai');
 const path = require('path');
 
-I
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
