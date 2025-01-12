@@ -18,7 +18,7 @@ const getOpenAIResponse = async (message, socket) => {
   try {
     console.log("Отправка запроса в OpenAI с сообщением:", message);
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",  
+      model: "gpt-4o",
       messages: [{ role: "user", content: message }],
     });
 
@@ -77,7 +77,6 @@ io.on('connection', (socket) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
 
     try {
-      
       const simpleResponses = [
         /добрый вечер/i,
         /привет/i,
@@ -135,12 +134,18 @@ io.on('connection', (socket) => {
 
   socket.on('gesture', async (gestureData) => {
     console.log("Получены данные о жесте от клиента:", gestureData);
-    try {
-      const response = await processGesture(gestureData, socket);
-      console.log("Ответ на жест от OpenAI:", response);
-    } catch (error) {
-      console.error("Ошибка при обработке жеста:", error);
-      socket.emit('message', 'Произошла ошибка при обработке вашего жеста.');
+
+    if (gestureData && typeof gestureData === 'object' && 'util' in gestureData) {
+      try {
+        const response = await processGesture(gestureData, socket);
+        console.log("Ответ на жест от OpenAI:", response);
+      } catch (error) {
+        console.error("Ошибка при обработке жеста:", error);
+        socket.emit('message', 'Произошла ошибка при обработке вашего жеста.');
+      }
+    } else {
+      console.error("Ошибка: данные жеста не содержат ожидаемого поля 'util'");
+      socket.emit('message', 'Получены некорректные данные жеста.');
     }
   });
 
