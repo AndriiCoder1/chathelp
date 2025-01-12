@@ -55,11 +55,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'https://chathelp-y22r.onrender.com', 
+    origin: 'https://chathelp-y22r.onrender.com',
   },
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json()); 
 
 app.get('/', (req, res) => {
   console.log("Запрос к главной странице...");
@@ -112,7 +113,10 @@ io.on('connection', (socket) => {
 
       userMessages[socket.id].push({ role: 'user', content: message });
 
-      
+      if (!message || typeof message !== 'string') {
+        throw new Error('Некорректный формат сообщения');
+      }
+
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: userMessages[socket.id],
