@@ -14,14 +14,15 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-
 const getOpenAIResponse = async (message, socket) => {
   try {
+    console.log("Отправка запроса в OpenAI с сообщением:", message);
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o",  
       messages: [{ role: "user", content: message }],
     });
 
+    console.log("Ответ от OpenAI:", response);
     const botResponse = response.choices[0].message.content;
     if (socket) {
       socket.emit('message', botResponse);
@@ -36,12 +37,11 @@ const getOpenAIResponse = async (message, socket) => {
   }
 };
 
-
 const processGesture = (gestureData, socket) => {
+  console.log("Получен жест:", gestureData);
   const message = `Обработан жест: ${gestureData}`;
   return getOpenAIResponse(message, socket);
 };
-
 
 const serpApiKey = process.env.SERPAPI_KEY;
 if (!serpApiKey) {
@@ -51,7 +51,6 @@ if (!serpApiKey) {
 
 const search = getJson;
 
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -60,17 +59,14 @@ const io = new Server(server, {
   },
 });
 
-
 app.use(express.static(path.join(__dirname, 'public')));
 
-
 app.get('/', (req, res) => {
+  console.log("Запрос к главной странице...");
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-
 const userMessages = {};
-
 
 io.on('connection', (socket) => {
   console.log('Новое подключение от клиента:', socket.id);
@@ -80,7 +76,7 @@ io.on('connection', (socket) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
 
     try {
-    
+      
       const simpleResponses = [
         /добрый вечер/i,
         /привет/i,
@@ -110,19 +106,21 @@ io.on('connection', (socket) => {
           botResponse = `Сегодня ${date}`;
         }
         socket.emit('message', botResponse);
+        console.log("Ответ от бота:", botResponse);
         return;
       }
 
-      
       userMessages[socket.id].push({ role: 'user', content: message });
+
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: userMessages[socket.id],
       });
       const botResponse = response.choices[0].message.content;
+      console.log("Ответ от бота:", botResponse);
       socket.emit('message', botResponse);
 
-     
       userMessages[socket.id].push({ role: 'assistant', content: botResponse });
 
     } catch (error) {
@@ -137,12 +135,10 @@ io.on('connection', (socket) => {
   });
 });
 
-
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Сервер запущен на порту ${PORT}`);
 });
-
 
 if (process.env.NODE_ENV === 'development') {
   processGesture("жест указателя", null).then(response => {
