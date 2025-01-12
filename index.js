@@ -1,4 +1,5 @@
 require('dotenv').config();
+
 console.log("OpenAI API Key:", process.env.OPENAI_API_KEY ? "Загружен" : "Не найден");
 console.log("SerpAPI Key:", process.env.SERPAPI_KEY ? "Загружен" : "Не найден");
 
@@ -9,9 +10,39 @@ const { getJson } = require('serpapi');
 const { OpenAI } = require('openai');
 const path = require('path');
 
+I
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+
+const getOpenAIResponse = async (message, socket) => {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: message }],
+    });
+
+    const botResponse = response.choices[0].message.content;
+    if (socket) {
+      socket.emit('message', botResponse);
+    }
+    return botResponse;
+
+  } catch (error) {
+    console.error("Ошибка при получении ответа от OpenAI:", error);
+    if (socket) {
+      socket.emit('message', 'Произошла ошибка при обработке вашего жеста.');
+    }
+  }
+};
+
+
+const processGesture = (gestureData, socket) => {
+  const message = `Обработан жест: ${gestureData}`;
+  return getOpenAIResponse(message, socket);
+};
+
 
 const serpApiKey = process.env.SERPAPI_KEY;
 if (!serpApiKey) {
@@ -19,67 +50,28 @@ if (!serpApiKey) {
   process.exit(1);
 }
 
-console.log("SerpApi:", getJson);
-console.log("serpApiKey:", serpApiKey);
-
 const search = getJson;
+
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'https://chathelp-y22r.onrender.com',
+    origin: 'https://chathelp-y22r.onrender.com', 
   },
 });
 
+
 app.use(express.static(path.join(__dirname, 'public')));
 
+
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
+
 
 const userMessages = {};
 
-async function handleYearBasedQuery(message, socket, userMessages) {
-  const yearMatch = message.match(/\b\d{4}\b/); 
-  if (yearMatch) {
-    const year = parseInt(yearMatch[0]);
-    if (year <= 2023) {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [...userMessages[socket.id], { role: 'user', content: message }],
-      });
-      const botResponse = response.choices[0].message.content;
-      socket.emit('message', botResponse);
-    } else {
-      const params = {
-        q: message,
-        google_domain: "google.com",
-        gl: "us",
-        hl: "ru",
-        api_key: serpApiKey,
-      };
-      try {
-        const results = await search(params);
-        const topResults = results.organic_results.slice(0, 3);
-        const summaries = topResults.map(result => {
-          return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
-        }).join('\n');
-        socket.emit('message', `Вот результаты поиска:\n${summaries}`);
-      } catch (err) {
-        console.error("Ошибка при выполнении поиска:", err);
-        socket.emit('message', "Произошла ошибка при выполнении поиска.");
-      }
-    }
-  } else {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [...userMessages[socket.id], { role: 'user', content: message }],
-    });
-    const botResponse = response.choices[0].message.content;
-    socket.emit('message', botResponse);
-  }
-}
 
 io.on('connection', (socket) => {
   console.log('Новое подключение от клиента:', socket.id);
@@ -87,21 +79,9 @@ io.on('connection', (socket) => {
 
   socket.on('message', async (message) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
-    
-    try {
-      if (/кто победил|победитель|выиграл/i.test(message)) {
-        await handleYearBasedQuery(message, socket, userMessages);
-        return;
-      }
-      if (/новый|новая|новое/i.test(message)) {
-        await handleYearBasedQuery(message, socket, userMessages);
-        return;
-      }
-      if (/последний|последняя|последнее/i.test(message)) {
-        await handleYearBasedQuery(message, socket, userMessages);
-        return;
-      }
 
+    try {
+    
       const simpleResponses = [
         /добрый вечер/i,
         /привет/i,
@@ -109,6 +89,7 @@ io.on('connection', (socket) => {
         /что нового/i,
         /какой сегодня день/i,
       ];
+
       if (simpleResponses.some(regex => regex.test(message))) {
         let botResponse = '';
         if (/добрый вечер/i.test(message)) {
@@ -118,7 +99,7 @@ io.on('connection', (socket) => {
         } else if (/как дела/i.test(message)) {
           botResponse = 'Все хорошо, спасибо! А у тебя как?';
         } else if (/что нового/i.test(message)) {
-          botResponse = 'Всё по-прежнему, если хочешь, могу помочь чем-то еще!';
+          botResponse = 'Всё по-прежнему. Если нужно что-то конкретное, скажи!';
         } else if (/какой сегодня день/i.test(message)) {
           const currentDate = new Date();
           const date = currentDate.toLocaleDateString('ru-RU', {
@@ -133,30 +114,7 @@ io.on('connection', (socket) => {
         return;
       }
 
-      if (/поиск|найди|события|погода|мероприятия/i.test(message)) {
-        const searchQuery = message.replace(/поиск|найди|события|погода|мероприятия/gi, '').trim();
-        console.log(`Запрос к поиску: ${searchQuery}`);
-        const params = {
-          q: searchQuery,
-          google_domain: "google.com",
-          gl: "us",
-          hl: "ru",
-          api_key: serpApiKey,
-        };
-        try {
-          const results = await search(params);
-          const topResults = results.organic_results.slice(0, 3);
-          const summaries = topResults.map(result => {
-            return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
-          }).join('\n');
-          socket.emit('message', `Вот результаты поиска:\n${summaries}`);
-        } catch (err) {
-          console.error("Ошибка при выполнении поиска:", err);
-          socket.emit('message', "Произошла ошибка при выполнении поиска.");
-        }
-        return;
-      }
-
+      
       userMessages[socket.id].push({ role: 'user', content: message });
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -164,8 +122,10 @@ io.on('connection', (socket) => {
       });
       const botResponse = response.choices[0].message.content;
       socket.emit('message', botResponse);
+
+     
       userMessages[socket.id].push({ role: 'assistant', content: botResponse });
-      
+
     } catch (error) {
       console.error('Ошибка при обработке сообщения:', error);
       socket.emit('message', 'Произошла ошибка при обработке вашего запроса.');
@@ -178,7 +138,15 @@ io.on('connection', (socket) => {
   });
 });
 
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Сервер запущен на порту ${PORT}`);
 });
+
+
+if (process.env.NODE_ENV === 'development') {
+  processGesture("жест указателя", null).then(response => {
+    console.log("Ответ от OpenAI:", response);
+  });
+}
