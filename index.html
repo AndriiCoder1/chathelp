@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat-Help</title>
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
   <script src="https://unpkg.com/@tensorflow-models/handpose"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
@@ -292,6 +293,10 @@ if (predictions.length > 0) {
 }
 
 requestAnimationFrame(detectGestures);
+}
+
+if (typeof eruda !== 'undefined') {
+  eruda.init();
 }
 
 </script>

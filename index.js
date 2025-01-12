@@ -133,6 +133,17 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('gesture', async (gestureData) => {
+    console.log("Получены данные о жесте от клиента:", gestureData);
+    try {
+      const response = await processGesture(gestureData, socket);
+      console.log("Ответ на жест от OpenAI:", response);
+    } catch (error) {
+      console.error("Ошибка при обработке жеста:", error);
+      socket.emit('message', 'Произошла ошибка при обработке вашего жеста.');
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('Пользователь отключился:', socket.id);
     delete userMessages[socket.id];
