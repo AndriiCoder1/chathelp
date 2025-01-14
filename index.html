@@ -37,7 +37,6 @@
       padding: 20px;
     }
 
-    /* Структура для видео и текста */
     .layout {
       display: flex;
       flex-direction: row;
@@ -127,65 +126,7 @@
       font-size: 14px;
       z-index: 1000;
     }
-
-    /* Мобильные стили */
-    @media (max-width: 768px) {
-      .layout {
-        flex-direction: column;
-      }
-
-      .video-section {
-        flex: 2;
-      }
-
-      .text-section {
-        flex: 1;
-      }
-
-      .input-container {
-        flex-direction: column;
-      }
-
-      #message-input {
-        font-size: 14px;
-        width: 100%;
-      }
-
-      #send-button {
-        width: 100%;
-        font-size: 14px;
-      }
-    }
-
-    /* Тема для темного режима */
-    .dark-theme {
-      background-color: #202123;
-      color: #e8e8e8;
-    }
-
-    .dark-theme .text-section {
-      background-color: #343541;
-    }
-
-    .dark-theme #chat-log {
-      background-color: #343541;
-      border-color: #444;
-    }
-
-    .dark-theme #message-input {
-      background-color: #343541;
-      border: 1px solid #444;
-      color: #e8e8e8;
-    }
-
-    .dark-theme #send-button {
-      background-color: #3c3f42;
-      color: #e8e8e8;
-    }
-
-    .dark-theme #send-button:hover {
-      background-color: #4a4e51;
-    }
+    
   </style>
 </head>
 <body>
@@ -215,6 +156,7 @@
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
 
+    // Функция добавления сообщений в чат
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('output-text');
       const messageElement = document.createElement('p');
@@ -240,6 +182,7 @@
       addMessageToChat(message, true);
     });
 
+    // Отправка сообщений на сервер через сокеты
     document.getElementById('send-button').addEventListener('click', () => {
       sendMessage();
     });
@@ -260,6 +203,7 @@
       }
     }
 
+    // Переключение темы
     function toggleTheme() {
       const isDarkMode = bodyElement.classList.toggle('dark-theme');
       themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark';
@@ -293,6 +237,8 @@
 
     let videoStream;
     const videoElement = document.getElementById('video');
+
+    // Старт и стоп видео
     document.getElementById('start-video').addEventListener('click', () => {
       navigator.mediaDevices.getUserMedia({ video: true })
         .then((stream) => {
@@ -316,13 +262,17 @@
       document.getElementById('stop-video').style.display = 'none';
     });
 
+    // Загрузка модели для распознавания жестов
     handpose.load().then((model) => {
       async function detectGestures() {
         if (!model || !videoElement) return;
 
         const predictions = await model.estimateHands(videoElement);
         if (predictions.length > 0) {
-          console.log(predictions); // Отображаем жесты
+          console.log(predictions); // Вывод жестов в консоль
+          
+          // Отправка данных жестов на сервер
+          socket.emit('gesture', predictions);
         }
 
         requestAnimationFrame(detectGestures);
