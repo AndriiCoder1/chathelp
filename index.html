@@ -168,17 +168,19 @@
   <div class="container">
     <h1>Chat-Help</h1>
     <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
+    <button id="start-video">Start Video</button>
+    <button id="stop-video" style="display: none;">Stop Video</button>
     <div class="video-and-gesture">
       <video id="video" autoplay muted></video>
-      <canvas id="gestureCanvas"></canvas>
+      <canvas id="gestureCanvas" width="640" height="480"></canvas>
     </div>
-    <button id="theme-toggle">L / D</button>
     <div id="chat-log"></div>
     <div class="input-container">
       <input id="message-input" type="text" placeholder="Input message...">
       <button id="send-button">Send</button>
     </div>
   </div>
+  <button id="theme-toggle">L / D</button>
   <script>
     const socket = io();
     const themeToggleButton = document.getElementById('theme-toggle');
