@@ -37,38 +37,52 @@
       padding: 20px;
     }
 
-    .video-and-gesture {
+    /* Структура для видео и текста */
+    .layout {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       width: 100%;
       margin-bottom: 20px;
       gap: 10px;
     }
 
-    #video {
+    .video-section {
+      flex: 2;
+      background-color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .video-section video {
       width: 100%;
       max-width: 640px;
       height: auto;
       border-radius: 8px;
     }
 
-    #gestureCanvas {
-      display: block;
-      width: 100%;
-      max-width: 640px;
+    .text-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      background-color: #f4f7fa;
     }
 
-    #chat-log {
+    .text-section textarea,
+    .text-section #output-text {
       width: 100%;
-      max-width: 600px;
-      height: 300px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
+      margin-bottom: 10px;
       padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    #output-text {
       background-color: #fff;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      transition: background-color 0.3s, border-color 0.3s;
+      height: auto;
+      overflow-y: auto;
     }
 
     .input-container {
@@ -114,13 +128,18 @@
       z-index: 1000;
     }
 
+    /* Мобильные стили */
     @media (max-width: 768px) {
-      .video-and-gesture {
+      .layout {
         flex-direction: column;
       }
 
-      #chat-log {
-        height: 200px;
+      .video-section {
+        flex: 2;
+      }
+
+      .text-section {
+        flex: 1;
       }
 
       .input-container {
@@ -138,9 +157,14 @@
       }
     }
 
+    /* Тема для темного режима */
     .dark-theme {
       background-color: #202123;
       color: #e8e8e8;
+    }
+
+    .dark-theme .text-section {
+      background-color: #343541;
     }
 
     .dark-theme #chat-log {
@@ -170,31 +194,35 @@
     <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
     <button id="start-video">Start Video</button>
     <button id="stop-video" style="display: none;">Stop Video</button>
-    <div class="video-and-gesture">
-      <video id="video" autoplay muted></video>
-      <canvas id="gestureCanvas" width="640" height="480"></canvas>
+    <div class="layout">
+      <div class="video-section">
+        <video id="video" autoplay muted></video>
+      </div>
+      <div class="text-section">
+        <textarea id="text-input" placeholder="Input text here..." rows="10"></textarea>
+        <div id="output-text"></div>
+      </div>
     </div>
-    <div id="chat-log"></div>
     <div class="input-container">
       <input id="message-input" type="text" placeholder="Input message...">
       <button id="send-button">Send</button>
     </div>
   </div>
   <button id="theme-toggle">L / D</button>
+
   <script>
     const socket = io();
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
 
     function addMessageToChat(message, isBot = false) {
-      const chatLog = document.getElementById('chat-log');
+      const chatLog = document.getElementById('output-text');
       const messageElement = document.createElement('p');
       messageElement.textContent = message;
-
+      
       if (isBot) {
         messageElement.style.color = '#007bff';
       }
-
       chatLog.appendChild(messageElement);
       chatLog.scrollTop = chatLog.scrollHeight;
     }
@@ -224,7 +252,7 @@
 
     function sendMessage() {
       const message = document.getElementById('message-input').value;
-
+      
       if (message.trim()) {
         addMessageToChat(message);
         socket.emit('message', message);
@@ -265,15 +293,28 @@
 
     let videoStream;
     const videoElement = document.getElementById('video');
+    document.getElementById('start-video').addEventListener('click', () => {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then((stream) => {
+          videoElement.srcObject = stream;
+          videoStream = stream;
+          document.getElementById('start-video').style.display = 'none';
+          document.getElementById('stop-video').style.display = 'block';
+        })
+        .catch((error) => {
+          console.error('Ошибка доступа к камере:', error);
+        });
+    });
 
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then((stream) => {
-        videoElement.srcObject = stream;
-        videoStream = stream;
-      })
-      .catch((error) => {
-        console.error('Ошибка доступа к камере:', error);
-      });
+    document.getElementById('stop-video').addEventListener('click', () => {
+      if (videoStream) {
+        const tracks = videoStream.getTracks();
+        tracks.forEach((track) => track.stop());
+        videoStream = null;
+      }
+      document.getElementById('start-video').style.display = 'block';
+      document.getElementById('stop-video').style.display = 'none';
+    });
 
     handpose.load().then((model) => {
       async function detectGestures() {
@@ -281,7 +322,7 @@
 
         const predictions = await model.estimateHands(videoElement);
         if (predictions.length > 0) {
-          console.log(predictions);
+          console.log(predictions); // Отображаем жесты
         }
 
         requestAnimationFrame(detectGestures);
