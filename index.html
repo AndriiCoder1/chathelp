@@ -4,10 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat-Help</title>
-  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
-  <script src="https://unpkg.com/@tensorflow-models/handpose"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -15,9 +12,9 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: space-between; 
+      height: 100vh;
       margin: 0;
-      height: 100%;
       transition: background-color 0.3s, color 0.3s;
     }
 
@@ -27,74 +24,23 @@
       transition: color 0.3s;
     }
 
-    .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
-      max-width: 800px;
-      margin: auto;
-      padding: 20px;
-    }
-
-    .layout {
-      display: flex;
-      flex-direction: row;
-      width: 100%;
-      margin-bottom: 20px;
-      gap: 10px;
-    }
-
-    .video-section {
-      flex: 2;
-      background-color: #000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .video-section video {
-      width: 100%;
-      max-width: 640px;
-      height: auto;
-      border-radius: 8px;
-    }
-
-    .text-section {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 20px;
-      background-color: #f4f7fa;
-    }
-
-    .text-section textarea,
-    .text-section #output-text {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-
-    #output-text {
-      background-color: #fff;
-      height: auto;
-      overflow-y: auto;
-    }
-
-    .input-container {
-      display: flex;
+    #chat-log {
       width: 100%;
       max-width: 600px;
-      gap: 10px;
+      height: calc(100vh - 160px); 
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background-color: #fff;
+      margin-bottom: 20px;
+      transition: background-color 0.3s, border-color 0.3s;
     }
 
     #message-input {
-      flex-grow: 1;
+      width: 80%;
       padding: 10px;
       font-size: 16px;
+      margin-right: 10px;
       border: 1px solid #ccc;
       border-radius: 5px;
     }
@@ -113,6 +59,15 @@
       background-color: #0056b3;
     }
 
+    .input-container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
     #theme-toggle {
       position: fixed;
       top: 10px;
@@ -126,44 +81,74 @@
       font-size: 14px;
       z-index: 1000;
     }
-    
+
+    @media (max-width: 768px) {
+      #theme-toggle {
+        font-size: 12px; 
+        padding: 5px 8px;
+      }
+    }
+
+    .dark-theme {
+      background-color: #202123;
+      color: #e8e8e8;
+    }
+
+    .dark-theme #chat-log {
+      background-color: #343541;
+      border-color: #444;
+    }
+
+    .dark-theme #chat-log p {
+      color: #e8e8e8; 
+    }
+
+    .dark-theme .bot-message {
+      color: #b0bec5; 
+    }
+
+    .dark-theme #message-input {
+      background-color: #343541;
+      border: 1px solid #444;
+      color: #e8e8e8;
+    }
+
+    .dark-theme #send-button {
+      background-color: #3c3f42;
+      color: #e8e8e8;
+    }
+
+    .dark-theme #send-button:hover {
+      background-color: #4a4e51;
+    }
+
   </style>
 </head>
 <body>
-  <button id="theme-toggle">L / D</button>
-  <div class="container">
-    <h1>Chat-Help</h1>
-    <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
-    <button id="start-video">Start Video</button>
-    <button id="stop-video" style="display: none;">Stop Video</button>
-    <div class="layout">
-      <div class="video-section">
-        <video id="video" autoplay muted></video>
-      </div>
-      <div class="text-section">
-        <textarea id="text-input" placeholder="Input text here..." rows="10"></textarea>
-        <div id="output-text"></div>
-      </div>
-    </div>
-    <div class="input-container">
-      <input id="message-input" type="text" placeholder="Input message...">
-      <button id="send-button">Send</button>
-    </div>
+  <h1>Chat-Help</h1>
+  <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
+
+  <button id="theme-toggle">L / D</button> 
+  <div id="chat-log"></div>
+  <div class="input-container">
+    <input id="message-input" type="text" placeholder="Input message...">
+    <button id="send-button">Send</button>
   </div>
+
   <script>
     const socket = io();
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
 
-    
     function addMessageToChat(message, isBot = false) {
-      const chatLog = document.getElementById('output-text');
+      const chatLog = document.getElementById('chat-log');
       const messageElement = document.createElement('p');
       messageElement.textContent = message;
-      
+
       if (isBot) {
-        messageElement.style.color = '#007bff';
+        messageElement.classList.add('bot-message'); 
       }
+
       chatLog.appendChild(messageElement);
       chatLog.scrollTop = chatLog.scrollHeight;
     }
@@ -178,10 +163,9 @@
 
     socket.on('message', (message) => {
       console.log('Message received:', message);
-      addMessageToChat(message, true);
+      addMessageToChat(message, true); 
     });
 
-    
     document.getElementById('send-button').addEventListener('click', () => {
       sendMessage();
     });
@@ -194,7 +178,7 @@
 
     function sendMessage() {
       const message = document.getElementById('message-input').value;
-      
+
       if (message.trim()) {
         addMessageToChat(message);
         socket.emit('message', message);
@@ -202,10 +186,9 @@
       }
     }
 
-    
     function toggleTheme() {
       const isDarkMode = bodyElement.classList.toggle('dark-theme');
-      themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark';
+      themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark'; 
       localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
     }
 
@@ -213,76 +196,26 @@
 
     if (localStorage.getItem('theme') === 'dark') {
       bodyElement.classList.add('dark-theme');
-      themeToggleButton.textContent = 'Light';
+      themeToggleButton.textContent = 'Light'; 
     }
 
     function updateDateTime() {
       const datetimeElement = document.getElementById('datetime');
       const now = new Date();
       const options = {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
         day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
       };
       datetimeElement.textContent = now.toLocaleDateString('en-GB', options);
     }
 
     setInterval(updateDateTime, 1000);
     updateDateTime();
-
-    let videoStream;
-    const videoElement = document.getElementById('video');
-
-    
-    document.getElementById('start-video').addEventListener('click', () => {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then((stream) => {
-          videoElement.srcObject = stream;
-          videoStream = stream;
-          document.getElementById('start-video').style.display = 'none';
-          document.getElementById('stop-video').style.display = 'block';
-        })
-        .catch((error) => {
-          console.error('Ошибка доступа к камере:', error);
-        });
-    });
-
-    document.getElementById('stop-video').addEventListener('click', () => {
-      if (videoStream) {
-        const tracks = videoStream.getTracks();
-        tracks.forEach((track) => track.stop());
-        videoStream = null;
-      }
-      document.getElementById('start-video').style.display = 'block';
-      document.getElementById('stop-video').style.display = 'none';
-    });
-
-  
-    handpose.load().then((model) => {
-      async function detectGestures() {
-        if (!model || !videoElement) return;
-
-        const predictions = await model.estimateHands(videoElement);
-        if (predictions.length > 0) {
-          console.log(predictions); 
-          
-          
-          socket.emit('gesture', predictions);
-        }
-
-        requestAnimationFrame(detectGestures);
-      }
-
-      detectGestures();
-    });
-
-    if (typeof eruda !== 'undefined') {
-      eruda.init();
-    }
   </script>
 </body>
 </html>
