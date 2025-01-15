@@ -6,97 +6,59 @@ console.log("SerpAPI Key:", process.env.SERPAPI_KEY ? "Загружен" : "Не
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const { OpenAI } = require('openai');
 const path = require('path');
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const processGesture = async (gestureData, socket) => {
-  console.log("Получен жест:", gestureData);
-
-  const message = `Обработан жест: ${JSON.stringify(gestureData)}`;
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: message }],
-    });
-
-    const botResponse = response.choices[0].message.content;
-    console.log("Ответ от OpenAI:", botResponse);
-    socket.emit('gestureResponse', botResponse);
-  } catch (error) {
-    console.error("Ошибка при обработке жеста:", error);
-    socket.emit('message', 'Произошла ошибка при обработке вашего жеста.');
-  }
-};
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'https://chathelp-y22r.onrender.com',
+    origin: 'https://chathelp-y22r.onrender.com', // Разрешите домен, на котором работает фронтенд
   },
 });
 
-// Список пользователей и сообщений
-const userMessages = {};
+// Хранилище сессий пользователей
+const userSessions = new Map();
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// WebSocket подключение
+// Обработка соединения
 io.on('connection', (socket) => {
-  console.log('Новое подключение:', socket.id);
-  userMessages[socket.id] = [];
+  console.log(`Подключился пользователь: ${socket.id}`);
 
-  // Обработка текстовых сообщений
-  socket.on('message', async (message) => {
-    console.log(`Сообщение от ${socket.id}: ${message}`);
-    try {
-      if (!message || typeof message !== 'string') {
-        throw new Error('Некорректное сообщение');
-      }
-
-      userMessages[socket.id].push({ role: 'user', content: message });
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: userMessages[socket.id],
-      });
-
-      const botResponse = response.choices[0].message.content;
-      socket.emit('message', botResponse);
-
-      userMessages[socket.id].push({ role: 'assistant', content: botResponse });
-    } catch (error) {
-      console.error('Ошибка обработки сообщения:', error);
-      socket.emit('message', 'Ошибка обработки запроса.');
-    }
+  // Инициализация персональной сессии
+  userSessions.set(socket.id, {
+    videoBuffer: [], // Сохраняем кадры видео (опционально, для примера)
   });
 
-  // Обработка жестов
-  socket.on('gesture', (gestureData) => {
-    if (gestureData && typeof gestureData === 'object') {
-      processGesture(gestureData, socket);
-    } else {
-      socket.emit('message', 'Некорректный формат данных для жестов.');
-    }
+  // Обработка отправки видеопотока
+  socket.on('videoStream', (data) => {
+    // data будет содержать кадры или данные видео (base64)
+    console.log(`Видео данные от ${socket.id}:`, data.frame?.slice(0, 50)); // Пример: показываем начало фрейма
+
+    // Обработка фрейма через OpenAI (вставьте вашу обработку здесь)
+    const recognizedText = "Пример жеста"; // Это будет результат от OpenAI
+    socket.emit('recognizedText', { text: recognizedText });
+  });
+
+  // Редактирование текста перед отправкой
+  socket.on('sendEditedText', async (editedText) => {
+    console.log(`Пользователь ${socket.id} отправил текст для обработки:`, editedText);
+
+    // Отправка текста в OpenAI
+    const aiResponse = `Ответ на текст: "${editedText}"`; // Здесь вызывается OpenAI API
+    socket.emit('aiResponse', { text: aiResponse });
   });
 
   // Отключение пользователя
   socket.on('disconnect', () => {
-    console.log('Пользователь отключился:', socket.id);
-    delete userMessages[socket.id];
+    console.log(`Пользователь ${socket.id} отключился`);
+    userSessions.delete(socket.id);
   });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
+  console.log(`Сервер запущен на http://localhost:${PORT}`);
 });
+
