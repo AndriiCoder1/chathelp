@@ -12,87 +12,67 @@
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f7fa;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
       margin: 0;
       height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
       transition: background-color 0.3s, color 0.3s;
-    }
-
-    h1 {
-      color: #333;
-      margin-top: 20px;
-      transition: color 0.3s;
     }
 
     .container {
       display: flex;
       flex-direction: column;
-      align-items: center;
       width: 100%;
-      max-width: 800px;
-      margin: auto;
-      padding: 20px;
+      height: 100%;
     }
 
     .layout {
+      flex: 1;
       display: flex;
       flex-direction: row;
-      width: 100%;
-      margin-bottom: 20px;
       gap: 10px;
     }
 
     .video-section {
       flex: 2;
-      background-color: #000;
       display: flex;
       justify-content: center;
       align-items: center;
+      background-color: black;
+      height: 100%;
+      position: relative;
     }
 
     .video-section video {
       width: 100%;
-      max-width: 640px;
-      height: auto;
-      border-radius: 8px;
+      height: 100%;
+      object-fit: cover;
     }
 
     .text-section {
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 20px;
-      background-color: #f4f7fa;
-    }
-
-    .text-section textarea,
-    .text-section #output-text {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      background-color: white;
+      padding: 15px;
+      overflow: hidden;
     }
 
     #output-text {
-      background-color: #fff;
-      height: auto;
+      flex: 1;
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
       overflow-y: auto;
-    }
-
-    .input-container {
-      display: flex;
-      width: 100%;
-      max-width: 600px;
-      gap: 10px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background-color: #fff;
     }
 
     #message-input {
-      flex-grow: 1;
+      width: 100%;
       padding: 10px;
       font-size: 16px;
       border: 1px solid #ccc;
@@ -100,6 +80,7 @@
     }
 
     #send-button {
+      margin-top: 10px;
       padding: 10px 20px;
       font-size: 16px;
       background-color: #007bff;
@@ -113,177 +94,119 @@
       background-color: #0056b3;
     }
 
-    #theme-toggle {
-      position: fixed;
-      top: 10px;
-      right: 10px;
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      background-color: #f4f7fa;
+      border-top: 1px solid #ccc;
+    }
+
+    #start-video,
+    #stop-video {
+      padding: 10px 20px;
+      font-size: 14px;
       background-color: #007bff;
       color: white;
       border: none;
-      padding: 5px 10px;
       border-radius: 5px;
       cursor: pointer;
-      font-size: 14px;
-      z-index: 1000;
     }
-    
+
+    #theme-toggle {
+      padding: 5px 10px;
+      font-size: 14px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Chat-Help</h1>
-    <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
-    <button id="start-video">Start Video</button>
-    <button id="stop-video" style="display: none;">Stop Video</button>
     <div class="layout">
       <div class="video-section">
         <video id="video" autoplay muted></video>
       </div>
       <div class="text-section">
-        <textarea id="text-input" placeholder="Input text here..." rows="10"></textarea>
         <div id="output-text"></div>
+        <input id="message-input" type="text" placeholder="Input message...">
+        <button id="send-button">Send</button>
       </div>
     </div>
-    <div class="input-container">
-      <input id="message-input" type="text" placeholder="Input message...">
-      <button id="send-button">Send</button>
+    <div class="controls">
+      <button id="start-video">Start Video</button>
+      <button id="stop-video" style="display: none;">Stop Video</button>
+      <button id="theme-toggle">L / D</button>
     </div>
   </div>
-  <button id="theme-toggle">L / D</button>
 
   <script>
     const socket = io();
-    const themeToggleButton = document.getElementById('theme-toggle');
-    const bodyElement = document.body;
 
-    // Функция добавления сообщений в чат
-    function addMessageToChat(message, isBot = false) {
-      const chatLog = document.getElementById('output-text');
-      const messageElement = document.createElement('p');
-      messageElement.textContent = message;
-      
-      if (isBot) {
-        messageElement.style.color = '#007bff';
+    const videoElement = document.getElementById('video');
+    const startButton = document.getElementById('start-video');
+    const stopButton = document.getElementById('stop-video');
+    let videoStream;
+
+    startButton.addEventListener('click', () => {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          videoElement.srcObject = stream;
+          videoStream = stream;
+          startButton.style.display = 'none';
+          stopButton.style.display = 'block';
+        })
+        .catch(err => console.error('Error accessing video stream:', err));
+    });
+
+    stopButton.addEventListener('click', () => {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
       }
-      chatLog.appendChild(messageElement);
-      chatLog.scrollTop = chatLog.scrollHeight;
-    }
-
-    socket.on('connect', () => {
-      console.log('Connected to server');
+      startButton.style.display = 'block';
+      stopButton.style.display = 'none';
+      videoElement.srcObject = null;
     });
 
-    socket.on('disconnect', () => {
-      console.log('Disconnected from server');
-    });
+    const sendButton = document.getElementById('send-button');
+    const messageInput = document.getElementById('message-input');
+    const outputText = document.getElementById('output-text');
 
-    socket.on('message', (message) => {
-      console.log('Message received:', message);
-      addMessageToChat(message, true);
-    });
-
-    // Отправка сообщений на сервер через сокеты
-    document.getElementById('send-button').addEventListener('click', () => {
-      sendMessage();
-    });
-
-    document.getElementById('message-input').addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        sendMessage();
-      }
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') sendMessage();
     });
 
     function sendMessage() {
-      const message = document.getElementById('message-input').value;
-      
-      if (message.trim()) {
-        addMessageToChat(message);
+      const message = messageInput.value.trim();
+      if (message) {
+        appendMessage(`You: ${message}`);
         socket.emit('message', message);
-        document.getElementById('message-input').value = '';
+        messageInput.value = '';
       }
     }
 
-    // Переключение темы
-    function toggleTheme() {
-      const isDarkMode = bodyElement.classList.toggle('dark-theme');
-      themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark';
-      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    function appendMessage(message) {
+      const msgElem = document.createElement('p');
+      msgElem.textContent = message;
+      outputText.appendChild(msgElem);
+      outputText.scrollTop = outputText.scrollHeight;
     }
 
-    themeToggleButton.addEventListener('click', toggleTheme);
-
-    if (localStorage.getItem('theme') === 'dark') {
-      bodyElement.classList.add('dark-theme');
-      themeToggleButton.textContent = 'Light';
-    }
-
-    function updateDateTime() {
-      const datetimeElement = document.getElementById('datetime');
-      const now = new Date();
-      const options = {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      };
-      datetimeElement.textContent = now.toLocaleDateString('en-GB', options);
-    }
-
-    setInterval(updateDateTime, 1000);
-    updateDateTime();
-
-    let videoStream;
-    const videoElement = document.getElementById('video');
-
-    // Старт и стоп видео
-    document.getElementById('start-video').addEventListener('click', () => {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then((stream) => {
-          videoElement.srcObject = stream;
-          videoStream = stream;
-          document.getElementById('start-video').style.display = 'none';
-          document.getElementById('stop-video').style.display = 'block';
-        })
-        .catch((error) => {
-          console.error('Ошибка доступа к камере:', error);
-        });
+    socket.on('message', (message) => {
+      appendMessage(`Bot: ${message}`);
     });
 
-    document.getElementById('stop-video').addEventListener('click', () => {
-      if (videoStream) {
-        const tracks = videoStream.getTracks();
-        tracks.forEach((track) => track.stop());
-        videoStream = null;
-      }
-      document.getElementById('start-video').style.display = 'block';
-      document.getElementById('stop-video').style.display = 'none';
+    const themeButton = document.getElementById('theme-toggle');
+
+    themeButton.addEventListener('click', () => {
+      document.body.classList.toggle('dark-theme');
     });
 
-    // Загрузка модели для распознавания жестов
-    handpose.load().then((model) => {
-      async function detectGestures() {
-        if (!model || !videoElement) return;
-
-        const predictions = await model.estimateHands(videoElement);
-        if (predictions.length > 0) {
-          console.log(predictions); // Вывод жестов в консоль
-          
-          // Отправка данных жестов на сервер
-          socket.emit('gesture', predictions);
-        }
-
-        requestAnimationFrame(detectGestures);
-      }
-
-      detectGestures();
-    });
-
-    if (typeof eruda !== 'undefined') {
-      eruda.init();
-    }
+    if (typeof eruda !== 'undefined') eruda.init();
   </script>
 </body>
 </html>
