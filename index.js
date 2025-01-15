@@ -32,11 +32,6 @@ const userSessions = new Map();
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// Обработка запроса главной страницы
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 // Функция для обращения к OpenAI
 const getOpenAIResponse = async (message, socket) => {
   try {
