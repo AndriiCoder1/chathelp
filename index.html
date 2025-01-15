@@ -12,66 +12,70 @@
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f7fa;
-      margin: 0;
-      height: 100%;
-      overflow: hidden;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
       transition: background-color 0.3s, color 0.3s;
+    }
+
+    h1 {
+      color: #333;
+      margin-top: 20px;
+      transition: color 0.3s;
     }
 
     .container {
       display: flex;
       flex-direction: column;
+      align-items: center;
       width: 100%;
       height: 100%;
     }
 
     .layout {
-      flex: 1;
       display: flex;
-      flex-direction: row;
-      gap: 10px;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
     }
 
     .video-section {
       flex: 2;
-      display: flex;
+      background-color: #000;
+      display: none;
       justify-content: center;
       align-items: center;
-      background-color: black;
-      height: 100%;
-      position: relative;
+      transition: height 0.3s;
+    }
+
+    .video-section.active {
+      display: flex;
     }
 
     .video-section video {
       width: 100%;
+      max-width: 100%;
       height: 100%;
-      object-fit: cover;
+      border-radius: 8px;
     }
 
-    .text-section {
+    .chat-section {
       flex: 1;
       display: flex;
       flex-direction: column;
-      background-color: white;
-      padding: 15px;
-      overflow: hidden;
-    }
-
-    #output-text {
-      flex: 1;
-      margin-bottom: 10px;
+      justify-content: space-between;
       padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      background-color: #fff;
+      background-color: #f4f7fa;
+      overflow: hidden;
+      transition: flex 0.3s;
     }
 
-    #message-input {
+    .chat-section textarea,
+    .chat-section #output-text {
       width: 100%;
       padding: 10px;
       font-size: 16px;
@@ -79,8 +83,28 @@
       border-radius: 5px;
     }
 
+    #output-text {
+      background-color: #fff;
+      height: auto;
+      overflow-y: auto;
+      flex-grow: 1;
+    }
+
+    .input-container {
+      display: flex;
+      width: 100%;
+      gap: 10px;
+    }
+
+    #message-input {
+      flex-grow: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
     #send-button {
-      margin-top: 10px;
       padding: 10px 20px;
       font-size: 16px;
       background-color: #007bff;
@@ -94,119 +118,99 @@
       background-color: #0056b3;
     }
 
-    .controls {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px;
-      background-color: #f4f7fa;
-      border-top: 1px solid #ccc;
-    }
-
-    #start-video,
-    #stop-video {
-      padding: 10px 20px;
-      font-size: 14px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
     #theme-toggle {
-      padding: 5px 10px;
-      font-size: 14px;
+      position: fixed;
+      top: 10px;
+      right: 10px;
       background-color: #007bff;
       color: white;
       border: none;
+      padding: 5px 10px;
       border-radius: 5px;
       cursor: pointer;
+      font-size: 14px;
+      z-index: 1000;
     }
   </style>
 </head>
 <body>
   <div class="container">
+    <h1>Chat-Help</h1>
+    <button id="start-video">Start Video</button>
+    <button id="stop-video" style="display: none;">Stop Video</button>
     <div class="layout">
-      <div class="video-section">
+      <div class="video-section" id="video-section">
         <video id="video" autoplay muted></video>
       </div>
-      <div class="text-section">
+      <div class="chat-section" id="chat-section">
+        <textarea id="text-input" placeholder="Input text here..." rows="5"></textarea>
         <div id="output-text"></div>
-        <input id="message-input" type="text" placeholder="Input message...">
-        <button id="send-button">Send</button>
+        <div class="input-container">
+          <input id="message-input" type="text" placeholder="Input message...">
+          <button id="send-button">Send</button>
+        </div>
       </div>
     </div>
-    <div class="controls">
-      <button id="start-video">Start Video</button>
-      <button id="stop-video" style="display: none;">Stop Video</button>
-      <button id="theme-toggle">L / D</button>
-    </div>
   </div>
+  <button id="theme-toggle">L / D</button>
 
   <script>
     const socket = io();
-
+    const themeToggleButton = document.getElementById('theme-toggle');
+    const videoSection = document.getElementById('video-section');
+    const chatSection = document.getElementById('chat-section');
     const videoElement = document.getElementById('video');
-    const startButton = document.getElementById('start-video');
-    const stopButton = document.getElementById('stop-video');
     let videoStream;
 
-    startButton.addEventListener('click', () => {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-          videoElement.srcObject = stream;
-          videoStream = stream;
-          startButton.style.display = 'none';
-          stopButton.style.display = 'block';
-        })
-        .catch(err => console.error('Error accessing video stream:', err));
-    });
-
-    stopButton.addEventListener('click', () => {
-      if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-      }
-      startButton.style.display = 'block';
-      stopButton.style.display = 'none';
-      videoElement.srcObject = null;
-    });
-
-    const sendButton = document.getElementById('send-button');
-    const messageInput = document.getElementById('message-input');
-    const outputText = document.getElementById('output-text');
-
-    sendButton.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') sendMessage();
-    });
-
-    function sendMessage() {
-      const message = messageInput.value.trim();
-      if (message) {
-        appendMessage(`You: ${message}`);
-        socket.emit('message', message);
-        messageInput.value = '';
-      }
+    // Theme toggle
+    function toggleTheme() {
+      document.body.classList.toggle('dark-theme');
     }
+    themeToggleButton.addEventListener('click', toggleTheme);
 
-    function appendMessage(message) {
-      const msgElem = document.createElement('p');
-      msgElem.textContent = message;
-      outputText.appendChild(msgElem);
+    // Start and Stop Video
+    document.getElementById('start-video').addEventListener('click', () => {
+      navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+        videoElement.srcObject = stream;
+        videoStream = stream;
+        videoSection.classList.add('active');
+        document.getElementById('start-video').style.display = 'none';
+        document.getElementById('stop-video').style.display = 'block';
+      });
+    });
+
+    document.getElementById('stop-video').addEventListener('click', () => {
+      if (videoStream) {
+        videoStream.getTracks().forEach((track) => track.stop());
+        videoStream = null;
+      }
+      videoSection.classList.remove('active');
+      document.getElementById('start-video').style.display = 'block';
+      document.getElementById('stop-video').style.display = 'none';
+    });
+
+    // Socket handling
+    socket.on('connect', () => console.log('Connected to server'));
+    socket.on('disconnect', () => console.log('Disconnected'));
+    socket.on('message', (message) => addMessageToChat(message, true));
+
+    function addMessageToChat(message, isBot = false) {
+      const outputText = document.getElementById('output-text');
+      const newMessage = document.createElement('p');
+      newMessage.textContent = message;
+      if (isBot) newMessage.style.color = '#007bff';
+      outputText.appendChild(newMessage);
       outputText.scrollTop = outputText.scrollHeight;
     }
 
-    socket.on('message', (message) => {
-      appendMessage(`Bot: ${message}`);
+    document.getElementById('send-button').addEventListener('click', () => {
+      const input = document.getElementById('message-input');
+      if (input.value.trim()) {
+        addMessageToChat(input.value);
+        socket.emit('message', input.value);
+        input.value = '';
+      }
     });
-
-    const themeButton = document.getElementById('theme-toggle');
-
-    themeButton.addEventListener('click', () => {
-      document.body.classList.toggle('dark-theme');
-    });
-
-    if (typeof eruda !== 'undefined') eruda.init();
   </script>
 </body>
 </html>
