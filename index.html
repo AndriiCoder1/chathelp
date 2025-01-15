@@ -11,56 +11,43 @@
   <style>
     body {
       font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
       background-color: #f4f7fa;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      margin: 0;
       height: 100vh;
-      overflow: hidden;
       transition: background-color 0.3s, color 0.3s;
     }
 
     h1 {
+      text-align: center;
+      margin: 10px 0;
       color: #333;
-      margin-top: 20px;
       transition: color 0.3s;
-    }
-
-    .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
-      height: 100%;
     }
 
     .layout {
       display: flex;
       flex-direction: column;
-      width: 100%;
       height: 100%;
+      width: 100%;
+      overflow: hidden;
     }
 
     .video-section {
-      flex: 2;
+      flex: 1;
       background-color: #000;
-      display: none;
+      display: flex;
       justify-content: center;
       align-items: center;
-      transition: height 0.3s;
-    }
-
-    .video-section.active {
-      display: flex;
+      overflow: hidden;
     }
 
     .video-section video {
       width: 100%;
-      max-width: 100%;
-      height: 100%;
-      border-radius: 8px;
+      max-height: 100%;
+      object-fit: cover;
     }
 
     .chat-section {
@@ -70,24 +57,17 @@
       justify-content: space-between;
       padding: 10px;
       background-color: #f4f7fa;
-      overflow: hidden;
-      transition: flex 0.3s;
-    }
-
-    .chat-section textarea,
-    .chat-section #output-text {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      overflow-y: auto;
     }
 
     #output-text {
-      background-color: #fff;
-      height: auto;
-      overflow-y: auto;
       flex-grow: 1;
+      overflow-y: auto;
+      background-color: #fff;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
     }
 
     .input-container {
@@ -105,7 +85,7 @@
     }
 
     #send-button {
-      padding: 10px 20px;
+      padding: 10px;
       font-size: 16px;
       background-color: #007bff;
       color: white;
@@ -131,11 +111,37 @@
       font-size: 14px;
       z-index: 1000;
     }
+
+    /* Адаптация под телефоны */
+    @media screen and (max-width: 600px) {
+      .video-section {
+        flex: 2;
+      }
+
+      .chat-section {
+        flex: 1;
+      }
+
+      #output-text {
+        max-height: 150px;
+        overflow-y: auto;
+      }
+
+      #message-input {
+        font-size: 14px;
+      }
+
+      #send-button {
+        font-size: 14px;
+        padding: 5px;
+      }
+    }
   </style>
 </head>
 <body>
+  <h1>Chat-Help</h1>
+    <button id="theme-toggle">L / D</button>
   <div class="container">
-    <h1>Chat-Help</h1>
     <button id="start-video">Start Video</button>
     <button id="stop-video" style="display: none;">Stop Video</button>
     <div class="layout">
@@ -152,8 +158,6 @@
       </div>
     </div>
   </div>
-  <button id="theme-toggle">L / D</button>
-
   <script>
     const socket = io();
     const themeToggleButton = document.getElementById('theme-toggle');
