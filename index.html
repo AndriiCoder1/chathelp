@@ -5,34 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat-Help</title>
   <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
-  <style id="theme-style">
+  <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f7fa;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      margin: 0;
-      padding: 0;
+      justify-content: space-between; 
       height: 100vh;
-      overflow: hidden;
+      margin: 0;
+      transition: background-color 0.3s, color 0.3s;
     }
 
     h1 {
       color: #333;
       margin-top: 20px;
+      transition: color 0.3s;
     }
 
     #chat-log {
       width: 100%;
       max-width: 600px;
-      height: 300px;
+      height: calc(100vh - 160px); 
       overflow-y: auto;
       border: 1px solid #ccc;
       padding: 10px;
       background-color: #fff;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
+      transition: background-color 0.3s, border-color 0.3s;
     }
 
     #message-input {
@@ -44,10 +45,9 @@
       border-radius: 5px;
     }
 
-    #send-button, #theme-button {
+    #send-button {
       padding: 10px 20px;
       font-size: 16px;
-      margin-left: 10px;
       background-color: #007bff;
       color: white;
       border: none;
@@ -55,7 +55,7 @@
       cursor: pointer;
     }
 
-    #send-button:hover, #theme-button:hover {
+    #send-button:hover {
       background-color: #0056b3;
     }
 
@@ -65,130 +65,157 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
     }
 
-    video {
-      max-width: 100%;
-      border: 1px solid #ccc;
-      margin-bottom: 10px;
+    #theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 1000;
     }
+
+    @media (max-width: 768px) {
+      #theme-toggle {
+        font-size: 12px; 
+        padding: 5px 8px;
+      }
+    }
+
+    .dark-theme {
+      background-color: #202123;
+      color: #e8e8e8;
+    }
+
+    .dark-theme #chat-log {
+      background-color: #343541;
+      border-color: #444;
+    }
+
+    .dark-theme #chat-log p {
+      color: #e8e8e8; 
+    }
+
+    .dark-theme .bot-message {
+      color: #b0bec5; 
+    }
+
+    .dark-theme #message-input {
+      background-color: #343541;
+      border: 1px solid #444;
+      color: #e8e8e8;
+    }
+
+    .dark-theme #send-button {
+      background-color: #3c3f42;
+      color: #e8e8e8;
+    }
+
+    .dark-theme #send-button:hover {
+      background-color: #4a4e51;
+    }
+
   </style>
 </head>
 <body>
   <h1>Chat-Help</h1>
+  <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
 
-  <!-- Video Stream -->
+  <button id="theme-toggle">L / D</button> 
   <div id="chat-log"></div>
-  
-  <div id="video-container">
-    <video id="video-stream" autoplay></video>
-    <button id="start-video">Start Video</button>
-    <button id="stop-video" disabled>Stop Video</button>
-  </div>
-
-  <!-- Input Container -->
   <div class="input-container">
     <input id="message-input" type="text" placeholder="Input message...">
     <button id="send-button">Send</button>
-    <button id="theme-button">Switch Theme</button>
   </div>
 
   <script>
     const socket = io();
+    const themeToggleButton = document.getElementById('theme-toggle');
+    const bodyElement = document.body;
 
-    // Handle messages received from the server
-    socket.on('message', (message) => {
-      addMessageToChat(message, true);
-    });
-
-    // Handle responses about gestures
-    socket.on('gesture-feedback', (response) => {
-      addMessageToChat(response, true);
-    });
-
-    // Function to handle adding messages to the chat log
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log');
       const messageElement = document.createElement('p');
       messageElement.textContent = message;
-      if (isBot) messageElement.style.color = 'blue';
+
+      if (isBot) {
+        messageElement.classList.add('bot-message'); 
+      }
+
       chatLog.appendChild(messageElement);
       chatLog.scrollTop = chatLog.scrollHeight;
     }
 
-    // Send message to the server
+    socket.on('connect', () => {
+      console.log('Connected to server');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from server');
+    });
+
+    socket.on('message', (message) => {
+      console.log('Message received:', message);
+      addMessageToChat(message, true); 
+    });
+
     document.getElementById('send-button').addEventListener('click', () => {
+      sendMessage();
+    });
+
+    document.getElementById('message-input').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    function sendMessage() {
       const message = document.getElementById('message-input').value;
+
       if (message.trim()) {
         addMessageToChat(message);
         socket.emit('message', message);
         document.getElementById('message-input').value = '';
       }
-    });
-
-    // Change theme
-    document.getElementById('theme-button').addEventListener('click', () => {
-      const theme = document.getElementById('theme-style');
-      if (theme.innerHTML.includes("#f4f7fa")) {
-        theme.innerHTML = `
-          body {
-            background-color: #333;
-            color: #fff;
-          }
-          #chat-log, input, button {
-            background-color: #444;
-            color: #fff;
-            border-color: #666;
-          }
-          button:hover {
-            background-color: #555;
-          }
-        `;
-      } else {
-        theme.innerHTML = document.getElementById('theme-style').innerHTML.replace("#333", "#f4f7fa").replace("#fff", "#333").replace("#444", "#fff");
-      }
-    });
-
-    // Access webcam for gesture input
-    const videoElement = document.getElementById('video');
-    const gestureResult = document.getElementById('gesture-result');
-
-    async function startVideoStream() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        videoElement.srcObject = stream;
-
-        const model = await handpose.load(); // Load ML model for gesture detection
-        const videoWidth = videoElement.width;
-        const videoHeight = videoElement.height;
-
-        // Continuously analyze gestures
-        videoElement.addEventListener('loadeddata', async () => {
-          const videoCanvas = document.createElement('canvas');
-          videoCanvas.width = videoWidth;
-          videoCanvas.height = videoHeight;
-          const ctx = videoCanvas.getContext('2d');
-
-          setInterval(async () => {
-            ctx.drawImage(videoElement, 0, 0, videoWidth, videoHeight);
-            const hands = await model.estimateHands(videoCanvas);
-            if (hands.length) {
-              const gesture = hands[0].annotations.thumb[0];
-              socket.emit('gesture', JSON.stringify(gesture));
-              gestureResult.textContent = `Gesture detected: ${gesture}`;
-            } else {
-              gestureResult.textContent = "No gesture detected";
-            }
-          }, 500);
-        });
-      } catch (err) {
-        console.error('Error accessing webcam:', err);
-        gestureResult.textContent = 'Error accessing webcam.';
-      }
     }
 
-    startVideoStream();
+    function toggleTheme() {
+      const isDarkMode = bodyElement.classList.toggle('dark-theme');
+      themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark'; 
+      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    }
+
+    themeToggleButton.addEventListener('click', toggleTheme);
+
+    if (localStorage.getItem('theme') === 'dark') {
+      bodyElement.classList.add('dark-theme');
+      themeToggleButton.textContent = 'Light'; 
+    }
+
+    function updateDateTime() {
+      const datetimeElement = document.getElementById('datetime');
+      const now = new Date();
+      const options = {
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+      };
+      datetimeElement.textContent = now.toLocaleDateString('en-GB', options);
+    }
+
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
   </script>
 </body>
 </html>
