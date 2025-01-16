@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat-Help with Gesture Recognition</title>
+  <title>Chat-Help</title>
   <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
   <style id="theme-style">
     body {
@@ -76,14 +76,16 @@
   </style>
 </head>
 <body>
-  <h1>Chat-Help with Gesture Recognition</h1>
+  <h1>Chat-Help</h1>
 
   <!-- Video Stream -->
-  <video id="video" autoplay muted></video>
-  <p id="gesture-info">Gesture: <span id="gesture-result">Waiting...</span></p>
-
-  <!-- Chat Log -->
   <div id="chat-log"></div>
+  
+  <div id="video-container">
+    <video id="video-stream" autoplay></video>
+    <button id="start-video">Start Video</button>
+    <button id="stop-video" disabled>Stop Video</button>
+  </div>
 
   <!-- Input Container -->
   <div class="input-container">
