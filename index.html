@@ -3,18 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat-Help</title>
+  <title>Chat-Help with Gesture Recognition</title>
   <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
-  <style>
+  <style id="theme-style">
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f7fa;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      height: 100vh;
+      justify-content: flex-start;
       margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
     }
 
     h1 {
@@ -25,25 +27,12 @@
     #chat-log {
       width: 100%;
       max-width: 600px;
-      height: calc(100vh - 260px);
+      height: 300px;
       overflow-y: auto;
       border: 1px solid #ccc;
       padding: 10px;
       background-color: #fff;
-      margin-bottom: 20px;
-    }
-
-    #video-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-
-    #video-stream {
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      margin-bottom: 10px;
     }
 
     #message-input {
@@ -55,59 +44,78 @@
       border-radius: 5px;
     }
 
-    #send-button, #start-video, #stop-video {
+    #send-button, #theme-button {
       padding: 10px 20px;
       font-size: 16px;
+      margin-left: 10px;
       background-color: #007bff;
       color: white;
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      margin: 5px;
     }
 
-    #send-button:hover,
-    #start-video:hover,
-    #stop-video:hover {
+    #send-button:hover, #theme-button:hover {
       background-color: #0056b3;
+    }
+
+    .input-container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    video {
+      max-width: 100%;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>Chat-Help</h1>
-  <div id="chat-log"></div>
-  
-  <div id="video-container">
-    <video id="video-stream" autoplay></video>
-    <button id="start-video">Start Video</button>
-    <button id="stop-video" disabled>Stop Video</button>
-  </div>
+  <h1>Chat-Help with Gesture Recognition</h1>
 
+  <!-- Video Stream -->
+  <video id="video" autoplay muted></video>
+  <p id="gesture-info">Gesture: <span id="gesture-result">Waiting...</span></p>
+
+  <!-- Chat Log -->
+  <div id="chat-log"></div>
+
+  <!-- Input Container -->
   <div class="input-container">
-    <input id="message-input" type="text" placeholder="Type a message...">
+    <input id="message-input" type="text" placeholder="Input message...">
     <button id="send-button">Send</button>
+    <button id="theme-button">Switch Theme</button>
   </div>
 
   <script>
     const socket = io();
 
-    // For chat functionality
+    // Handle messages received from the server
+    socket.on('message', (message) => {
+      addMessageToChat(message, true);
+    });
+
+    // Handle responses about gestures
+    socket.on('gesture-feedback', (response) => {
+      addMessageToChat(response, true);
+    });
+
+    // Function to handle adding messages to the chat log
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log');
       const messageElement = document.createElement('p');
       messageElement.textContent = message;
-      if (isBot) {
-        messageElement.style.color = 'blue'; 
-      }
+      if (isBot) messageElement.style.color = 'blue';
       chatLog.appendChild(messageElement);
       chatLog.scrollTop = chatLog.scrollHeight;
     }
 
-    socket.on('connect', () => console.log('Connected to server'));
-    socket.on('disconnect', () => console.log('Disconnected from server'));
-
-    socket.on('message', (message) => addMessageToChat(message, true));
-
+    // Send message to the server
     document.getElementById('send-button').addEventListener('click', () => {
       const message = document.getElementById('message-input').value;
       if (message.trim()) {
@@ -117,45 +125,68 @@
       }
     });
 
-    // Video stream handling
-    const videoElement = document.getElementById('video-stream');
-    const startButton = document.getElementById('start-video');
-    const stopButton = document.getElementById('stop-video');
-    let mediaStream;
+    // Change theme
+    document.getElementById('theme-button').addEventListener('click', () => {
+      const theme = document.getElementById('theme-style');
+      if (theme.innerHTML.includes("#f4f7fa")) {
+        theme.innerHTML = `
+          body {
+            background-color: #333;
+            color: #fff;
+          }
+          #chat-log, input, button {
+            background-color: #444;
+            color: #fff;
+            border-color: #666;
+          }
+          button:hover {
+            background-color: #555;
+          }
+        `;
+      } else {
+        theme.innerHTML = document.getElementById('theme-style').innerHTML.replace("#333", "#f4f7fa").replace("#fff", "#333").replace("#444", "#fff");
+      }
+    });
+
+    // Access webcam for gesture input
+    const videoElement = document.getElementById('video');
+    const gestureResult = document.getElementById('gesture-result');
 
     async function startVideoStream() {
       try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        videoElement.srcObject = mediaStream;
-        startButton.disabled = true;
-        stopButton.disabled = false;
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoElement.srcObject = stream;
 
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        setInterval(() => {
-          canvas.width = videoElement.videoWidth;
-          canvas.height = videoElement.videoHeight;
-          context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-          const imageData = canvas.toDataURL('image/jpeg');
-          socket.emit('video-frame', imageData); // Send video frame to server
-        }, 1000); // Adjust the interval as necessary
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        alert('Unable to access camera. Please check permissions.');
+        const model = await handpose.load(); // Load ML model for gesture detection
+        const videoWidth = videoElement.width;
+        const videoHeight = videoElement.height;
+
+        // Continuously analyze gestures
+        videoElement.addEventListener('loadeddata', async () => {
+          const videoCanvas = document.createElement('canvas');
+          videoCanvas.width = videoWidth;
+          videoCanvas.height = videoHeight;
+          const ctx = videoCanvas.getContext('2d');
+
+          setInterval(async () => {
+            ctx.drawImage(videoElement, 0, 0, videoWidth, videoHeight);
+            const hands = await model.estimateHands(videoCanvas);
+            if (hands.length) {
+              const gesture = hands[0].annotations.thumb[0];
+              socket.emit('gesture', JSON.stringify(gesture));
+              gestureResult.textContent = `Gesture detected: ${gesture}`;
+            } else {
+              gestureResult.textContent = "No gesture detected";
+            }
+          }, 500);
+        });
+      } catch (err) {
+        console.error('Error accessing webcam:', err);
+        gestureResult.textContent = 'Error accessing webcam.';
       }
     }
 
-    function stopVideoStream() {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        videoElement.srcObject = null;
-        startButton.disabled = false;
-        stopButton.disabled = true;
-      }
-    }
-
-    startButton.addEventListener('click', startVideoStream);
-    stopButton.addEventListener('click', stopVideoStream);
+    startVideoStream();
   </script>
 </body>
 </html>
