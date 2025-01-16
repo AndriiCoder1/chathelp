@@ -33,6 +33,7 @@ const io = new Server(server, {
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: '10mb' })); // Для обработки больших данных, включая кадры видео
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
@@ -40,45 +41,45 @@ app.get('/', (req, res) => {
 
 const userMessages = {};
 
-async function handleYearBasedQuery(message, socket, userMessages) {
-  const yearMatch = message.match(/\b\d{4}\b/); 
-  if (yearMatch) {
-    const year = parseInt(yearMatch[0]);
-    if (year <= 2023) {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [...userMessages[socket.id], { role: 'user', content: message }],
-      });
-      const botResponse = response.choices[0].message.content;
-      socket.emit('message', botResponse);
-    } else {
-      const params = {
-        q: message,
-        google_domain: "google.com",
-        gl: "us",
-        hl: "ru",
-        api_key: serpApiKey,
-      };
-      try {
-        const results = await search(params);
-        const topResults = results.organic_results.slice(0, 3);
-        const summaries = topResults.map(result => {
-          return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
-        }).join('\n');
-        socket.emit('message', `Вот результаты поиска:\n${summaries}`);
-      } catch (err) {
-        console.error("Ошибка при выполнении поиска:", err);
-        socket.emit('message', "Произошла ошибка при выполнении поиска.");
-      }
+// Маршрут для обработки видеоввода
+app.post('/process-video', async (req, res) => {
+  try {
+    const { frames } = req.body; // Ожидается массив кадров в base64
+    if (!frames || !Array.isArray(frames)) {
+      return res.status(400).json({ error: 'Данные кадров отсутствуют или имеют неверный формат' });
     }
-  } else {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [...userMessages[socket.id], { role: 'user', content: message }],
-    });
-    const botResponse = response.choices[0].message.content;
-    socket.emit('message', botResponse);
+
+    // Анализируем каждый кадр через OpenAI
+    const results = await Promise.all(
+      frames.map(async (frame) => {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            { role: 'system', content: 'Ты система распознавания жестов. Анализируй видео.' },
+            { role: 'user', content: `Анализируй этот кадр: ${frame}` },
+          ],
+        });
+        return response.choices[0].message.content;
+      })
+    );
+
+    // Возвращаем результат анализа всех кадров
+    res.json({ results });
+  } catch (error) {
+    console.error("Ошибка при обработке видеоввода:", error);
+    res.status(500).json({ error: 'Ошибка при обработке видеоввода' });
   }
+});
+
+// Функция для обработки текстовых запросов
+async function handleTextQuery(message, socket, userMessages) {
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [...userMessages[socket.id], { role: 'user', content: message }],
+  });
+  const botResponse = response.choices[0].message.content;
+  socket.emit('message', botResponse);
+  userMessages[socket.id].push({ role: 'assistant', content: botResponse });
 }
 
 io.on('connection', (socket) => {
@@ -87,85 +88,14 @@ io.on('connection', (socket) => {
 
   socket.on('message', async (message) => {
     console.log(`Получено сообщение от ${socket.id}: ${message}`);
-    
     try {
-      if (/кто победил|победитель|выиграл/i.test(message)) {
-        await handleYearBasedQuery(message, socket, userMessages);
-        return;
-      }
-      if (/новый|новая|новое/i.test(message)) {
-        await handleYearBasedQuery(message, socket, userMessages);
-        return;
-      }
-      if (/последний|последняя|последнее/i.test(message)) {
-        await handleYearBasedQuery(message, socket, userMessages);
-        return;
-      }
-
-      const simpleResponses = [
-        /добрый вечер/i,
-        /привет/i,
-        /как дела/i,
-        /что нового/i,
-        /какой сегодня день/i,
-      ];
-      if (simpleResponses.some(regex => regex.test(message))) {
-        let botResponse = '';
-        if (/добрый вечер/i.test(message)) {
-          botResponse = 'Добрый вечер! Чем могу помочь?';
-        } else if (/привет/i.test(message)) {
-          botResponse = 'Привет! Как я могу помочь?';
-        } else if (/как дела/i.test(message)) {
-          botResponse = 'Все хорошо, спасибо! А у тебя как?';
-        } else if (/что нового/i.test(message)) {
-          botResponse = 'Всё по-прежнему, если хочешь, могу помочь чем-то еще!';
-        } else if (/какой сегодня день/i.test(message)) {
-          const currentDate = new Date();
-          const date = currentDate.toLocaleDateString('ru-RU', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          });
-          botResponse = `Сегодня ${date}`;
-        }
-        socket.emit('message', botResponse);
-        return;
-      }
-
-      if (/поиск|найди|события|погода|мероприятия/i.test(message)) {
-        const searchQuery = message.replace(/поиск|найди|события|погода|мероприятия/gi, '').trim();
-        console.log(`Запрос к поиску: ${searchQuery}`);
-        const params = {
-          q: searchQuery,
-          google_domain: "google.com",
-          gl: "us",
-          hl: "ru",
-          api_key: serpApiKey,
-        };
-        try {
-          const results = await search(params);
-          const topResults = results.organic_results.slice(0, 3);
-          const summaries = topResults.map(result => {
-            return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
-          }).join('\n');
-          socket.emit('message', `Вот результаты поиска:\n${summaries}`);
-        } catch (err) {
-          console.error("Ошибка при выполнении поиска:", err);
-          socket.emit('message', "Произошла ошибка при выполнении поиска.");
-        }
+      if (/жест|видео|распознай/i.test(message)) {
+        socket.emit('message', 'Отправьте видеокадры на /process-video для анализа жестов.');
         return;
       }
 
       userMessages[socket.id].push({ role: 'user', content: message });
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: userMessages[socket.id],
-      });
-      const botResponse = response.choices[0].message.content;
-      socket.emit('message', botResponse);
-      userMessages[socket.id].push({ role: 'assistant', content: botResponse });
-      
+      await handleTextQuery(message, socket, userMessages);
     } catch (error) {
       console.error('Ошибка при обработке сообщения:', error);
       socket.emit('message', 'Произошла ошибка при обработке вашего запроса.');
