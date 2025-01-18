@@ -68,12 +68,11 @@
       margin-bottom: 20px;
     }
 
-    /* Кнопка переключения темы */
     #theme-toggle {
       position: fixed;
       top: 10px;
       right: 10px;
-      background-color: #343541; /* Цвет как у поля ввода текста */
+      background-color: #007bff;
       color: white;
       border: none;
       padding: 5px 10px;
@@ -81,11 +80,13 @@
       cursor: pointer;
       font-size: 14px;
       z-index: 1000;
-      transition: background-color 0.3s ease;
     }
 
-    #theme-toggle:hover {
-      background-color: #444; /* Изменяется цвет при наведении */
+    @media (max-width: 768px) {
+      #theme-toggle {
+        font-size: 12px; 
+        padding: 5px 8px;
+      }
     }
 
     .dark-theme {
@@ -127,7 +128,7 @@
   <h1>Chat-Help</h1>
   <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
 
-  <button id="theme-toggle">Light / Dark</button>
+  <button id="theme-toggle">L / D</button> 
   <div id="chat-log"></div>
   <div class="input-container">
     <input id="message-input" type="text" placeholder="Input message...">
