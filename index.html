@@ -12,7 +12,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between; 
+      justify-content: space-between;
       height: 100vh;
       margin: 0;
       transition: background-color 0.3s, color 0.3s;
@@ -27,7 +27,7 @@
     #chat-log {
       width: 100%;
       max-width: 600px;
-      height: calc(100vh - 160px); 
+      height: calc(100vh - 160px);
       overflow-y: auto;
       border: 1px solid #ccc;
       padding: 10px;
@@ -84,7 +84,7 @@
 
     @media (max-width: 768px) {
       #theme-toggle {
-        font-size: 12px; 
+        font-size: 12px;
         padding: 5px 8px;
       }
     }
@@ -100,11 +100,11 @@
     }
 
     .dark-theme #chat-log p {
-      color: #e8e8e8; 
+      color: #e8e8e8;
     }
 
     .dark-theme .bot-message {
-      color: #b0bec5; 
+      color: #b0bec5;
     }
 
     .dark-theme #message-input {
@@ -122,23 +122,39 @@
       background-color: #4a4e51;
     }
 
+    #voice-btn {
+      background-color: #28a745;
+      color: white;
+      padding: 8px;
+      border-radius: 50%;
+      cursor: pointer;
+      margin-left: 10px;
+      font-size: 20px;
+    }
+
+    #voice-btn:hover {
+      background-color: #218838;
+    }
+
   </style>
 </head>
 <body>
   <h1>Chat-Help</h1>
   <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
 
-  <button id="theme-toggle">L / D</button> 
+  <button id="theme-toggle">L / D</button>
   <div id="chat-log"></div>
   <div class="input-container">
     <input id="message-input" type="text" placeholder="Input message...">
     <button id="send-button">Send</button>
+    <button id="voice-btn" title="Click to speak">🎤</button>
   </div>
 
   <script>
     const socket = io();
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
+    const voiceButton = document.getElementById('voice-btn');
 
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log');
@@ -146,7 +162,7 @@
       messageElement.textContent = message;
 
       if (isBot) {
-        messageElement.classList.add('bot-message'); 
+        messageElement.classList.add('bot-message');
       }
 
       chatLog.appendChild(messageElement);
@@ -163,7 +179,7 @@
 
     socket.on('message', (message) => {
       console.log('Message received:', message);
-      addMessageToChat(message, true); 
+      addMessageToChat(message, true);
     });
 
     document.getElementById('send-button').addEventListener('click', () => {
@@ -174,6 +190,10 @@
       if (event.key === 'Enter') {
         sendMessage();
       }
+    });
+
+    voiceButton.addEventListener('click', () => {
+      startVoiceRecognition();
     });
 
     function sendMessage() {
@@ -188,7 +208,7 @@
 
     function toggleTheme() {
       const isDarkMode = bodyElement.classList.toggle('dark-theme');
-      themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark'; 
+      themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark';
       localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
     }
 
@@ -196,19 +216,19 @@
 
     if (localStorage.getItem('theme') === 'dark') {
       bodyElement.classList.add('dark-theme');
-      themeToggleButton.textContent = 'Light'; 
+      themeToggleButton.textContent = 'Light';
     }
 
     function updateDateTime() {
       const datetimeElement = document.getElementById('datetime');
       const now = new Date();
       const options = {
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
         day: 'numeric',
-        hour: '2-digit', 
-        minute: '2-digit', 
+        hour: '2-digit',
+        minute: '2-digit',
         second: '2-digit',
       };
       datetimeElement.textContent = now.toLocaleDateString('en-GB', options);
@@ -216,6 +236,28 @@
 
     setInterval(updateDateTime, 1000);
     updateDateTime();
+
+    function startVoiceRecognition() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'en-US';
+      recognition.continuous = false;
+
+      recognition.onstart = function() {
+        voiceButton.textContent = '🔴'; // indicating that recognition is active
+      };
+
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('message-input').value = transcript;
+        sendMessage();
+      };
+
+      recognition.onend = function() {
+        voiceButton.textContent = '🎤'; // reset button after recognition ends
+      };
+
+      recognition.start();
+    }
   </script>
 </body>
 </html>

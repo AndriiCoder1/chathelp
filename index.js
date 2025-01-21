@@ -8,6 +8,7 @@ const { Server } = require('socket.io');
 const { getJson } = require('serpapi');
 const { OpenAI } = require('openai');
 const path = require('path');
+const fs = require('fs');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -68,6 +69,30 @@ app.post('/process-video', async (req, res) => {
   } catch (error) {
     console.error("Ошибка при обработке видеоввода:", error);
     res.status(500).json({ error: 'Ошибка при обработке видеоввода' });
+  }
+});
+
+// Маршрут для обработки локального аудиофайла
+app.get('/process-audio', async (req, res) => {
+  try {
+    const audioFilePath = 'C:\\Users\\mozart\\public\\audio.ogg'; // Укажите путь к вашему аудиофайлу
+
+    // Убедитесь, что файл существует
+    if (!fs.existsSync(audioFilePath)) {
+      return res.status(404).json({ error: 'Аудиофайл не найден по указанному пути.' });
+    }
+
+    // Обработка аудиофайла через OpenAI
+    const response = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(audioFilePath),
+      model: 'whisper-1',
+    });
+
+    // Возвращаем текстовую расшифровку
+    res.json({ transcription: response.text });
+  } catch (error) {
+    console.error('Ошибка при обработке аудио:', error);
+    res.status(500).json({ error: 'Ошибка при распознавании речи' });
   }
 });
 
