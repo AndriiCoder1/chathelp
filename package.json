@@ -22,6 +22,7 @@
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
     "openai": "^4.79.3",
     "serpapi": "^2.1.0",
