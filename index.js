@@ -9,6 +9,7 @@ const { getJson } = require('serpapi');
 const { OpenAI } = require('openai');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -32,6 +33,9 @@ const io = new Server(server, {
     origin: 'https://chathelp-y22r.onrender.com',
   },
 });
+
+// Для обработки загрузки аудиофайлов
+const upload = multer({ dest: 'uploads/' });
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json({ limit: '10mb' })); // Для обработки больших данных, включая кадры видео
@@ -72,21 +76,23 @@ app.post('/process-video', async (req, res) => {
   }
 });
 
-// Маршрут для обработки локального аудиофайла
-app.get('/process-audio', async (req, res) => {
+// Маршрут для обработки аудиофайлов
+app.post('/process-audio', upload.single('audio'), async (req, res) => {
   try {
-    const audioFilePath = 'C:\\Users\\mozart\\public\\audio.ogg'; // Укажите путь к вашему аудиофайлу
-
-    // Убедитесь, что файл существует
-    if (!fs.existsSync(audioFilePath)) {
-      return res.status(404).json({ error: 'Аудиофайл не найден по указанному пути.' });
+    if (!req.file) {
+      return res.status(400).json({ error: 'Аудиофайл не был загружен.' });
     }
+
+    const audioFilePath = req.file.path;
 
     // Обработка аудиофайла через OpenAI
     const response = await openai.audio.transcriptions.create({
       file: fs.createReadStream(audioFilePath),
       model: 'whisper-1',
     });
+
+    // Удаляем файл после обработки
+    fs.unlinkSync(audioFilePath);
 
     // Возвращаем текстовую расшифровку
     res.json({ transcription: response.text });
