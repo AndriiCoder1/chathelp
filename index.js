@@ -58,7 +58,7 @@ app.post('/process-video', async (req, res) => {
     const results = await Promise.all(
       frames.map(async (frame) => {
         const response = await openai.chat.completions.create({
-          model: "gpt-o1",
+          model: "gpt-3.5-turbo-16k-0613",
           messages: [
             { role: 'system', content: 'Ты система распознавания жестов. Анализируй видео.' },
             { role: 'user', content: `Анализируй этот кадр: ${frame}` },
@@ -105,7 +105,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 // Функция для обработки текстовых запросов
 async function handleTextQuery(message, socket, userMessages) {
   const response = await openai.chat.completions.create({
-    model: "gpt-o1",
+    model: "gpt-3.5-turbo-16k-0613",
     messages: [...userMessages[socket.id], { role: 'user', content: message }],
   });
   const botResponse = response.choices[0].message.content;
