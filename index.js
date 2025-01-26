@@ -10,6 +10,7 @@ const { OpenAI } = require('openai');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { exec } = require('child_process');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -20,11 +21,6 @@ if (!serpApiKey) {
   console.error("SerpAPI Key отсутствует!");
   process.exit(1);
 }
-
-console.log("SerpApi:", getJson);
-console.log("serpApiKey:", serpApiKey);
-
-const search = getJson;
 
 const app = express();
 const server = http.createServer(app);
@@ -46,36 +42,6 @@ app.get('/', (req, res) => {
 
 const userMessages = {};
 
-// Маршрут для обработки видеоввода
-app.post('/process-video', async (req, res) => {
-  try {
-    const { frames } = req.body; // Ожидается массив кадров в base64
-    if (!frames || !Array.isArray(frames)) {
-      return res.status(400).json({ error: 'Данные кадров отсутствуют или имеют неверный формат' });
-    }
-
-    // Анализируем каждый кадр через OpenAI
-    const results = await Promise.all(
-      frames.map(async (frame) => {
-        const response = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: [
-            { role: 'system', content: 'Ты система распознавания жестов. Анализируй видео.' },
-            { role: 'user', content: `Анализируй этот кадр: ${frame}` },
-          ],
-        });
-        return response.choices[0].message.content;
-      })
-    );
-
-    // Возвращаем результат анализа всех кадров
-    res.json({ results });
-  } catch (error) {
-    console.error("Ошибка при обработке видеоввода:", error);
-    res.status(500).json({ error: 'Ошибка при обработке видеоввода' });
-  }
-});
-
 // Маршрут для обработки аудиофайлов
 app.post('/process-audio', upload.single('audio'), async (req, res) => {
   try {
@@ -85,32 +51,44 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
     const audioFilePath = req.file.path;
 
-    // Обработка аудиофайла через OpenAI
-    const response = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(audioFilePath),
-      model: 'whisper-1',
+    // Вызов Python-скрипта для транскрипции
+    exec(`python transcribe.py "${audioFilePath}"`, (error, stdout, stderr) => {
+      if (error) {
+        console.error('Ошибка при выполнении Python-скрипта:', error);
+        return res.status(500).json({ error: 'Ошибка при транскрипции аудио' });
+      }
+
+      if (stderr) {
+        console.error('Ошибка в Python-скрипте:', stderr);
+        return res.status(500).json({ error: 'Ошибка при транскрипции аудио' });
+      }
+
+      // Удаляем файл после обработки
+      fs.unlinkSync(audioFilePath);
+
+      // Возвращаем текстовую расшифровку
+      res.json({ transcription: stdout.trim() });
     });
-
-    // Удаляем файл после обработки
-    fs.unlinkSync(audioFilePath);
-
-    // Возвращаем текстовую расшифровку
-    res.json({ transcription: response.text });
   } catch (error) {
     console.error('Ошибка при обработке аудио:', error);
     res.status(500).json({ error: 'Ошибка при распознавании речи' });
   }
 });
 
-// Функция для обработки текстовых запросов
+// Функция для обработки текстовых запросов с использованием gpt-3.5-turbo
 async function handleTextQuery(message, socket, userMessages) {
-  const response = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
-    messages: [...userMessages[socket.id], { role: 'user', content: message }],
-  });
-  const botResponse = response.choices[0].message.content;
-  socket.emit('message', botResponse);
-  userMessages[socket.id].push({ role: 'assistant', content: botResponse });
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [...userMessages[socket.id], { role: 'user', content: message }],
+    });
+    const botResponse = response.choices[0].message.content;
+    socket.emit('message', botResponse);
+    userMessages[socket.id].push({ role: 'assistant', content: botResponse });
+  } catch (error) {
+    console.error('Ошибка при обработке текстового запроса:', error);
+    socket.emit('message', 'Произошла ошибка при обработке вашего запроса.');
+  }
 }
 
 io.on('connection', (socket) => {
