@@ -43,7 +43,7 @@ app.get('/', (req, res) => {
 const userMessages = {};
 
 // Маршрут для обработки аудиофайлов
-app.post('C:/Users/mozart/public/audio.wav', upload.single('audio'), async (req, res) => {
+app.post('/process-audio', upload.single('audio'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'Аудиофайл не был загружен.' });
