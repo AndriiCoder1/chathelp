@@ -52,7 +52,7 @@ app.post('/process-audio', upload.single('audio'), (req, res) => {
     const audioFilePath = req.file.path;
 
     // Вызов Python-скрипта для транскрипции
-    exec(`python transcribe.py "${audioFilePath.replace(/\\/g, '/')}"`, (error, stdout, stderr) => {
+    exec(`"C:/Users/mozart/AppData/Local/Programs/Python/Python38/python.exe" transcribe.py "${audioFilePath.replace(/\\/g, '/')}"`, (error, stdout, stderr) => {
       if (error) {
         console.error('Ошибка при выполнении Python-скрипта:', error);
         return res.status(500).json({ error: 'Ошибка при транскрипции аудио' });
