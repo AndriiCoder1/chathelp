@@ -60,6 +60,15 @@ app.post('/process-audio', upload.single('audio'), (req, res) => {
         console.log('stdout:', stdout); // Отладочный вывод
         console.error('stderr:', stderr); // Отладочный вывод
 
+          // Если stdout содержит текст транскрипции, считаем выполнение успешным
+          if (stdout && stdout.trim()) {
+            // Удаляем файл после обработки
+            fs.unlinkSync(audioFilePath);
+  
+            // Возвращаем текстовую расшифровку
+            return res.json({ transcription: stdout.trim() });
+          }
+
         if (error) {
           console.error('Ошибка при выполнении Python-скрипта:', error);
           return res.status(500).json({ error: 'Ошибка при транскрипции аудио' });
