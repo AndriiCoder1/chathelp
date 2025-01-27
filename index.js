@@ -50,28 +50,33 @@ app.post('/process-audio', upload.single('audio'), (req, res) => {
     }
 
     const audioFilePath = req.file.path;
+    console.log(`Путь к аудиофайлу: ${audioFilePath}`); // Отладочный вывод
 
     // Вызов Python-скрипта для транскрипции
-    exec(`"C:/Users/mozart/AppData/Local/Programs/Python/Python38/python.exe" transcribe.py "${audioFilePath.replace(/\\/g, '/')}"`, (error, stdout, stderr) => {
-      if (error) {
-        console.error('Ошибка при выполнении Python-скрипта:', error);
-        console.log(`Путь к аудиофайлу: ${audioFilePath}`); // Отладочная информация
-        return res.status(500).json({ error: 'Ошибка при транскрипции аудио' });
-      
+    exec(
+      `"C:/Users/mozart/AppData/Local/Programs/Python/Python38/python.exe" transcribe.py "${audioFilePath.replace(/\\/g, '/')}"`,
+      { encoding: 'utf8' }, // Указываем кодировку
+      (error, stdout, stderr) => {
+        console.log('stdout:', stdout); // Отладочный вывод
+        console.error('stderr:', stderr); // Отладочный вывод
+
+        if (error) {
+          console.error('Ошибка при выполнении Python-скрипта:', error);
+          return res.status(500).json({ error: 'Ошибка при транскрипции аудио' });
+        }
+
+        if (stderr) {
+          console.error('Ошибка в Python-скрипте:', stderr);
+          return res.status(500).json({ error: 'Ошибка при транскрипции аудио' });
+        }
+
+        // Удаляем файл после обработки
+        fs.unlinkSync(audioFilePath);
+
+        // Возвращаем текстовую расшифровку
+        res.json({ transcription: stdout.trim() });
       }
-
-      if (stderr) {
-        console.error('Ошибка в Python-скрипте:', stderr);
-        console.log(`Путь к аудиофайлу: ${audioFilePath}`);  // Отладочная информация
-        return res.status(500).json({ error: 'Ошибка при транскрипции аудио' });
-      }
-
-      // Удаляем файл после обработки
-      fs.unlinkSync(audioFilePath);
-
-      // Возвращаем текстовую расшифровку
-      res.json({ transcription: stdout.trim() });
-    });
+    );
   } catch (error) {
     console.error('Ошибка при обработке аудио:', error);
     res.status(500).json({ error: 'Ошибка при распознавании речи' });

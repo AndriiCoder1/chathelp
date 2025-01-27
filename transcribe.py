@@ -25,5 +25,6 @@ if __name__ == "__main__":
 
     audio_file = sys.argv[1]
     print(f"Переданный путь к файлу: {audio_file}")  # Отладочная информация
+    print(f"Файл существует: {os.path.exists(audio_file)}")  # Отладочная информация
     transcription = transcribe_audio(audio_file)
     print(transcription)
