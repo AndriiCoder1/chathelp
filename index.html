@@ -47,29 +47,25 @@
       outline: none;
       transition: border-color 0.4s, background-color 0.4s;
       resize: none;
-      overflow: hidden; /* Для отключения прокрутки */
+      overflow: hidden;
     }
 
-    /* В темной теме поля ввода */
     .dark-theme #message-input {
       background-color: #343541;
       border: 1px solid #444;
       color: #e8e8e8;
     }
 
-    /* Когда поле пустое */
     #message-input:placeholder-shown {
       border-color: green;
     }
 
-    /* Когда текст введен */
     #message-input:not(:placeholder-shown) {
       border-color: orangered;
     }
 
-    /* Когда наводим курсор на поле */
     #message-input:focus {
-      border-color: #4285f4; /* цвет для фокуса */
+      border-color: #4285f4;
     }
 
     #send-button {
@@ -151,10 +147,22 @@
       cursor: pointer;
       margin-left: 10px;
       font-size: 20px;
+      transition: all 0.3s;
     }
 
     #voice-btn:hover {
       background-color: #218838;
+    }
+
+    #voice-btn.recording {
+      background-color: #dc3545;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
     }
 
   </style>
@@ -168,7 +176,7 @@
   <div class="input-container">
     <textarea id="message-input" placeholder="Input message..."></textarea>
     <button id="send-button">Send</button>
-    <button id="voice-btn" title="Click to speak">🎤</button>
+    <button id="voice-btn" title="Press to recording">🎤</button>
   </div>
 
   <script>
@@ -176,6 +184,44 @@
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
     const voiceButton = document.getElementById('voice-btn');
+    let recognition = null;
+
+    // Инициализация распознавания речи
+    function initSpeechRecognition() {
+      window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      
+      if (!window.SpeechRecognition) {
+        voiceButton.style.display = 'none';
+        console.warn('Голосовой ввод не поддерживается в этом браузере');
+        return;
+      }
+
+      recognition = new window.SpeechRecognition();
+      recognition.lang = 'en-EN';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        voiceButton.classList.add('recording');
+        console.log('Запись начата');
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('message-input').value = transcript;
+        sendMessage();
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Ошибка распознавания:', event.error);
+        alert(`Ошибка: ${event.error}`);
+      };
+
+      recognition.onend = () => {
+        voiceButton.classList.remove('recording');
+        console.log('Запись остановлена');
+      };
+    }
 
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log');
@@ -191,22 +237,19 @@
     }
 
     socket.on('connect', () => {
-      console.log('Connected to server');
+      console.log('Подключено к серверу');
     });
 
     socket.on('disconnect', () => {
-      console.log('Disconnected from server');
+      console.log('Отключено от сервера');
     });
 
     socket.on('message', (message) => {
-      console.log('Message received:', message);
+      console.log('Получено сообщение:', message);
       addMessageToChat(message, true);
     });
 
-    document.getElementById('send-button').addEventListener('click', () => {
-      sendMessage();
-    });
-
+    document.getElementById('send-button').addEventListener('click', sendMessage);
     document.getElementById('message-input').addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         sendMessage();
@@ -214,13 +257,22 @@
     });
 
     voiceButton.addEventListener('click', () => {
-      startVoiceRecognition();
+      if (!recognition) {
+        alert('Голосовой ввод не поддерживается!');
+        return;
+      }
+
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(() => recognition.start())
+        .catch(err => {
+          console.error('Ошибка доступа к микрофону:', err);
+          alert('Разрешите доступ к микрофону в настройках браузера!');
+        });
     });
 
     function sendMessage() {
-      const message = document.getElementById('message-input').value;
-
-      if (message.trim()) {
+      const message = document.getElementById('message-input').value.trim();
+      if (message) {
         addMessageToChat(message);
         socket.emit('message', message);
         document.getElementById('message-input').value = '';
@@ -252,33 +304,14 @@
         minute: '2-digit',
         second: '2-digit',
       };
-      datetimeElement.textContent = now.toLocaleDateString('de-DE', options);
+      datetimeElement.textContent = now.toLocaleDateString('de-De', options);
     }
 
+    // Инициализация при загрузке
+    initSpeechRecognition();
     setInterval(updateDateTime, 1000);
     updateDateTime();
 
-    function startVoiceRecognition() {
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.lang = 'en-US';
-      recognition.continuous = false;
-
-      recognition.onstart = function() {
-        voiceButton.textContent = '🔴'; // indicating that recognition is active
-      };
-
-      recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        document.getElementById('message-input').value = transcript;
-        sendMessage();
-      };
-
-      recognition.onend = function() {
-        voiceButton.textContent = '🎤'; // reset button after recognition ends
-      };
-
-      recognition.start();
-    }
   </script>
 </body>
 </html>
