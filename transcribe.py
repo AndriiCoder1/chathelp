@@ -1,6 +1,11 @@
 import whisper
 import sys
 import os
+import io
+
+# Устанавливаю кодировку UTF-8 для вывода
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 def transcribe_audio(file_path):
     if not os.path.exists(file_path):
@@ -9,7 +14,7 @@ def transcribe_audio(file_path):
 
     try:
         print("Загрузка модели Whisper...")  # Отладочная информация
-        model = whisper.load_model("base")  # Используйте "base" для начального уровня
+        model = whisper.load_model("base")  # Использую "base" для начального уровня
         print("Модель загружена. Начало транскрипции...")  # Отладочная информация
         result = model.transcribe(file_path)
         print("Транскрипция завершена.")  # Отладочная информация
