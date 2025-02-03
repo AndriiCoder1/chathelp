@@ -53,8 +53,7 @@ app.post('/process-audio', upload.single('audio'), (req, res) => {
     console.log(`Путь к аудиофайлу: ${audioFilePath}`); // Отладочный вывод
 
     // Вызов Python-скрипта для транскрипции
-    exec(
-      `"C:/Users/mozart/AppData/Local/Programs/Python/Python38/python.exe" transcribe.py "${audioFilePath.replace(/\\/g, '/')}"`,
+    exec(`"C:/Users/mozart/AppData/Local/Programs/Python/Python38/python.exe" transcribe.py "${audioFilePath.replace(/\\/g, '/')}"`,
       { encoding: 'utf8' }, // Указываем кодировку
       (error, stdout, stderr) => {
         console.log('stdout:', stdout); // Отладочный вывод
