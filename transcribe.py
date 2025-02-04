@@ -14,7 +14,7 @@ def transcribe_audio(file_path):
 
     try:
         print("Загрузка модели Whisper...")  # Отладочная информация
-        model = whisper.load_model("base")  # Использую "base" для начального уровня
+        model = whisper.load_model("medium")  # Использую "medium" 
         print("Модель загружена. Начало транскрипции...")  # Отладочная информация
         result = model.transcribe(file_path)
         print("Транскрипция завершена.")  # Отладочная информация
