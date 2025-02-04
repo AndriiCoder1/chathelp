@@ -6,6 +6,7 @@
   <title>Chat-Help</title>
   <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
   <style>
+    /* ... (существующие стили остаются без изменений) ... */
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f7fa;
@@ -165,18 +166,38 @@
       100% { transform: scale(1); }
     }
 
+    /* Добавляем стили для таймера */
+    #recording-timer {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      font-size: 24px;
+      color: #dc3545;
+      display: none;
+      background: rgba(0,0,0,0.7);
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+
+    .dark-theme #recording-timer {
+      color: #ff6b6b;
+      background: rgba(255,255,255,0.1);
+    }
   </style>
 </head>
 <body>
+  <!-- Добавляем элемент таймера -->
+  <div id="recording-timer">00:60</div>
+  
+  <!-- Остальная разметка без изменений -->
   <h1>Chat-Help</h1>
   <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
-
   <button id="theme-toggle">L / D</button>
   <div id="chat-log"></div>
   <div class="input-container">
-    <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
-    <button id="send-button">Send</button>
-    <button id="voice-btn" title="Press to recording">🎤</button>
+    <textarea id="message-input" placeholder="Введите сообщение..."></textarea>
+    <button id="send-button">Отправить</button>
+    <button id="voice-btn" title="Нажмите для записи">🎤</button>
   </div>
 
   <script>
@@ -184,45 +205,131 @@
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
     const voiceButton = document.getElementById('voice-btn');
+    const recordingTimer = document.getElementById('recording-timer');
+    
     let recognition = null;
+    let recordingTimeout = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
 
-    // Инициализация распознавания речи
+    // Инициализация аудиозаписи
+    async function startAudioRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        
+        mediaRecorder.ondataavailable = (e) => {
+          audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          await sendAudioToServer(audioBlob);
+          audioChunks = [];
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        startRecordingTimer();
+      } catch (error) {
+        console.error('Ошибка доступа к микрофону:', error);
+        alert('Разрешите доступ к микрофону в настройках браузера!');
+      }
+    }
+
+    // Отправка аудио на сервер
+    async function sendAudioToServer(audioBlob) {
+      try {
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.webm');
+        
+        const response = await fetch('/process-audio', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const { transcription } = await response.json();
+        document.getElementById('message-input').value = transcription;
+        sendMessage();
+      } catch (error) {
+        console.error('Ошибка отправки аудио:', error);
+      }
+    }
+
+    // Таймер записи
+    function startRecordingTimer() {
+      let seconds = 60;
+      recordingTimer.style.display = 'block';
+      
+      const timerInterval = setInterval(() => {
+        seconds--;
+        recordingTimer.textContent = `00:${seconds.toString().padStart(2, '0')}`;
+        
+        if (seconds <= 0) {
+          clearInterval(timerInterval);
+          stopRecording();
+        }
+      }, 1000);
+    }
+
+    // Остановка записи
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        recordingTimer.style.display = 'none';
+        voiceButton.classList.remove('recording');
+      }
+    }
+
+    // Обновленная инициализация распознавания речи
     function initSpeechRecognition() {
       window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       
       if (!window.SpeechRecognition) {
         voiceButton.style.display = 'none';
-        console.warn('Голосовой ввод не поддерживается в этом браузере');
+        console.warn('Голосовой ввод не поддерживается');
         return;
       }
 
       recognition = new window.SpeechRecognition();
-      recognition.lang = 'en-EN';
-      recognition.continuous = false;
+      recognition.lang = 'ru-RU'; // Исправлено на русский язык
+      recognition.continuous = true;
       recognition.interimResults = false;
 
       recognition.onstart = () => {
         voiceButton.classList.add('recording');
-        console.log('Запись начата');
+        startAudioRecording();
       };
 
       recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
+        const transcript = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join('');
         document.getElementById('message-input').value = transcript;
-        sendMessage();
       };
 
       recognition.onerror = (event) => {
         console.error('Ошибка распознавания:', event.error);
-        alert(`Ошибка: ${event.error}`);
+        stopRecording();
       };
 
       recognition.onend = () => {
-        voiceButton.classList.remove('recording');
-        console.log('Запись остановлена');
+        stopRecording();
       };
     }
 
+    // Обработчик кнопки голосового ввода
+    voiceButton.addEventListener('click', () => {
+      if (!isRecording) {
+        if (recognition) recognition.start();
+      } else {
+        stopRecording();
+      }
+    });
+
+    // Остальной код без изменений
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log');
       const messageElement = document.createElement('p');
@@ -250,24 +357,12 @@
     });
 
     document.getElementById('send-button').addEventListener('click', sendMessage);
+    
     document.getElementById('message-input').addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
         sendMessage();
       }
-    });
-
-    voiceButton.addEventListener('click', () => {
-      if (!recognition) {
-        alert('Голосовой ввод не поддерживается!');
-        return;
-      }
-
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(() => recognition.start())
-        .catch(err => {
-          console.error('Ошибка доступа к микрофону:', err);
-          alert('Разрешите доступ к микрофону в настройках браузера!');
-        });
     });
 
     function sendMessage() {
@@ -279,6 +374,7 @@
       }
     }
 
+    // Остальные функции без изменений
     function toggleTheme() {
       const isDarkMode = bodyElement.classList.toggle('dark-theme');
       themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark';
@@ -304,14 +400,13 @@
         minute: '2-digit',
         second: '2-digit',
       };
-      datetimeElement.textContent = now.toLocaleDateString('de-De', options);
+      datetimeElement.textContent = now.toLocaleDateString('ru-RU', options);
     }
 
     // Инициализация при загрузке
     initSpeechRecognition();
     setInterval(updateDateTime, 1000);
     updateDateTime();
-
   </script>
 </body>
 </html>
