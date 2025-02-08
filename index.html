@@ -227,6 +227,39 @@
     let isRecording = false;
     let isTTSEnabled = false;
     let voices = [];
+    let synth = window.speechSynthesis;
+
+
+    // Инициализация голосов
+    function populateVoices() {
+     voices = synth.getVoices();
+     voiceSelect.innerHTML = voices
+     .map(v => `<option value="${v.lang}">${v.name} (${v.lang})</option>`)
+     .join('');
+   }
+
+    // Автоматический выбор голоса по языку
+    function speak(text, lang) {
+     const utterance = new SpeechSynthesisUtterance(text);
+     const voice = voices.find(v => v.lang === lang) || voices[0];
+  
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = lang;
+    synth.speak(utterance);
+  }
+}
+
+    // Инициализация
+    synth.onvoiceschanged = populateVoices;
+
+   // Обработка сообщений от сервера
+    socket.on('message', (data) => {
+    const { transcription, language } = data;
+    addMessageToChat(transcription);
+    speak(transcription, language); // Автоматическое озвучивание
+});
+
     
 
   // Инициализация синтеза речи
