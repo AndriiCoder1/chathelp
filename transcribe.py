@@ -4,6 +4,8 @@ from openai import OpenAI
 from pydub import AudioSegment
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+language = sys.argv[2] if len(sys.argv) > 2 else None  # Язык из аргументов
+
 
 def convert_audio(input_path: str) -> str:
     """Конвертирует аудио в WAV 16 кГц с обработкой исключений"""
@@ -31,6 +33,7 @@ def transcribe_audio(file_path: str) -> str:
             response = client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file,
+                language=language,
                 response_format="verbose_json",  # Для получения метаданных
                 temperature=0.2,  # Повышение точности
                 prompt="",  # Контекстное приглашение (можно добавить ключевые слова)

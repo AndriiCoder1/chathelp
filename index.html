@@ -159,6 +159,18 @@
       animation: pulse 1s infinite;
     }
 
+    #tts-toggle {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #voice-select {
+      padding: 6px;
+      margin-left: 10px;
+    }
+
     @keyframes pulse {
       0% { transform: scale(1); }
       50% { transform: scale(1.1); }
@@ -196,6 +208,11 @@
     <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
     <button id="send-button">Send</button>
     <button id="voice-btn" title="Нажмите для записи">🎤</button>
+    <button id="tts-toggle">🔊 Включить голос</button>
+    
+  <select id="voice-select" style="display: none;">
+  <option value="">Выбрать голос</option>
+  </select>
   </div>
 
   <script>
@@ -204,12 +221,63 @@
     const bodyElement = document.body;
     const voiceButton = document.getElementById('voice-btn');
     const recordingTimer = document.getElementById('recording-timer');
+    const ttsToggle = document.getElementById('tts-toggle');
+    const voiceSelect = document.getElementById('voice-select');
     
     let recognition = null;
     let recordingTimeout = null;
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
+    let isTTSEnabled = false;
+    let voices = [];
+    
+
+  // Инициализация синтеза речи
+  function initSpeechSynthesis() {
+  if (!window.speechSynthesis) {
+    console.warn('Синтез речи не поддерживается');
+    ttsToggle.disabled = true;
+    return;
+  }
+
+  // Загрузка голосов
+  speechSynthesis.onvoiceschanged = () => {
+  voices = speechSynthesis.getVoices();
+  voices.forEach(voice => {
+      const option = document.createElement('option');
+      option.value = voice.name;
+      option.textContent = `${voice.name} (${voice.lang})`;
+      voiceSelect.appendChild(option);
+    });
+  };
+}
+
+  // Включение/выключение голосовых ответов
+  ttsToggle.addEventListener('click', () => {
+  isTTSEnabled = !isTTSEnabled;
+  ttsToggle.textContent = isTTSEnabled ? '🔇 Выключить голос' : '🔊 Включить голос';
+  voiceSelect.style.display = isTTSEnabled ? 'inline' : 'none';
+});
+
+  // Функция для озвучивания текста
+  function speak(text) {
+  if (!isTTSEnabled || !text) return;
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  const selectedVoice = voices.find(v => v.name === voiceSelect.value);
+  
+  // Настройки голоса
+  utterance.voice = selectedVoice || voices.find(v => v.lang === 'ru-RU');
+  utterance.rate = 1.0; // Скорость (0.1-2)
+  utterance.pitch = 1.0; // Тон (0-2)
+  utterance.volume = 1.0; // Громкость (0-1)
+
+  speechSynthesis.speak(utterance);
+}
+
+    // Инициализация при загрузке
+    initSpeechSynthesis();
 
     // Инициализация аудиозаписи
     async function startAudioRecording() {
@@ -292,7 +360,7 @@
       }
 
       recognition = new window.SpeechRecognition();
-      recognition.lang = 'ru-RU', 'en-EN', 'de-DU', 'ua-UA'; // Исправлено на русский язык
+      recognition.lang = 'ru-RU'; // Исправлено на русский язык
       recognition.continuous = true;
       recognition.interimResults = false;
 
@@ -352,6 +420,11 @@
     socket.on('message', (message) => {
       console.log('Получено сообщение:', message);
       addMessageToChat(message, true);
+    });
+
+    socket.on('message', (message) => {
+      addMessageToHistory(message, true);
+      speak(message); // Озвучиваем ответ бота
     });
 
     document.getElementById('send-button').addEventListener('click', sendMessage);
