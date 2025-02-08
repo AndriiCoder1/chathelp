@@ -208,13 +208,9 @@
     <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
     <button id="send-button">Send</button>
     <button id="voice-btn" title="Нажмите для записи">🎤</button>
-    <button id="tts-toggle">🔊 Включить голос</button>
-    
-  <select id="voice-select" style="display: none;">
-  <option value="">Выбрать голос</option>
-  </select>
+    <button id="tts-toggle">🔊 TTS</button>
+    <select id="voice-select" style="display:none;"></select>
   </div>
-
   <script>
     const socket = io();
     const themeToggleButton = document.getElementById('theme-toggle');
