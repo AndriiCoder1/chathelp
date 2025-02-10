@@ -197,9 +197,7 @@
   </style>
 </head>
 <body>
-  <!-- Добавляем элемент таймера -->
-  <div id="recording-timer">00:60</div>
-  
+
   <h1>Chat-Help</h1>
   <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
   <button id="theme-toggle">L / D</button>
@@ -208,8 +206,7 @@
     <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
     <button id="send-button">Send</button>
     <button id="voice-btn" title="Нажмите для записи">🎤</button>
-    <button id="tts-toggle">🔊 TTS</button>
-    <select id="voice-select" style="display:none;"></select>
+   
   </div>
   <script>
     const socket = io();
@@ -217,102 +214,19 @@
     const bodyElement = document.body;
     const voiceButton = document.getElementById('voice-btn');
     const recordingTimer = document.getElementById('recording-timer');
-    const ttsToggle = document.getElementById('tts-toggle');
-    const voiceSelect = document.getElementById('voice-select');
     
     let recognition = null;
     let recordingTimeout = null;
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
-    let isTTSEnabled = false;
-    let voices = [];
-    let synth = window.speechSynthesis;
-
-
-    // Инициализация голосов
-    function populateVoices() {
-     voices = synth.getVoices();
-     voiceSelect.innerHTML = voices
-     .map(v => `<option value="${v.lang}">${v.name} (${v.lang})</option>`)
-     .join('');
-   }
-
-    // Автоматический выбор голоса по языку
-    function speak(text, lang) {
-     const utterance = new SpeechSynthesisUtterance(text);
-     const voice = voices.find(v => v.lang === lang) || voices[0];
-  
-  if (voice) {
-    utterance.voice = voice;
-    utterance.lang = lang;
-    synth.speak(utterance);
-  }
-}
-
-    // Инициализация
-    synth.onvoiceschanged = populateVoices;
-
-   // Обработка сообщений от сервера
-    socket.on('message', (data) => {
-    const { transcription, language } = data;
-    addMessageToChat(transcription);
-    speak(transcription, language); // Автоматическое озвучивание
-});
-
-    
-
-  // Инициализация синтеза речи
-  function initSpeechSynthesis() {
-  if (!window.speechSynthesis) {
-    console.warn('Синтез речи не поддерживается');
-    ttsToggle.disabled = true;
-    return;
-  }
-
-  // Загрузка голосов
-  speechSynthesis.onvoiceschanged = () => {
-  voices = speechSynthesis.getVoices();
-  voices.forEach(voice => {
-      const option = document.createElement('option');
-      option.value = voice.name;
-      option.textContent = `${voice.name} (${voice.lang})`;
-      voiceSelect.appendChild(option);
-    });
-  };
-}
-
-  // Включение/выключение голосовых ответов
-  ttsToggle.addEventListener('click', () => {
-  isTTSEnabled = !isTTSEnabled;
-  ttsToggle.textContent = isTTSEnabled ? '🔇 Выключить голос' : '🔊 Включить голос';
-  voiceSelect.style.display = isTTSEnabled ? 'inline' : 'none';
-});
-
-  // Функция для озвучивания текста
-  function speak(text) {
-  if (!isTTSEnabled || !text) return;
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  const selectedVoice = voices.find(v => v.name === voiceSelect.value);
-  
-  // Настройки голоса
-  utterance.voice = selectedVoice || voices.find(v => v.lang === 'ru-RU');
-  utterance.rate = 1.0; // Скорость (0.1-2)
-  utterance.pitch = 1.0; // Тон (0-2)
-  utterance.volume = 1.0; // Громкость (0-1)
-
-  speechSynthesis.speak(utterance);
-}
-
-    // Инициализация при загрузке
-    initSpeechSynthesis();
-
+   
+ 
     // Инициализация аудиозаписи
     async function startAudioRecording() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm'});
         
         mediaRecorder.ondataavailable = (e) => {
           audioChunks.push(e.data);
@@ -344,7 +258,7 @@
           body: formData
         });
         
-        const { transcription } = await response.json();
+        const { transcription, language } = await response.json();
         document.getElementById('message-input').value = transcription;
         sendMessage();
       } catch (error) {
@@ -449,11 +363,6 @@
     socket.on('message', (message) => {
       console.log('Получено сообщение:', message);
       addMessageToChat(message, true);
-    });
-
-    socket.on('message', (message) => {
-      addMessageToHistory(message, true);
-      speak(message); // Озвучиваем ответ бота
     });
 
     document.getElementById('send-button').addEventListener('click', sendMessage);

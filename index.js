@@ -82,11 +82,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
     console.log(`[Аудио] Обработка файла: ${audioPath} (${req.file.size} байт)`);
 
     // Запуск транскрипции
-    exec(`python3 transcribe.py "${audioPath}"`, (error, stdout, stderr) => {
-      // ...
-      const [transcription, language] = stdout.trim().split('\n');
-      res.json({ transcription, language });
-    });
+    const command = `python3 "${path.join(__dirname, 'transcribe.py')}" "${audioPath}"`;
     
     exec(command, { encoding: 'utf-8' }, (error, stdout, stderr) => {
       // Очистка временных файлов
@@ -105,6 +101,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
         return res.status(500).json({ error: 'Не удалось распознать речь' });
       }
 
+      const [transcription, language] = stdout.trim().split('\n');
       console.log('[Python] Успешная транскрипция');
       res.json({ transcription: stdout.trim() });
     });
