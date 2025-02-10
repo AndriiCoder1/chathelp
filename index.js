@@ -103,7 +103,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
       const [transcription, language] = stdout.trim().split('\n');
       console.log('[Python] Успешная транскрипция');
-      res.json({ transcription: stdout.trim() });
+      res.json({ transcription, language });
     });
 
   } catch (error) {
