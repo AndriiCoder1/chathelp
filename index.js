@@ -8,6 +8,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
+const axios = require('axios'); // Добавлено для работы с SerpAPI
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -115,12 +116,65 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
   }
 });
 
+// Функция для поиска в интернете через SerpAPI
+async function searchInternet(query) {
+  try {
+    const response = await axios.get('https://serpapi.com/search', {
+      params: {
+        q: query,
+        api_key: process.env.SERPAPI_KEY,
+        hl: 'ru',
+        gl: 'ru'
+      }
+    });
+
+    if (response.data.organic_results && response.data.organic_results.length > 0) {
+      return response.data.organic_results[0].snippet;
+    }
+    return null;
+  } catch (error) {
+    console.error('[SerpAPI] Ошибка:', error.message);
+    return null;
+  }
+}
+
 // Обработка текстовых запросов
 async function handleTextQuery(message, socket) {
   try {
     const session = userSessions.get(socket.id) || [];
     const messages = [...session, { role: 'user', content: message }];
 
+    // Проверка на ключевые слова
+    const keywords = ['новый', 'последний', 'сегодня', 'время', 'дата'];
+    const containsKeyword = keywords.some(keyword => message.toLowerCase().includes(keyword));
+
+    // Если запрос содержит ключевые слова, сначала пытаемся ответить самостоятельно
+    if (containsKeyword) {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('ru-RU');
+      const dateString = now.toLocaleDateString('ru-RU', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      if (message.toLowerCase().includes('время')) {
+        return socket.emit('message', `Сейчас ${timeString}`);
+      }
+
+      if (message.toLowerCase().includes('дата')) {
+        return socket.emit('message', `Сегодня ${dateString}`);
+      }
+    }
+
+    // Если не нашли ответа в локальной базе, ищем в интернете
+    const internetResult = await searchInternet(message);
+    if (internetResult) {
+      return socket.emit('message', `Нашёл в интернете: ${internetResult}`);
+    }
+
+    // Если ничего не нашли, используем GPT
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: messages,
