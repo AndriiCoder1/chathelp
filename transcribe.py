@@ -1,41 +1,35 @@
+import whisper
 import sys
 import os
-from openai import OpenAI
-from pydub import AudioSegment
+import io
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Устанавливаю кодировку UTF-8 для вывода
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-def transcribe_audio(file_path: str, target_lang: str = None) -> tuple:
+def transcribe_audio(file_path):
+    if not os.path.exists(file_path):
+        print(f"Файл не найден: {file_path}")
+        return ""
+
     try:
-        audio = AudioSegment.from_file(file_path)
-        audio = audio.set_frame_rate(16000).set_channels(1)
-        converted_path = f"{file_path}.converted.wav"
-        audio.export(converted_path, format="wav")
-
-        params = {
-            "model": "whisper-1",
-            "file": open(converted_path, "rb"),
-            "response_format": "verbose_json"
-        }
-        
-        if target_lang:
-            params["language"] = target_lang.lower()
-            params["prompt"] = f"Это разговор на {target_lang}. Транскрибируй точно."
-
-        result = client.audio.transcriptions.create(**params)
-        os.remove(converted_path)
-        
-        return result.text, result.language.upper()
-
+        print("Загрузка модели Whisper...")  # Отладочная информация
+        model = whisper.load_model("medium")  # Использую "medium" 
+        print("Модель загружена. Начало транскрипции...")  # Отладочная информация
+        result = model.transcribe(file_path)
+        print("Транскрипция завершена.")  # Отладочная информация
+        return result["text"]
     except Exception as e:
-        print(f"ERROR:{str(e)}")
-        sys.exit(1)
+        print(f"Ошибка при транскрипции: {e}")
+        return ""
 
 if __name__ == "__main__":
-    try:
-        target_lang = sys.argv[2] if len(sys.argv) > 2 else None
-        text, lang = transcribe_audio(sys.argv[1], target_lang)
-        print(f"{text}\n{lang}")
-    except Exception as e:
-        print(f"CRITICAL:{str(e)}")
+    if len(sys.argv) != 2:
+        print("Использование: python transcribe.py <путь_к_аудиофайлу>")
         sys.exit(1)
+
+    audio_file = sys.argv[1]
+    print(f"Переданный путь к файлу: {audio_file}")  # Отладочная информация
+    print(f"Файл существует: {os.path.exists(audio_file)}")  # Отладочная информация
+    transcription = transcribe_audio(audio_file)
+    print(transcription)
