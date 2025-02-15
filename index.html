@@ -205,11 +205,11 @@
   <div class="input-container">
     <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
     <button id="send-button">Send</button>
-    <button id="voice-btn" title="Нажмите для записи">🎤</button>
-    <button id="tts-toggle">🔊 Включить голос</button>
+    <button id="voice-btn" title="Klicken Sie zum Aufzeichnen">🎤</button>
+    <button id="tts-toggle">🔊Stimme ein</button>
     
   <select id="voice-select" style="display: none;">
-  <option value="">Выбрать голос</option>
+  <option value="">Stimme auswählen</option>
   </select>
   </div>
 
@@ -254,7 +254,7 @@
   // Включение/выключение голосовых ответов
   ttsToggle.addEventListener('click', () => {
   isTTSEnabled = !isTTSEnabled;
-  ttsToggle.textContent = isTTSEnabled ? '🔇 Выключить голос' : '🔊 Включить голос';
+  ttsToggle.textContent = isTTSEnabled ? '🔇 Stimme aus' : '🔊 Stimme ein';
   voiceSelect.style.display = isTTSEnabled ? 'inline' : 'none';
 });
 
