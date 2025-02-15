@@ -121,7 +121,7 @@ async function handleTextQuery(message, socket) {
     const messages = [...session, { role: 'user', content: message }];
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: messages,
       temperature: 0.7,
       max_tokens: 500
