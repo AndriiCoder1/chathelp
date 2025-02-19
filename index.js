@@ -81,19 +81,15 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
     const audioPath = req.file.path;
     console.log(`[Аудио] Обработка файла: ${audioPath} (${req.file.size} байт)`);
 
-    // Запуск транскрипции
+    // Запуск транскрипции через Python
     const command = `python3 "${path.join(__dirname, 'transcribe.py')}" "${audioPath}"`;
-    
     exec(command, { encoding: 'utf-8' }, (error, stdout, stderr) => {
       // Очистка временных файлов
       fs.unlinkSync(audioPath);
 
       if (error) {
         console.error(`[Python] Ошибка: ${stderr}`);
-        return res.status(500).json({ 
-          error: 'Ошибка транскрипции',
-          details: stderr
-        });
+        return res.status(500).json({ error: 'Ошибка транскрипции', details: stderr });
       }
 
       if (!stdout?.trim()) {
@@ -104,13 +100,9 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
       console.log('[Python] Успешная транскрипция');
       res.json({ transcription: stdout.trim() });
     });
-
   } catch (error) {
     console.error(`[Сервер] Критическая ошибка: ${error.message}`);
-    res.status(500).json({ 
-      error: 'Внутренняя ошибка сервера',
-      details: error.message
-    });
+    res.status(500).json({ error: 'Внутренняя ошибка сервера', details: error.message });
   }
 });
 
@@ -129,7 +121,6 @@ async function handleTextQuery(message, socket) {
 
     const botResponse = response.choices[0].message.content;
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
-    
     socket.emit('message', botResponse);
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
@@ -145,7 +136,7 @@ io.on('connection', (socket) => {
   socket.on('message', async (message) => {
     try {
       console.log(`[WebSocket] Сообщение от ${socket.id}: ${message}`);
-      
+
       if (/жест|видео|распознай/i.test(message)) {
         return socket.emit('message', '🎥 Отправьте видеофайл для анализа жестов');
       }
