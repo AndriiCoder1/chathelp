@@ -128,6 +128,35 @@ async function handleTextQuery(message, socket) {
   }
 }
 
+// Поиск через SerpAPI
+function searchWeb(query) {
+  const params = {
+    engine: 'google',
+    q: query,
+    api_key: process.env.SERPAPI_KEY
+  };
+
+  return new Promise((resolve, reject) => {
+    require('request')(`https://serpapi.com/search?${new URLSearchParams(params).toString()}`, (error, response, body) => {
+      if (error || response.statusCode !== 200) {
+        return reject('Информация не найдена.');
+      }
+
+      try {
+        const data = JSON.parse(body);
+        if (data.organic_results && data.organic_results.length > 0) {
+          const result = data.organic_results[0];
+          resolve(`${result.title}\n${result.link}`);
+        } else {
+          resolve('Информация не найдена.');
+        }
+      } catch (e) {
+        reject('Информация не найдена.');
+      }
+    });
+  });
+}
+
 // WebSocket логика
 io.on('connection', (socket) => {
   console.log(`[WebSocket] Новое подключение: ${socket.id}`);
@@ -139,6 +168,13 @@ io.on('connection', (socket) => {
 
       if (/жест|видео|распознай/i.test(message)) {
         return socket.emit('message', '🎥 Отправьте видеофайл для анализа жестов');
+      }
+
+      // Проверка ключевых слов для поиска через SerpAPI
+      const keywords = ['новый', 'последний', 'свежий'];
+      if (keywords.some(word => message.toLowerCase().includes(word))) {
+        const searchResult = await searchWeb(message);
+        return socket.emit('message', searchResult);
       }
 
       await handleTextQuery(message, socket);

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Help</title>
     <style>
+        /* Общие стили */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -14,8 +15,21 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background-color: #f4f4f4;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+
+        /* Темная тема */
+        body.dark-mode {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
+
+        /* Светлая тема */
+        body.light-mode {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
         .chat-box {
             width: 80%;
             max-width: 600px;
@@ -25,10 +39,18 @@
             overflow-y: auto;
             max-height: 400px;
             padding: 10px;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+
+        .chat-box.dark-mode {
+            background: #34495e;
+            color: #ecf0f1;
+        }
+
         .message {
             margin: 5px 0;
         }
+
         .user-message {
             text-align: right;
             color: #3498db;
@@ -36,7 +58,14 @@
             background: #e7f3fe;
             border-radius: 10px;
             display: inline-block;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+
+        .user-message.dark-mode {
+            background: #2980b9;
+            color: #ecf0f1;
+        }
+
         .bot-message {
             text-align: left;
             color: #2ecc71;
@@ -44,24 +73,46 @@
             background: #e8f7ed;
             border-radius: 10px;
             display: inline-block;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+
+        .bot-message.dark-mode {
+            background: #27ae60;
+            color: #ecf0f1;
+        }
+
         .timestamp {
             font-size: 12px;
             color: #aaa;
+            transition: color 0.3s ease;
         }
+
+        .timestamp.dark-mode {
+            color: #bdc3c7;
+        }
+
         .chat-input {
             display: flex;
             margin-top: 10px;
             width: 80%;
             max-width: 600px;
         }
+
         textarea {
             flex: 1;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px 0 0 5px;
             resize: none;
+            transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
         }
+
+        textarea.dark-mode {
+            border-color: #7f8c8d;
+            background: #34495e;
+            color: #ecf0f1;
+        }
+
         button {
             padding: 10px;
             border: none;
@@ -69,14 +120,71 @@
             color: white;
             cursor: pointer;
             border-radius: 0 5px 5px 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+
+        button.dark-mode {
+            background: #2980b9;
+        }
+
         button img {
             width: 24px;
             height: 24px;
         }
+
+        /* Переключатель темы */
+        .theme-toggle {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+        }
+
+        .theme-toggle label {
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+            background: #ccc;
+            border-radius: 15px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .theme-toggle input {
+            display: none;
+        }
+
+        .theme-toggle span {
+            display: block;
+            width: 26px;
+            height: 26px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+        }
+
+        .theme-toggle input:checked + label {
+            background: #3498db;
+        }
+
+        .theme-toggle input:checked + label span {
+            transform: translateX(28px);
+        }
     </style>
 </head>
-<body>
+<body class="light-mode">
+    <!-- Переключатель темы -->
+    <div class="theme-toggle">
+        <label>
+            <input type="checkbox" id="themeToggle">
+            <span></span>
+        </label>
+    </div>
+
     <div class="chat-box" id="chatBox"></div>
     <div class="chat-input">
         <textarea id="inputField" placeholder="Напишите сообщение..."></textarea>
