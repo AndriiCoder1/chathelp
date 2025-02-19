@@ -1,235 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatHelp</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat-Help</title>
+  <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      height: 100vh;
+      margin: 0;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    h1 {
+      color: #333;
+      margin-top: 20px;
+      transition: color 0.3s;
+    }
+
+    #chat-log {
+      width: 100%;
+      max-width: 600px;
+      height: calc(100vh - 160px);
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background-color: #fff;
+      margin-bottom: 20px;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+
+    #message-input {
+      border: 3px solid green;
+      width: 100%;
+      min-height: 40px;
+      padding: 10px;
+      font-size: 18px;
+      margin-right: 10px;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.4s, background-color 0.4s;
+      resize: none;
+      overflow: hidden;
+    }
+
+    .dark-theme #message-input {
+      background-color: #343541;
+      border: 1px solid #444;
+      color: #e8e8e8;
+    }
+
+    #message-input:placeholder-shown {
+      border-color: green;
+    }
+
+    #message-input:not(:placeholder-shown) {
+      border-color: orangered;
+    }
+
+    #message-input:focus {
+      border-color: #4285f4;
+    }
+
+    #send-button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #send-button:hover {
+      background-color: #0056b3;
+    }
+
+    .input-container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    #theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 1000;
+    }
+
+    @media (max-width: 768px) {
+      #theme-toggle {
+        font-size: 12px;
+        padding: 5px 8px;
+      }
+    }
+
+    .dark-theme {
+      background-color: #202123;
+      color: #e8e8e8;
+    }
+
+    .dark-theme #chat-log {
+      background-color: #343541;
+      border-color: #444;
+    }
+
+    .dark-theme #chat-log p {
+      color: #e8e8e8;
+    }
+
+    .dark-theme .bot-message {
+      color: #b0bec5;
+    }
+
+    .dark-theme #send-button {
+      background-color: #3c3f42;
+      color: #e8e8e8;
+    }
+
+    .dark-theme #send-button:hover {
+      background-color: #4a4e51;
+    }
+
+    #voice-btn {
+      background-color: #28a745;
+      color: white;
+      padding: 8px;
+      border-radius: 50%;
+      cursor: pointer;
+      margin-left: 10px;
+      font-size: 20px;
+      transition: all 0.3s;
+    }
+
+    #voice-btn:hover {
+      background-color: #218838;
+    }
+
+    #voice-btn.recording {
+      background-color: #dc3545;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    /* Добавляем стили для таймера */
+    #recording-timer {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      font-size: 24px;
+      color: #dc3545;
+      display: none;
+      background: rgba(0,0,0,0.7);
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+
+    .dark-theme #recording-timer {
+      color: #ff6b6b;
+      background: rgba(255,255,255,0.1);
+    }
+  </style>
 </head>
 <body>
-    <h1>ChatHelp</h1>
-    <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
-    <button id="theme-toggle">L / D</button>
-    <div id="chat-log"></div>
-    <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
-    <button onclick="sendMessage()">Отправить</button>
-    <p id="response"></p>
-    <audio id="audioPlayer" controls style="display:none;"></audio>
+  <!-- Добавляем элемент таймера -->
+  <div id="recording-timer">00:60</div>
+  
+  <!-- Остальная разметка без изменений -->
+  <h1>Chat-Help</h1>
+  <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
+  <button id="theme-toggle">L / D</button>
+  <div id="chat-log"></div>
+  <div class="input-container">
+    <textarea id="message-input" placeholder="Введите сообщение..."></textarea>
+    <button id="send-button">Отправить</button>
+    <button id="voice-btn" title="Нажмите для записи">🎤</button>
+  </div>
 
-    <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f7fa;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: space-between;
-        height: 100vh;
-        margin: 0;
-        transition: background-color 0.3s, color 0.3s;
-      }
-  
-      h1 {
-        color: #333;
-        margin-top: 20px;
-        transition: color 0.3s;
-      }
-  
-      #chat-log {
-        width: 100%;
-        max-width: 600px;
-        height: calc(100vh - 160px);
-        overflow-y: auto;
-        border: 1px solid #ccc;
-        padding: 10px;
-        background-color: #fff;
-        margin-bottom: 20px;
-        transition: background-color 0.3s, border-color 0.3s;
-      }
-  
-      #message-input {
-        border: 3px solid green;
-        width: 100%;
-        min-height: 40px;
-        padding: 10px;
-        font-size: 18px;
-        margin-right: 10px;
-        border-radius: 8px;
-        outline: none;
-        transition: border-color 0.4s, background-color 0.4s;
-        resize: none;
-        overflow: hidden;
-      }
-  
-      .dark-theme #message-input {
-        background-color: #343541;
-        border: 1px solid #444;
-        color: #e8e8e8;
-      }
-  
-      #message-input:placeholder-shown {
-        border-color: green;
-      }
-  
-      #message-input:not(:placeholder-shown) {
-        border-color: orangered;
-      }
-  
-      #message-input:focus {
-        border-color: #4285f4;
-      }
-  
-      #send-button {
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-  
-      #send-button:hover {
-        background-color: #0056b3;
-      }
-  
-      .input-container {
-        width: 100%;
-        max-width: 600px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-  
-      #theme-toggle {
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 14px;
-        z-index: 1000;
-      }
-  
-      @media (max-width: 768px) {
-        #theme-toggle {
-          font-size: 12px;
-          padding: 5px 8px;
-        }
-      }
-  
-      .dark-theme {
-        background-color: #202123;
-        color: #e8e8e8;
-      }
-  
-      .dark-theme #chat-log {
-        background-color: #343541;
-        border-color: #444;
-      }
-  
-      .dark-theme #chat-log p {
-        color: #e8e8e8;
-      }
-  
-      .dark-theme .bot-message {
-        color: #b0bec5;
-      }
-  
-      .dark-theme #send-button {
-        background-color: #3c3f42;
-        color: #e8e8e8;
-      }
-  
-      .dark-theme #send-button:hover {
-        background-color: #4a4e51;
-      }
-  
-      @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-        100% { transform: scale(1); }
-      }
-  
-    </style>
+  <script>
+    const socket = io();
+    const themeToggleButton = document.getElementById('theme-toggle');
+    const bodyElement = document.body;
+    const voiceButton = document.getElementById('voice-btn');
+    const recordingTimer = document.getElementById('recording-timer');
     
-    <script>
-        const socket = io();
-        const themeToggleButton = document.getElementById('theme-toggle');
-        const bodyElement = document.body;
-
-        let recognition = null;
-        let mediaRecorder = null;
-        let audioChunks = [];
-        let voices = [];
-    
-
-        function sendMessage() {
-            const input = document.getElementById("message-input");
-            const message = input.value.trim();
-            if (!message) return;
-
-            socket.emit("message", message);
-            input.value = "";
-        }
-
-        socket.on("message", (data) => {
-            if (data.text) {
-                document.getElementById("response").innerText = data.text;
-            }
-            if (data.audioUrl) {
-                const player = document.getElementById("audioPlayer");
-                player.src = data.audioUrl;
-                player.style.display = "block";
-                player.play();
-            }
-        });
-
-         // Инициализация синтеза речи
-  function initSpeechSynthesis() {
-  if (!window.speechSynthesis) {
-    console.warn('Синтез речи не поддерживается');
-    ttsToggle.disabled = true;
-    return;
-  }
-
-  // Загрузка голосов
-  speechSynthesis.onvoiceschanged = () => {
-  voices = speechSynthesis.getVoices();
-  voices.forEach(voice => {
-      const option = document.createElement('option');
-      option.value = voice.name;
-      option.textContent = `${voice.name} (${voice.lang})`;
-      voiceSelect.appendChild(option);
-    });
-  };
-}
-
- 
-
-  // Функция для озвучивания текста
-  function speak(text) {
-  if (!isTTSEnabled || !text) return;
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  const selectedVoice = voices.find(v => v.name === voiceSelect.value);
-  
-  // Настройки голоса
-  utterance.voice = selectedVoice || voices.find(v => v.lang === 'ru-RU');
-  utterance.rate = 1.0; // Скорость (0.1-2)
-  utterance.pitch = 1.0; // Тон (0-2)
-  utterance.volume = 1.0; // Громкость (0-1)
-
-  speechSynthesis.speak(utterance);
-}
-
-    // Инициализация при загрузке
-    initSpeechSynthesis();
+    let recognition = null;
+    let recordingTimeout = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
 
     // Инициализация аудиозаписи
     async function startAudioRecording() {
@@ -275,9 +256,31 @@
       }
     }
 
-    
+    // Таймер записи
+    function startRecordingTimer() {
+      let seconds = 60;
+      recordingTimer.style.display = 'block';
+      
+      const timerInterval = setInterval(() => {
+        seconds--;
+        recordingTimer.textContent = `00:${seconds.toString().padStart(2, '0')}`;
+        
+        if (seconds <= 0) {
+          clearInterval(timerInterval);
+          stopRecording();
+        }
+      }, 1000);
+    }
 
-    
+    // Остановка записи
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        recordingTimer.style.display = 'none';
+        voiceButton.classList.remove('recording');
+      }
+    }
 
     // Обновленная инициализация распознавания речи
     function initSpeechRecognition() {
@@ -352,11 +355,6 @@
       addMessageToChat(message, true);
     });
 
-    socket.on('message', (message) => {
-      addMessageToHistory(message, true);
-      speak(message); // Озвучиваем ответ бота
-    });
-
     document.getElementById('send-button').addEventListener('click', sendMessage);
     
     document.getElementById('message-input').addEventListener('keydown', (event) => {
@@ -401,13 +399,13 @@
         minute: '2-digit',
         second: '2-digit',
       };
-      datetimeElement.textContent = now.toLocaleDateString('de-DE', options);
+      datetimeElement.textContent = now.toLocaleDateString('ru-RU', options);
     }
 
     // Инициализация при загрузке
     initSpeechRecognition();
     setInterval(updateDateTime, 1000);
     updateDateTime();
-    </script>
+  </script>
 </body>
 </html>
