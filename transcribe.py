@@ -3,11 +3,9 @@ import os
 from openai import OpenAI
 from pydub import AudioSegment
 
-# Инициализация OpenAI клиента
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+language = sys.argv[2] if len(sys.argv) > 2 else None  # Язык из аргументов
 
-# Определение языка из аргументов командной строки
-language = sys.argv[2] if len(sys.argv) > 2 else None
 
 def convert_audio(input_path: str) -> str:
     """Конвертирует аудио в WAV 16 кГц с обработкой исключений"""
@@ -21,6 +19,7 @@ def convert_audio(input_path: str) -> str:
         audio.export(output_path, format="wav")
         print(f"[Конвертация] Успешно: {output_path}")
         return output_path
+
     except Exception as e:
         print(f"[Ошибка] Конвертация аудио: {str(e)}")
         sys.exit(1)
@@ -35,13 +34,14 @@ def transcribe_audio(file_path: str) -> str:
                 model="whisper-1",
                 file=audio_file,
                 language=language,
-                response_format="verbose_json",  # Для получения метаданных
+                response_format="verbose_json",  # Для получения метаданных 
                 temperature=0.2,  # Повышение точности
                 prompt="",  # Контекстное приглашение (можно добавить ключевые слова)
             )
             
             print(f"[Transcribe] Определен язык: {response.language.upper()}")
             return response.text
+
     except Exception as e:
         print(f"[Ошибка] OpenAI API: {str(e)}")
         sys.exit(1)
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     try:
         if len(sys.argv) < 2:
             raise ValueError("Укажите путь к аудиофайлу")
-        
+            
         input_path = sys.argv[1]
         print(f"[Main] Начало обработки файла: {input_path}")
         
@@ -61,9 +61,11 @@ if __name__ == "__main__":
         transcription = transcribe_audio(converted_path)
         print("\nРезультат транскрипции:")
         print(transcription)
+
     except Exception as e:
         print(f"[Критическая ошибка] {str(e)}")
         sys.exit(1)
+        
     finally:
         # Очистка временных файлов
         if 'converted_path' in locals() and os.path.exists(converted_path):
