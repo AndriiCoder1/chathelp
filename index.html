@@ -165,19 +165,6 @@
       100% { transform: scale(1); }
     }
 
-    /* Добавляем стили для таймера */
-    #recording-timer {
-      position: fixed;
-      top: 70px;
-      right: 20px;
-      font-size: 24px;
-      color: #dc3545;
-      display: none;
-      background: rgba(0,0,0,0.7);
-      padding: 5px 10px;
-      border-radius: 5px;
-    }
-
     .dark-theme #recording-timer {
       color: #ff6b6b;
       background: rgba(255,255,255,0.1);
@@ -185,18 +172,14 @@
   </style>
 </head>
 <body>
-  <!-- Добавляем элемент таймера -->
-  <div id="recording-timer">00:60</div>
-  
-  <!-- Остальная разметка без изменений -->
   <h1>Chat-Help</h1>
   <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
   <button id="theme-toggle">L / D</button>
   <div id="chat-log"></div>
   <div class="input-container">
-    <textarea id="message-input" placeholder="Введите сообщение..."></textarea>
-    <button id="send-button">Отправить</button>
-    <button id="voice-btn" title="Нажмите для записи">🎤</button>
+    <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
+    <button id="send-button">Schicken</button>
+    <button id="voice-btn" title="Klicken Sie zum Aufzeichnen">🎤</button>
   </div>
 
   <script>
@@ -399,7 +382,7 @@
         minute: '2-digit',
         second: '2-digit',
       };
-      datetimeElement.textContent = now.toLocaleDateString('ru-RU', options);
+      datetimeElement.textContent = now.toLocaleDateString('de-DE', options);
     }
 
     // Инициализация при загрузке
