@@ -6,7 +6,6 @@
   <title>Chat-Help</title>
   <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
   <style>
-    /* ... (существующие стили остаются без изменений) ... */
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f7fa;
@@ -165,8 +164,7 @@
       50% { transform: scale(1.1); }
       100% { transform: scale(1); }
     }
-
-    /* Добавляем стили для таймера */
+  
     #recording-timer {
       position: fixed;
       top: 70px;
@@ -186,10 +184,12 @@
   </style>
 </head>
 <body>
-  <!-- Добавляем элемент таймера -->
+  <!-- Элемент таймера -->
   <div id="recording-timer">00:60</div>
   
-  <!-- Остальная разметка без изменений -->
+  <!-- Элемент аудио -->
+  <audio id="audio-player" controls style="display: none;"></audio>
+  
   <h1>Chat-Help</h1>
   <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
   <button id="theme-toggle">L / D</button>
@@ -206,6 +206,7 @@
     const bodyElement = document.body;
     const voiceButton = document.getElementById('voice-btn');
     const recordingTimer = document.getElementById('recording-timer');
+    const audioPlayer = document.getElementById('audio-player');
     
     let recognition = null;
     let recordingTimeout = null;
@@ -294,7 +295,7 @@
       }
 
       recognition = new window.SpeechRecognition();
-      recognition.lang = 'ru-RU'; // Исправлено на русский язык
+      recognition.lang = 'ru-RU'; // Русский язык
       recognition.continuous = true;
       recognition.interimResults = false;
 
@@ -329,7 +330,7 @@
       }
     });
 
-    // Остальной код без изменений
+    // Функция добавленния сообщения в чат
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log');
       const messageElement = document.createElement('p');
@@ -356,6 +357,14 @@
       addMessageToChat(message, true);
     });
 
+    // Обработка аудиосообщений
+    socket.on('audio', (audioUrl) => {
+      console.log('Получено аудио:', audioUrl);
+      audioPlayer.src = audioUrl;
+      audioPlayer.style.display = 'block';
+      audioPlayer.play();
+    });
+
     document.getElementById('send-button').addEventListener('click', sendMessage);
     
     document.getElementById('message-input').addEventListener('keydown', (event) => {
@@ -374,7 +383,7 @@
       }
     }
 
-    // Остальные функции без изменений
+    // Фунуция переключения темы
     function toggleTheme() {
       const isDarkMode = bodyElement.classList.toggle('dark-theme');
       themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark';
@@ -388,6 +397,7 @@
       themeToggleButton.textContent = 'Light';
     }
 
+    // Функция обновления даты и времени
     function updateDateTime() {
       const datetimeElement = document.getElementById('datetime');
       const now = new Date();

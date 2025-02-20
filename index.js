@@ -8,6 +8,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
+const { execSync } = require('child_process');
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -53,7 +54,7 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 25 * 1024 * 1024, // 25 MB
+    fileSize: 25 * 1024 * 1024, // Максимальный размер 25 MB
     files: 1
   }
 });
@@ -131,6 +132,11 @@ async function handleTextQuery(message, socket) {
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
     
     socket.emit('message', botResponse);
+
+    // Генерация голосового ответа
+    const audioPath = path.join(__dirname, 'response.mp3');
+    execSync(`gtts-cli "${botResponse}" --output ${audioPath}`);
+    socket.emit('audio', `/response.mp3`);
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
     socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');

@@ -2,6 +2,7 @@ import sys
 import os
 from openai import OpenAI
 from pydub import AudioSegment
+import pyttsx3
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -32,11 +33,30 @@ def transcribe_audio(file_path: str) -> str:
 
             detected_language = response.language.upper()
             print(f"[Transcribe] Определен язык: {detected_language}")
-            return response.text
+            return response.text, detected_language
 
     except Exception as e:
         print(f"[Ошибка] OpenAI API: {str(e)}")
         sys.exit(1)
+
+def speak(text, language):
+    engine = pyttsx3.init()
+    voices = engine.getProperty('voices')
+
+    # Установите голос в зависимости от языка
+    if language == "RU":
+        for voice in voices:
+            if "russian" in voice.languages:
+                engine.setProperty('voice', voice.id)
+                break
+    else:
+        for voice in voices:
+            if "english" in voice.languages:
+                engine.setProperty('voice', voice.id)
+                break
+
+    engine.say(text)
+    engine.runAndWait()
 
 if __name__ == "__main__":
     try:
@@ -47,10 +67,13 @@ if __name__ == "__main__":
         print(f"[Main] Обработка файла: {input_path}")
 
         converted_path = convert_audio(input_path)
-        transcription = transcribe_audio(converted_path)
+        transcription, language = transcribe_audio(converted_path)
 
         print("\nРезультат транскрипции:")
         print(transcription)
+
+        # Фунуция голосового ответа
+        speak(transcription, language)
 
     except Exception as e:
         print(f"[Критическая ошибка] {str(e)}")
