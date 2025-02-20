@@ -63,6 +63,9 @@ const upload = multer({
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json({ limit: '25mb' }));
 
+// Настройка статической раздачи файлов
+app.use('/audio', express.static(path.join(__dirname, 'audio')));
+
 // Маршруты
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
@@ -134,9 +137,9 @@ async function handleTextQuery(message, socket) {
     socket.emit('message', botResponse);
 
     // Генерация голосового ответа
-    const audioPath = path.join(__dirname, 'response.mp3');
+    const audioPath = path.join(__dirname, 'audio', 'response.mp3');
     execSync(`gtts-cli "${botResponse}" --output ${audioPath}`);
-    socket.emit('audio', `/response.mp3`);
+    socket.emit('audio', `/audio/response.mp3`);
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
     socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
