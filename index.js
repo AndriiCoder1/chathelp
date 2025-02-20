@@ -66,6 +66,13 @@ app.use(express.json({ limit: '25mb' }));
 // Настройка статической раздачи файлов
 app.use('/audio', express.static(path.join(__dirname, 'audio')));
 
+// Проверка и создание директории audio
+const audioDir = path.join(__dirname, 'audio');
+if (!fs.existsSync(audioDir)) {
+  fs.mkdirSync(audioDir);
+  console.log(`[Сервер] Директория создана: ${audioDir}`);
+}
+
 // Маршруты
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
@@ -137,7 +144,7 @@ async function handleTextQuery(message, socket) {
     socket.emit('message', botResponse);
 
     // Генерация голосового ответа
-    const audioPath = path.join(__dirname, 'audio', 'response.mp3');
+    const audioPath = path.join(audioDir, 'response.mp3');
     execSync(`gtts-cli "${botResponse}" --output ${audioPath}`);
     socket.emit('audio', `/audio/response.mp3`);
   } catch (error) {
