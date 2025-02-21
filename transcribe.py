@@ -2,7 +2,8 @@ import sys
 import os
 from openai import OpenAI
 from pydub import AudioSegment
-import pyttsx3
+from gtts import gTTS
+import playsound  
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -40,28 +41,16 @@ def transcribe_audio(file_path: str) -> str:
         sys.exit(1)
 
 def speak(text, language):
-    engine = pyttsx3.init()
-    voices = engine.getProperty('voices')
+    try:
+        tts = gTTS(text=text, lang='ru' if language == "RU" else 'en')
+        output_path = "response.mp3"
+        tts.save(output_path)
+        playsound.playsound(output_path)
+        os.remove(output_path)
+    except Exception as e:
+        print(f"[Ошибка] Синтез речи: {str(e)}")
 
-    # Установите голос в зависимости от языка
-    if language == "RU":
-        for voice in voices:
-            if "russian" in voice.languages:
-                engine.setProperty('voice', voice.id)
-                break
-    else:
-        for voice in voices:
-            if "english" in voice.languages:
-                engine.setProperty('voice', voice.id)
-                break
-
-    # Установите скорость речи (чем больше значение, тем быстрее речь)
-    engine.setProperty('rate', 170)  # Установите нужное значение скорости
-
-    engine.say(text)
-    engine.runAndWait()
-
-if __name__ == "__main__":
+if __name__ == "__main__": 
     try:
         if len(sys.argv) < 2:
             raise ValueError("Укажите путь к аудиофайлу")

@@ -3,3 +3,4 @@ pydub>=0.25.1
 python-dotenv>=1.0.0
 gtts>=2.2.3
 pyttsx3>=2.90
+playsound>=1.2.2
