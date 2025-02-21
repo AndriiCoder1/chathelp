@@ -56,7 +56,7 @@ def speak(text, language):
                 break
 
     # Установите скорость речи (чем больше значение, тем быстрее речь)
-    engine.setProperty('rate', 200)  # Установите нужное значение скорости
+    engine.setProperty('rate', 160)  # Установите нужное значение скорости
 
     engine.say(text)
     engine.runAndWait()
