@@ -76,10 +76,21 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      background-image: url('rabbit.png'); /* Изображение кролика */
+      background-size: cover;
+      width: 40px;
+      height: 40px;
     }
 
-    #send-button:hover {
-      background-color: #0056b3;
+    #send-button.recording {
+      background-color: #dc3545;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
     }
 
     .input-container {
@@ -139,32 +150,6 @@
       background-color: #4a4e51;
     }
 
-    #voice-btn {
-      background-color: #28a745;
-      color: white;
-      padding: 8px;
-      border-radius: 50%;
-      cursor: pointer;
-      margin-left: 10px;
-      font-size: 20px;
-      transition: all 0.3s;
-    }
-
-    #voice-btn:hover {
-      background-color: #218838;
-    }
-
-    #voice-btn.recording {
-      background-color: #dc3545;
-      animation: pulse 1s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
-  
     #recording-timer {
       position: fixed;
       top: 70px;
@@ -196,17 +181,17 @@
   <div id="chat-log"></div>
   <div class="input-container">
     <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
-    <button id="send-button">Schicken</button>
-    <button id="voice-btn" title="Klicken Sie zum Aufzeichnen">🎤</button>
+    <button id="send-button" title="Отправить сообщение или начать запись"></button>
   </div>
 
   <script>
     const socket = io();
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
-    const voiceButton = document.getElementById('voice-btn');
+    const sendButton = document.getElementById('send-button');
     const recordingTimer = document.getElementById('recording-timer');
     const audioPlayer = document.getElementById('audio-player');
+    const messageInput = document.getElementById('message-input');
     
     let recognition = null;
     let recordingTimeout = null;
@@ -280,7 +265,7 @@
         mediaRecorder.stop();
         isRecording = false;
         recordingTimer.style.display = 'none';
-        voiceButton.classList.remove('recording');
+        sendButton.classList.remove('recording');
       }
     }
 
@@ -289,7 +274,7 @@
       window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       
       if (!window.SpeechRecognition) {
-        voiceButton.style.display = 'none';
+        sendButton.style.display = 'none';
         console.warn('Голосовой ввод не поддерживается');
         return;
       }
@@ -300,7 +285,7 @@
       recognition.interimResults = false;
 
       recognition.onstart = () => {
-        voiceButton.classList.add('recording');
+        sendButton.classList.add('recording');
         startAudioRecording();
       };
 
@@ -321,12 +306,16 @@
       };
     }
 
-    // Обработчик кнопки голосового ввода
-    voiceButton.addEventListener('click', () => {
-      if (!isRecording) {
-        if (recognition) recognition.start();
+    // Обработчик кнопки отправки/записи
+    sendButton.addEventListener('click', () => {
+      if (messageInput.value.trim() === '') {
+        if (!isRecording) {
+          if (recognition) recognition.start();
+        } else {
+          stopRecording();
+        }
       } else {
-        stopRecording();
+        sendMessage();
       }
     });
 
@@ -365,8 +354,6 @@
       audioPlayer.play();
     });
 
-    document.getElementById('send-button').addEventListener('click', sendMessage);
-    
     document.getElementById('message-input').addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
