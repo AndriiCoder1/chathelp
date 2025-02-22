@@ -3,7 +3,7 @@ import os
 from openai import OpenAI
 from pydub import AudioSegment
 from gtts import gTTS
-import playsound  
+import simpleaudio as sa
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -45,7 +45,9 @@ def speak(text, language):
         tts = gTTS(text=text, lang='ru' if language == "RU" else 'en')
         output_path = "response.mp3"
         tts.save(output_path)
-        playsound.playsound(output_path)
+        wave_obj = sa.WaveObject.from_wave_file(output_path)
+        play_obj = wave_obj.play()
+        play_obj.wait_done()
         os.remove(output_path)
     except Exception as e:
         print(f"[Ошибка] Синтез речи: {str(e)}")
