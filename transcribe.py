@@ -2,8 +2,8 @@ import sys
 import os
 from openai import OpenAI
 from pydub import AudioSegment
-from gtts import gTTS
-import simpleaudio as sa
+import pyttsx3
+import speech_recognition as sr
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -22,12 +22,14 @@ def convert_audio(input_path: str) -> str:
 
 def transcribe_audio(file_path: str) -> str:
     try:
-        with open(file_path, "rb") as audio_file:
+        recognizer = sr.Recognizer()
+        with sr.AudioFile(file_path) as source:
+            audio = recognizer.record(source)
             print("[Transcribe] Отправка в OpenAI...")
 
             response = client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file,
+                model="whisper",
+                file=audio.get_wav_data(),
                 response_format="verbose_json",
                 temperature=0.2,
             )
@@ -42,13 +44,10 @@ def transcribe_audio(file_path: str) -> str:
 
 def speak(text, language):
     try:
-        tts = gTTS(text=text, lang='ru' if language == "RU" else 'en')
-        output_path = "response.mp3"
-        tts.save(output_path)
-        wave_obj = sa.WaveObject.from_wave_file(output_path)
-        play_obj = wave_obj.play()
-        play_obj.wait_done()
-        os.remove(output_path)
+        engine = pyttsx3.init()
+        engine.setProperty('voice', 'ru' if language == "RU" else 'en')
+        engine.save_to_file(text, 'response.mp3')
+        engine.runAndWait()
     except Exception as e:
         print(f"[Ошибка] Синтез речи: {str(e)}")
 
