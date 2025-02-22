@@ -2,7 +2,6 @@ import sys
 import os
 from openai import OpenAI
 from pydub import AudioSegment
-import pyttsx3
 import speech_recognition as sr
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -42,16 +41,6 @@ def transcribe_audio(file_path: str) -> str:
         print(f"[Ошибка] OpenAI API: {str(e)}")
         sys.exit(1)
 
-def speak(text, language):
-    try:
-        engine = pyttsx3.init()
-        engine.setProperty('voice', 'ru' if language == "RU" else 'en')
-        engine.setProperty('rate', 150)  # Установите скорость речи
-        engine.save_to_file(text, 'response.mp3')
-        engine.runAndWait()
-    except Exception as e:
-        print(f"[Ошибка] Синтез речи: {str(e)}")
-
 if __name__ == "__main__": 
     try:
         if len(sys.argv) < 2:
@@ -65,9 +54,6 @@ if __name__ == "__main__":
 
         print("\nРезультат транскрипции:")
         print(transcription)
-
-        # Фунуция голосового ответа
-        speak(transcription, language)
 
     except Exception as e:
         print(f"[Критическая ошибка] {str(e)}")

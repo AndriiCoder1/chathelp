@@ -213,6 +213,7 @@
 
         mediaRecorder.start();
         isRecording = true;
+        sendButton.classList.add('recording');
       } catch (error) {
         console.error('Ошибка доступа к микрофону:', error);
         alert('Разрешите доступ к микрофону в настройках браузера!');
@@ -279,6 +280,8 @@
         // Установка таймера тишины на 2 секунды
         silenceTimeout = setTimeout(() => {
           stopRecording();
+          sendMessage();
+          if (recognition) recognition.start(); // Возобновление прослушивания
         }, 2000);
       };
 
@@ -288,7 +291,9 @@
       };
 
       recognition.onend = () => {
-        stopRecording();
+        if (!isRecording) {
+          startAudioRecording();
+        }
       };
     }
 
