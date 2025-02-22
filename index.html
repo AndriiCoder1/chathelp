@@ -155,26 +155,17 @@
     }
 
     #recording-timer {
-      position: fixed;
-      top: 70px;
-      right: 20px;
-      font-size: 24px;
-      color: #dc3545;
       display: none;
-      background: rgba(0,0,0,0.7);
-      padding: 5px 10px;
-      border-radius: 5px;
     }
 
     .dark-theme #recording-timer {
-      color: #ff6b6b;
-      background: rgba(255,255,255,0.1);
+      display: none;
     }
   </style>
 </head>
 <body>
   <!-- Элемент таймера -->
-  <div id="recording-timer">00:60</div>
+  <div id="recording-timer"></div>
   
   <!-- Элемент аудио -->
   <audio id="audio-player" controls style="display: none;"></audio>
@@ -202,6 +193,7 @@
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
+    let silenceTimeout = null;
 
     // Инициализация аудиозаписи
     async function startAudioRecording() {
@@ -221,7 +213,6 @@
 
         mediaRecorder.start();
         isRecording = true;
-        startRecordingTimer();
       } catch (error) {
         console.error('Ошибка доступа к микрофону:', error);
         alert('Разрешите доступ к микрофону в настройках браузера!');
@@ -247,28 +238,11 @@
       }
     }
 
-    // Таймер записи
-    function startRecordingTimer() {
-      let seconds = 60;
-      recordingTimer.style.display = 'block';
-      
-      const timerInterval = setInterval(() => {
-        seconds--;
-        recordingTimer.textContent = `00:${seconds.toString().padStart(2, '0')}`;
-        
-        if (seconds <= 0) {
-          clearInterval(timerInterval);
-          stopRecording();
-        }
-      }, 1000);
-    }
-
     // Остановка записи
     function stopRecording() {
       if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
         isRecording = false;
-        recordingTimer.style.display = 'none';
         sendButton.classList.remove('recording');
       }
     }
@@ -298,6 +272,14 @@
           .map(result => result[0].transcript)
           .join('');
         document.getElementById('message-input').value = transcript;
+
+        // Сброс таймера тишины
+        if (silenceTimeout) clearTimeout(silenceTimeout);
+
+        // Установка таймера тишины на 2 секунды
+        silenceTimeout = setTimeout(() => {
+          stopRecording();
+        }, 2000);
       };
 
       recognition.onerror = (event) => {
@@ -365,6 +347,7 @@
       audioPlayer.src = audioUrl;
       audioPlayer.style.display = 'block';
       audioPlayer.play();
+      stopRecording(); // Остановка записи перед воспроизведением аудио
     });
 
     document.getElementById('message-input').addEventListener('keydown', (event) => {
