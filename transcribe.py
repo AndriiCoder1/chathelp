@@ -28,7 +28,7 @@ def transcribe_audio(file_path: str) -> str:
             print("[Transcribe] Отправка в OpenAI...")
 
             response = client.audio.transcriptions.create(
-                model="whisper",
+                model="whisper-1",
                 file=audio.get_wav_data(),
                 response_format="verbose_json",
                 temperature=0.2,
