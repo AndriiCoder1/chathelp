@@ -33,9 +33,9 @@ def transcribe_audio(file_path: str) -> str:
                 temperature=0.2,
             )
 
-            detected_language = response.language.upper()
+            detected_language = response['language'].upper()
             print(f"[Transcribe] Определен язык: {detected_language}")
-            return response.text, detected_language
+            return response['text'], detected_language
 
     except Exception as e:
         print(f"[Ошибка] OpenAI API: {str(e)}")

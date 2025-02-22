@@ -81,6 +81,7 @@ app.get('/', (req, res) => {
 
 // Хранение сессий
 const userSessions = new Map();
+const activeSessions = new Set();
 
 // Обработка аудио
 app.post('/process-audio', upload.single('audio'), async (req, res) => {
@@ -165,6 +166,7 @@ async function handleTextQuery(message, socket) {
 io.on('connection', (socket) => {
   console.log(`[WebSocket] Новое подключение: ${socket.id}`);
   userSessions.set(socket.id, []);
+  activeSessions.add(socket.id);
 
   socket.on('message', async (message) => {
     try {
@@ -184,6 +186,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`[WebSocket] Отключение: ${socket.id}`);
     userSessions.delete(socket.id);
+    activeSessions.delete(socket.id);
   });
 });
 
