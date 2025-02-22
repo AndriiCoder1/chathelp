@@ -9,7 +9,6 @@ const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
 const { execSync } = require('child_process');
-const gTTS = require('gtts');
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -147,15 +146,9 @@ async function handleTextQuery(message, socket) {
 
     // Генерация голосового ответа
     const audioPath = path.join(audioDir, 'response.mp3');
-    const gtts = new gTTS(botResponse, 'ru');
-    gtts.save(audioPath, function (err, result) {
-      if (err) {
-        console.error(`[gTTS] Ошибка: ${err.message}`);
-        socket.emit('message', '⚠️ Произошла ошибка при генерации голосового ответа');
-      } else {
-        socket.emit('audio', `/audio/response.mp3`);
-      }
-    });
+    const command = `python3 -c "import pyttsx3; engine = pyttsx3.init(); engine.setProperty('voice', 'ru'); engine.setProperty('rate', 150); engine.save_to_file('${botResponse}', '${audioPath}'); engine.runAndWait()"`;
+    execSync(command);
+    socket.emit('audio', `/audio/response.mp3`);
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
     socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');

@@ -46,6 +46,7 @@ def speak(text, language):
     try:
         engine = pyttsx3.init()
         engine.setProperty('voice', 'ru' if language == "RU" else 'en')
+        engine.setProperty('rate', 150)  # Установите скорость речи
         engine.save_to_file(text, 'response.mp3')
         engine.runAndWait()
     except Exception as e:
