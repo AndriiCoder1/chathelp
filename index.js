@@ -65,6 +65,7 @@ app.use(express.json({ limit: '25mb' }));
 
 // Настройка статической раздачи файлов
 app.use('/audio', express.static(path.join(__dirname, 'audio')));
+app.use('/images', express.static(path.join(__dirname, 'images'))); // Добавлено для раздачи файлов из папки images
 
 // Проверка и создание директории audio
 const audioDir = path.join(__dirname, 'audio');
