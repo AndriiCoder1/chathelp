@@ -9,6 +9,7 @@ const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
 const { execSync } = require('child_process');
+const gTTS = require('gtts');
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -63,9 +64,9 @@ const upload = multer({
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json({ limit: '25mb' }));
 
-// Настройка статической раздачи файлов
+// Функция статической раздачи файлов
 app.use('/audio', express.static(path.join(__dirname, 'audio')));
-app.use('/images', express.static(path.join(__dirname, 'images'))); // Добавлено для раздачи файлов из папки images
+app.use('/images', express.static(path.join(__dirname, 'images'))); 
 
 // Проверка и создание директории audio
 const audioDir = path.join(__dirname, 'audio');
@@ -146,8 +147,15 @@ async function handleTextQuery(message, socket) {
 
     // Генерация голосового ответа
     const audioPath = path.join(audioDir, 'response.mp3');
-    execSync(`gtts-cli "${botResponse}" --output ${audioPath}`);
-    socket.emit('audio', `/audio/response.mp3`);
+    const gtts = new gTTS(botResponse, 'ru');
+    gtts.save(audioPath, function (err, result) {
+      if (err) {
+        console.error(`[gTTS] Ошибка: ${err.message}`);
+        socket.emit('message', '⚠️ Произошла ошибка при генерации голосового ответа');
+      } else {
+        socket.emit('audio', `/audio/response.mp3`);
+      }
+    });
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
     socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
