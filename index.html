@@ -365,10 +365,11 @@
     // Обработка аудиосообщений
     socket.on('audio', (audioUrl) => {
       console.log('Получено аудио:', audioUrl);
+      stopRecording(); // Остановка записи перед воспроизведением аудио
+      if (recognition) recognition.stop(); // Остановка распознавания речи
       audioPlayer.src = audioUrl;
       audioPlayer.style.display = 'block';
       audioPlayer.play();
-      stopRecording(); // Остановка записи перед воспроизведением аудио
       audioPlayer.onended = () => {
         if (recognition) recognition.start(); // Возобновление прослушивания после воспроизведения
       };
