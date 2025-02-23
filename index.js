@@ -95,6 +95,11 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
     const audioPath = req.file.path;
     console.log(`[Аудио] Обработка файла: ${audioPath} (${req.file.size} байт)`);
 
+    if (req.file.size === 0) {
+      console.error('[Аудио] Файл пустой');
+      return res.status(400).json({ error: 'Аудиофайл пустой' });
+    }
+
     // Запуск транскрипции
     const command = `python3 "${path.join(__dirname, 'transcribe.py')}" "${audioPath}"`;
     

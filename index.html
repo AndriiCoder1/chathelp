@@ -219,6 +219,7 @@
 
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          console.log(`[Recording] Аудиофайл создан: ${audioBlob.size} байт`);
           await sendAudioToServer(audioBlob);
           audioChunks = [];
         };
