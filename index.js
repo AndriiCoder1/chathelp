@@ -82,6 +82,7 @@ app.get('/', (req, res) => {
 // Хранение сессий
 const userSessions = new Map();
 const activeSessions = new Set();
+const audioQueue = new Map();
 
 // Обработка аудио
 app.post('/process-audio', upload.single('audio'), async (req, res) => {
@@ -146,19 +147,35 @@ async function handleTextQuery(message, socket) {
     socket.emit('message', botResponse);
 
     // Генерация голосового ответа
-    const audioPath = path.join(audioDir, 'response.mp3');
+    const audioPath = path.join(audioDir, `${socket.id}_response.mp3`);
     const gtts = new gTTS(botResponse, 'ru');
     gtts.save(audioPath, function (err, result) {
       if (err) {
         console.error(`[gTTS] Ошибка: ${err.message}`);
         socket.emit('message', '⚠️ Произошла ошибка при генерации голосового ответа');
       } else {
-        socket.emit('audio', `/audio/response.mp3`);
+        if (!audioQueue.has(socket.id)) {
+          audioQueue.set(socket.id, []);
+        }
+        audioQueue.get(socket.id).push(audioPath);
+        playNextAudio(socket);
       }
     });
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
     socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
+  }
+}
+
+// Воспроизведение следующего аудио в очереди
+function playNextAudio(socket) {
+  const queue = audioQueue.get(socket.id);
+  if (queue && queue.length > 0) {
+    const audioPath = queue.shift();
+    socket.emit('audio', `/audio/${path.basename(audioPath)}`);
+    fs.unlink(audioPath, (err) => {
+      if (err) console.error(`[Очистка] Ошибка удаления файла: ${err.message}`);
+    });
   }
 }
 
@@ -187,6 +204,7 @@ io.on('connection', (socket) => {
     console.log(`[WebSocket] Отключение: ${socket.id}`);
     userSessions.delete(socket.id);
     activeSessions.delete(socket.id);
+    audioQueue.delete(socket.id);
   });
 });
 

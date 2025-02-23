@@ -91,6 +91,18 @@
       animation: pulse 1s infinite;
     }
 
+    #send-button.recording::before {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 10px;
+      height: 10px;
+      background-color: red;
+      border-radius: 50%;
+      box-shadow: 20px 0 0 red;
+    }
+
     @keyframes pulse {
       0% { transform: scale(1); }
       50% { transform: scale(1.1); }
@@ -353,6 +365,9 @@
       audioPlayer.style.display = 'block';
       audioPlayer.play();
       stopRecording(); // Остановка записи перед воспроизведением аудио
+      audioPlayer.onended = () => {
+        if (recognition) recognition.start(); // Возобновление прослушивания после воспроизведения
+      };
     });
 
     document.getElementById('message-input').addEventListener('keydown', (event) => {
