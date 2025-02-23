@@ -360,15 +360,7 @@
     socket.on('message', (message) => {
       console.log('Получено сообщение:', message);
       addMessageToChat(message, true);
-      speakMessage(message);
     });
-
-    // Функция для озвучивания сообщения
-    function speakMessage(message) {
-      const utterance = new SpeechSynthesisUtterance(message);
-      utterance.lang = 'ru-RU';
-      window.speechSynthesis.speak(utterance);
-    }
 
     // Обработка аудиосообщений
     socket.on('audio', (audioUrl) => {
