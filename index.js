@@ -8,7 +8,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
-const gTTS = require('gtts');
+const { execSync } = require('child_process');
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -63,17 +63,6 @@ const upload = multer({
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json({ limit: '25mb' }));
 
-// Функция статической раздачи файлов
-app.use('/audio', express.static(path.join(__dirname, 'audio')));
-app.use('/images', express.static(path.join(__dirname, 'images'))); 
-
-// Проверка и создание директории audio
-const audioDir = path.join(__dirname, 'audio');
-if (!fs.existsSync(audioDir)) {
-  fs.mkdirSync(audioDir);
-  console.log(`[Сервер] Директория создана: ${audioDir}`);
-}
-
 // Маршруты
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
@@ -81,8 +70,6 @@ app.get('/', (req, res) => {
 
 // Хранение сессий
 const userSessions = new Map();
-const activeSessions = new Set();
-const audioQueue = new Map();
 
 // Обработка аудио
 app.post('/process-audio', upload.single('audio'), async (req, res) => {
@@ -94,11 +81,6 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
     const audioPath = req.file.path;
     console.log(`[Аудио] Обработка файла: ${audioPath} (${req.file.size} байт)`);
-
-    if (req.file.size === 0) {
-      console.error('[Аудио] Файл пустой');
-      return res.status(400).json({ error: 'Аудиофайл пустой' });
-    }
 
     // Запуск транскрипции
     const command = `python3 "${path.join(__dirname, 'transcribe.py')}" "${audioPath}"`;
@@ -140,7 +122,7 @@ async function handleTextQuery(message, socket) {
     const messages = [...session, { role: 'user', content: message }];
 
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Используем модель gpt-3.5-turbo
+      model: "gpt-3.5-turbo",
       messages: messages,
       temperature: 0.7,
       max_tokens: 500
@@ -152,37 +134,12 @@ async function handleTextQuery(message, socket) {
     socket.emit('message', botResponse);
 
     // Генерация голосового ответа
-    const audioPath = path.join(audioDir, `${socket.id}_response.mp3`);
-    const gtts = new gTTS(botResponse, 'ru');
-    gtts.save(audioPath, function (err, result) {
-      if (err) {
-        console.error(`[gTTS] Ошибка: ${err.message}`);
-        socket.emit('message', '⚠️ Произошла ошибка при генерации голосового ответа');
-      } else {
-        console.log(`[gTTS] Аудиофайл сохранен: ${audioPath}`);
-        if (!audioQueue.has(socket.id)) {
-          audioQueue.set(socket.id, []);
-        }
-        audioQueue.get(socket.id).push(audioPath);
-        playNextAudio(socket);
-      }
-    });
+    const audioPath = path.join(__dirname, 'response.mp3');
+    execSync(`gtts-cli "${botResponse}" --output ${audioPath}`);
+    socket.emit('audio', `/response.mp3`);
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
     socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
-  }
-}
-
-// Воспроизведение следующего аудио в очереди
-function playNextAudio(socket) {
-  const queue = audioQueue.get(socket.id);
-  if (queue && queue.length > 0) {
-    const audioPath = queue.shift();
-    console.log(`[Audio] Воспроизведение аудио: ${audioPath}`);
-    socket.emit('audio', `/audio/${path.basename(audioPath)}`);
-    fs.unlink(audioPath, (err) => {
-      if (err) console.error(`[Очистка] Ошибка удаления файла: ${err.message}`);
-    });
   }
 }
 
@@ -190,7 +147,6 @@ function playNextAudio(socket) {
 io.on('connection', (socket) => {
   console.log(`[WebSocket] Новое подключение: ${socket.id}`);
   userSessions.set(socket.id, []);
-  activeSessions.add(socket.id);
 
   socket.on('message', async (message) => {
     try {
@@ -210,8 +166,6 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`[WebSocket] Отключение: ${socket.id}`);
     userSessions.delete(socket.id);
-    activeSessions.delete(socket.id);
-    audioQueue.delete(socket.id);
   });
 });
 

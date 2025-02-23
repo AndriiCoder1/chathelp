@@ -2,7 +2,7 @@ import sys
 import os
 from openai import OpenAI
 from pydub import AudioSegment
-import speech_recognition as sr
+import pyttsx3
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -21,27 +21,44 @@ def convert_audio(input_path: str) -> str:
 
 def transcribe_audio(file_path: str) -> str:
     try:
-        recognizer = sr.Recognizer()
-        with sr.AudioFile(file_path) as source:
-            audio = recognizer.record(source)
+        with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...")
 
             response = client.audio.transcriptions.create(
                 model="whisper-1",
-                file=audio.get_wav_data(),
+                file=audio_file,
                 response_format="verbose_json",
                 temperature=0.2,
             )
 
-            detected_language = response['language'].upper()
+            detected_language = response.language.upper()
             print(f"[Transcribe] Определен язык: {detected_language}")
-            return response['text'], detected_language
+            return response.text, detected_language
 
     except Exception as e:
         print(f"[Ошибка] OpenAI API: {str(e)}")
         sys.exit(1)
 
-if __name__ == "__main__": 
+def speak(text, language):
+    engine = pyttsx3.init()
+    voices = engine.getProperty('voices')
+
+    # Установите голос в зависимости от языка
+    if language == "RU":
+        for voice in voices:
+            if "russian" in voice.languages:
+                engine.setProperty('voice', voice.id)
+                break
+    else:
+        for voice in voices:
+            if "english" in voice.languages:
+                engine.setProperty('voice', voice.id)
+                break
+
+    engine.say(text)
+    engine.runAndWait()
+
+if __name__ == "__main__":
     try:
         if len(sys.argv) < 2:
             raise ValueError("Укажите путь к аудиофайлу")
@@ -54,6 +71,9 @@ if __name__ == "__main__":
 
         print("\nРезультат транскрипции:")
         print(transcription)
+
+        # Добавление голосового ответа
+        speak(transcription, language)
 
     except Exception as e:
         print(f"[Критическая ошибка] {str(e)}")
