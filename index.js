@@ -62,7 +62,15 @@ const upload = multer({
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images', express.static(path.join(__dirname, 'images'))); // Раздача статических файлов из папки images
+app.use('/audio', express.static(path.join(__dirname, 'audio'))); // Раздача аудиофайлов
 app.use(express.json({ limit: '25mb' }));
+
+// Проверка и создание директории для аудиофайлов
+const audioDir = path.join(__dirname, 'audio');
+if (!fs.existsSync(audioDir)) {
+  fs.mkdirSync(audioDir);
+  console.log(`[Сервер] Директория создана: ${audioDir}`);
+}
 
 // Маршруты
 app.get('/', (req, res) => {
@@ -136,13 +144,13 @@ async function handleTextQuery(message, socket) {
 
     // Генерация голосового ответа
     const gttsInstance = new gtts(botResponse, 'ru');
-    const audioFilePath = path.join(__dirname, 'responses', `${socket.id}.mp3`);
+    const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
     gttsInstance.save(audioFilePath, (err) => {
       if (err) {
         console.error(`[GTTS] Ошибка: ${err.message}`);
         return;
       }
-      socket.emit('audio', `/responses/${socket.id}.mp3`);
+      socket.emit('audio', `/audio/${socket.id}.mp3`);
     });
 
   } catch (error) {
