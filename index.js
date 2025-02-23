@@ -172,6 +172,7 @@ function playNextAudio(socket) {
   const queue = audioQueue.get(socket.id);
   if (queue && queue.length > 0) {
     const audioPath = queue.shift();
+    console.log(`[Audio] Воспроизведение аудио: ${audioPath}`);
     socket.emit('audio', `/audio/${path.basename(audioPath)}`);
     fs.unlink(audioPath, (err) => {
       if (err) console.error(`[Очистка] Ошибка удаления файла: ${err.message}`);
