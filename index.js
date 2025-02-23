@@ -8,6 +8,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
+const gtts = require('gtts');
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -132,6 +133,18 @@ async function handleTextQuery(message, socket) {
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
     
     socket.emit('message', botResponse);
+
+    // Генерация голосового ответа
+    const gttsInstance = new gtts(botResponse, 'ru');
+    const audioFilePath = path.join(__dirname, 'responses', `${socket.id}.mp3`);
+    gttsInstance.save(audioFilePath, (err) => {
+      if (err) {
+        console.error(`[GTTS] Ошибка: ${err.message}`);
+        return;
+      }
+      socket.emit('audio', `/responses/${socket.id}.mp3`);
+    });
+
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
     socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
