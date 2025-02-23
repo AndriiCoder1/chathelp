@@ -149,6 +149,8 @@
       margin-left: 10px;
       font-size: 20px;
       transition: all 0.3s;
+      background-image: url('/images/rabbit_1.png');
+      background-size: cover;
     }
 
     #voice-btn:hover {
@@ -158,6 +160,14 @@
     #voice-btn.recording {
       background-color: #dc3545;
       animation: pulse 1s infinite;
+    }
+
+    #voice-btn.recording::before {
+      content: '🎤';
+    }
+
+    #voice-btn::before {
+      content: '➡️';
     }
 
     @keyframes pulse {
@@ -197,7 +207,7 @@
   <div class="input-container">
     <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
     <button id="send-button">Schicken</button>
-    <button id="voice-btn" title="Klicken Sie zum Aufzeichnen">🎤</button>
+    <button id="voice-btn" title="Кликните для записи">➡️</button>
   </div>
 
   <script>
@@ -206,12 +216,15 @@
     const bodyElement = document.body;
     const voiceButton = document.getElementById('voice-btn');
     const recordingTimer = document.getElementById('recording-timer');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
     
     let recognition = null;
     let recordingTimeout = null;
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
+    let silenceTimeout = null;
 
     // Инициализация аудиозаписи
     async function startAudioRecording() {
@@ -308,6 +321,7 @@
           .map(result => result[0].transcript)
           .join('');
         document.getElementById('message-input').value = transcript;
+        resetSilenceTimeout();
       };
 
       recognition.onerror = (event) => {
@@ -329,7 +343,24 @@
       }
     });
 
-    // Остальной код без изменений
+    // Обработчик ввода текста
+    messageInput.addEventListener('input', () => {
+      if (messageInput.value.trim()) {
+        voiceButton.textContent = '➡️';
+      } else {
+        voiceButton.textContent = '🎤';
+      }
+    });
+
+    // Таймер тишины
+    function resetSilenceTimeout() {
+      if (silenceTimeout) clearTimeout(silenceTimeout);
+      silenceTimeout = setTimeout(() => {
+        if (recognition) recognition.stop();
+      }, 2000);
+    }
+
+    // Функция для добавления сообщения в чат
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log');
       const messageElement = document.createElement('p');
@@ -343,17 +374,38 @@
       chatLog.scrollTop = chatLog.scrollHeight;
     }
 
+    // Обработчик отправки сообщения
+    function sendMessage() {
+      const message = document.getElementById('message-input').value.trim();
+      if (message) {
+        addMessageToChat(message);
+        socket.emit('message', message);
+        document.getElementById('message-input').value = '';
+        voiceButton.textContent = '🎤';
+      }
+    }
+
+    // Обработчик получения сообщения
+    socket.on('message', (message) => {
+      console.log('Получено сообщение:', message);
+      addMessageToChat(message, true);
+      speakMessage(message);
+    });
+
+    // Функция для озвучивания сообщения
+    function speakMessage(message) {
+      const utterance = new SpeechSynthesisUtterance(message);
+      utterance.lang = 'ru-RU';
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Остальной код без изменений
     socket.on('connect', () => {
       console.log('Подключено к серверу');
     });
 
     socket.on('disconnect', () => {
       console.log('Отключено от сервера');
-    });
-
-    socket.on('message', (message) => {
-      console.log('Получено сообщение:', message);
-      addMessageToChat(message, true);
     });
 
     document.getElementById('send-button').addEventListener('click', sendMessage);
@@ -364,15 +416,6 @@
         sendMessage();
       }
     });
-
-    function sendMessage() {
-      const message = document.getElementById('message-input').value.trim();
-      if (message) {
-        addMessageToChat(message);
-        socket.emit('message', message);
-        document.getElementById('message-input').value = '';
-      }
-    }
 
     // Остальные функции без изменений
     function toggleTheme() {

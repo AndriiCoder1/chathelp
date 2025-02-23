@@ -60,6 +60,7 @@ const upload = multer({
 
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/images', express.static(path.join(__dirname, 'images'))); // Раздача статических файлов из папки images
 app.use(express.json({ limit: '25mb' }));
 
 // Маршруты
