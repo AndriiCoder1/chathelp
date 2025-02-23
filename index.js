@@ -154,6 +154,7 @@ async function handleTextQuery(message, socket) {
         console.error(`[gTTS] Ошибка: ${err.message}`);
         socket.emit('message', '⚠️ Произошла ошибка при генерации голосового ответа');
       } else {
+        console.log(`[gTTS] Аудиофайл сохранен: ${audioPath}`);
         if (!audioQueue.has(socket.id)) {
           audioQueue.set(socket.id, []);
         }
