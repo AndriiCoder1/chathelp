@@ -189,9 +189,6 @@
   <!-- Добавляем элемент таймера -->
   <div id="recording-timer">00:60</div>
   
-  <!-- Добавляем элемент аудио -->
-  <audio id="audio-player" controls style="display: none;"></audio>
-  
   <!-- Остальная разметка без изменений -->
   <h1>Chat-Help</h1>
   <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
@@ -209,7 +206,6 @@
     const bodyElement = document.body;
     const voiceButton = document.getElementById('voice-btn');
     const recordingTimer = document.getElementById('recording-timer');
-    const audioPlayer = document.getElementById('audio-player');
     
     let recognition = null;
     let recordingTimeout = null;
@@ -358,14 +354,6 @@
     socket.on('message', (message) => {
       console.log('Получено сообщение:', message);
       addMessageToChat(message, true);
-    });
-
-    // Обработка аудиосообщений
-    socket.on('audio', (audioUrl) => {
-      console.log('Получено аудио:', audioUrl);
-      audioPlayer.src = audioUrl;
-      audioPlayer.style.display = 'block';
-      audioPlayer.play();
     });
 
     document.getElementById('send-button').addEventListener('click', sendMessage);
