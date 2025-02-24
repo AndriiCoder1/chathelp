@@ -138,14 +138,14 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
 // Обработка текстовых запросов
 async function generateSpeech(text, outputFilePath) {
-  const response = await openai.audio.create({
-    input: text,
-    voice: 'ru-RU-Wavenet-D',
-    audioConfig: { audioEncoding: 'MP3' }
+  const command = `gtts-cli "${text}" --lang ru --output "${outputFilePath}"`;
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`[gTTS] Ошибка: ${stderr}`);
+      throw new Error('Ошибка генерации речи');
+    }
+    console.log(`Audio content written to file: ${outputFilePath}`);
   });
-
-  fs.writeFileSync(outputFilePath, response.audioContent, 'binary');
-  console.log(`Audio content written to file: ${outputFilePath}`);
 }
 
 async function handleTextQuery(message, socket) {

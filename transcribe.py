@@ -23,16 +23,16 @@ def transcribe_audio(file_path: str) -> str:
         with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...")
 
-            response = client.audio.transcriptions.create(
+            response = client.Audio.transcribe(
                 model="whisper-1",
                 file=audio_file,
                 response_format="verbose_json",
                 temperature=0.2,
             )
 
-            detected_language = response.language.upper()
+            detected_language = response['language'].upper()
             print(f"[Transcribe] Определен язык: {detected_language}")
-            return response.text
+            return response['text']
 
     except Exception as e:
         print(f"[Ошибка] OpenAI API: {str(e)}")
