@@ -134,9 +134,9 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 // Обработка текстовых запросов
 async function handleTextQuery(message, socket) {
   try {
-    if (!message.trim()) {
-      console.warn('[WebSocket] Пустое сообщение');
-      return socket.emit('message', '⚠️ Пустое сообщение не может быть обработано');
+    if (!message || message.trim() === '' || message === 'undefined') {
+      console.warn('[WebSocket] Пустое или некорректное сообщение');
+      return socket.emit('message', '⚠️ Пустое или некорректное сообщение не может быть обработано');
     }
 
     const session = userSessions.get(socket.id) || [];

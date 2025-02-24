@@ -359,6 +359,9 @@
 
     socket.on('message', (message) => {
       console.log('Получено сообщение:', message);
+      if (message === 'undefined') {
+        console.warn('Получено сообщение undefined');
+      }
       addMessageToChat(message, true);
     });
 
@@ -386,8 +389,11 @@
       const message = document.getElementById('message-input').value.trim();
       if (message) {
         addMessageToChat(message);
+        console.log('Отправка сообщения:', message);
         socket.emit('message', message);
         document.getElementById('message-input').value = '';
+      } else {
+        console.warn('Пустое сообщение не отправлено');
       }
     }
 
