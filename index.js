@@ -142,16 +142,32 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 async function generateSpeech(text, outputFilePath) {
   console.log(`[generateSpeech] Генерация речи для текста: ${text}`);
   try {
-    const url = googleTTS.getAudioUrl(text, {
-      lang: 'ru',
-      slow: false,
-      host: 'https://translate.google.com',
-    });
+    const maxLength = 200;
+    const parts = [];
 
-    const response = await fetch(url);
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    fs.writeFileSync(outputFilePath, buffer);
+    // Разделение текста на части
+    for (let i = 0; i < text.length; i += maxLength) {
+      parts.push(text.slice(i, i + maxLength));
+    }
+
+    const buffers = [];
+
+    // Генерация аудио для каждой части
+    for (const part of parts) {
+      const url = googleTTS.getAudioUrl(part, {
+        lang: 'ru',
+        slow: false,
+        host: 'https://translate.google.com',
+      });
+
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      buffers.push(Buffer.from(arrayBuffer));
+    }
+
+    // Объединение всех частей в один аудиофайл
+    const finalBuffer = Buffer.concat(buffers);
+    fs.writeFileSync(outputFilePath, finalBuffer);
     console.log(`[generateSpeech] Успешно: ${outputFilePath}`);
   } catch (err) {
     console.error(`[Google TTS] Ошибка: ${err}`);
