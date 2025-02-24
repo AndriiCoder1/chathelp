@@ -100,7 +100,8 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
     }
 
     // Запуск транскрипции
-    const command = `python3 "${path.join(__dirname, 'transcribe.py')}" "${audioPath}"`;
+    const pythonPath = process.env.PYTHON_PATH || 'python3';
+    const command = `"${pythonPath}" "${path.join(__dirname, 'transcribe.py')}" "${audioPath}"`;
     
     exec(command, { encoding: 'utf-8' }, (error, stdout, stderr) => {
       // Очистка временных файлов
