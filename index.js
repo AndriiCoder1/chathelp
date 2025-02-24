@@ -8,6 +8,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
+const gTTS = require('gtts');
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -138,10 +139,10 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
 // Обработка текстовых запросов
 async function generateSpeech(text, outputFilePath) {
-  const command = `gtts-cli "${text}" --lang ru --output "${outputFilePath}"`;
-  exec(command, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`[gTTS] Ошибка: ${stderr}`);
+  const gtts = new gTTS(text, 'ru');
+  gtts.save(outputFilePath, (err) => {
+    if (err) {
+      console.error(`[gTTS] Ошибка: ${err}`);
       throw new Error('Ошибка генерации речи');
     }
     console.log(`Audio content written to file: ${outputFilePath}`);
