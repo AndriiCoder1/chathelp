@@ -138,8 +138,8 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
 // Обработка текстовых запросов
 async function generateSpeech(text, outputFilePath) {
-  const response = await openai.audio.synthesize({
-    text: text,
+  const response = await openai.audio.create({
+    input: text,
     voice: 'ru-RU-Wavenet-D',
     audioConfig: { audioEncoding: 'MP3' }
   });
