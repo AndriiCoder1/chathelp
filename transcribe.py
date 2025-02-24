@@ -6,6 +6,16 @@ import pyttsx3
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+def check_dependencies():
+    try:
+        import openai
+        import pydub
+        import pyttsx3
+        print("[Проверка зависимостей] Все зависимости установлены.")
+    except ImportError as e:
+        print(f"[Ошибка] Отсутствует зависимость: {str(e)}")
+        sys.exit(1)
+
 def convert_audio(input_path: str) -> str:
     try:
         print(f"[Конвертация] Начало обработки: {input_path}")
@@ -43,6 +53,9 @@ def generate_speech(text, output_path):
     try:
         print(f"[Генерация речи] Начало генерации: {text}")
         engine = pyttsx3.init()
+        voices = engine.getProperty('voices')
+        for voice in voices:
+            print(f"[Генерация речи] Доступный голос: {voice.name} ({voice.id})")
         engine.save_to_file(text, output_path)
         engine.runAndWait()
         print(f"[Генерация речи] Успешно: {output_path}")
@@ -52,6 +65,8 @@ def generate_speech(text, output_path):
 
 if __name__ == "__main__":
     try:
+        check_dependencies()
+
         if len(sys.argv) < 3:
             raise ValueError("Usage: python transcribe.py <input_audio_path> <output_audio_path>")
 
