@@ -2,7 +2,7 @@ import sys
 import os
 from openai import OpenAI
 from pydub import AudioSegment
-import pyttsx3
+from gtts import gTTS
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -10,7 +10,7 @@ def check_dependencies():
     try:
         import openai
         import pydub
-        import pyttsx3
+        import gtts
         print("[Проверка зависимостей] Все зависимости установлены.")
     except ImportError as e:
         print(f"[Ошибка] Отсутствует зависимость: {str(e)}")
@@ -52,12 +52,8 @@ def transcribe_audio(file_path: str) -> str:
 def generate_speech(text, output_path):
     try:
         print(f"[Генерация речи] Начало генерации: {text}")
-        engine = pyttsx3.init()
-        voices = engine.getProperty('voices')
-        for voice in voices:
-            print(f"[Генерация речи] Доступный голос: {voice.name} ({voice.id})")
-        engine.save_to_file(text, output_path)
-        engine.runAndWait()
+        tts = gTTS(text, lang='ru')
+        tts.save(output_path)
         print(f"[Генерация речи] Успешно: {output_path}")
     except Exception as e:
         print(f"[Ошибка] Генерация речи: {str(e)}")

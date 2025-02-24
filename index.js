@@ -143,7 +143,7 @@ async function generateSpeech(text, outputFilePath) {
   const command = `python3 "${path.join(__dirname, 'transcribe.py')}" "${text}" "${outputFilePath}"`;
   exec(command, (error, stdout, stderr) => {
     if (error) {
-      console.error(`[pyttsx3] Ошибка: ${stderr}`);
+      console.error(`[gTTS] Ошибка: ${stderr}`);
       throw new Error('Ошибка генерации речи');
     }
     console.log(`[generateSpeech] Успешно: ${outputFilePath}`);
