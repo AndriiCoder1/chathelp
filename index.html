@@ -374,6 +374,8 @@
       audioPlayer.style.display = 'block';
       audioPlayer.play();
       audioPlayer.onended = () => {
+        console.log('Аудио завершено');
+        socket.emit('audio-ended');
         if (recognition) recognition.start(); // Возобновление прослушивания после воспроизведения
       };
     });

@@ -80,6 +80,7 @@ app.get('/', (req, res) => {
 // Хранение сессий
 const userSessions = new Map();
 const messageQueues = new Map();
+const activeResponses = new Map();
 
 // Обработка аудио
 app.post('/process-audio', upload.single('audio'), async (req, res) => {
@@ -169,6 +170,7 @@ async function handleTextQuery(message, socket) {
         console.error(`[GTTS] Ошибка: ${err.message}`);
         return;
       }
+      activeResponses.set(socket.id, audioFilePath);
       socket.emit('audio', `/audio/${socket.id}.mp3`);
     });
 
@@ -197,6 +199,7 @@ io.on('connection', (socket) => {
   console.log(`[WebSocket] Новое подключение: ${socket.id}`);
   userSessions.set(socket.id, []);
   messageQueues.set(socket.id, []);
+  activeResponses.set(socket.id, null);
 
   socket.on('message', async (message) => {
     try {
@@ -219,10 +222,20 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('audio-ended', () => {
+    console.log(`[WebSocket] Аудио завершено для: ${socket.id}`);
+    activeResponses.set(socket.id, null);
+    const queue = messageQueues.get(socket.id) || [];
+    if (queue.length > 0) {
+      processMessageQueue(socket);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log(`[WebSocket] Отключение: ${socket.id}`);
     userSessions.delete(socket.id);
     messageQueues.delete(socket.id);
+    activeResponses.delete(socket.id);
   });
 });
 
