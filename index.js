@@ -9,10 +9,6 @@ const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
 
-// Удаление записи о Google Text-to-Speech
-// const textToSpeech = require('@google-cloud/text-to-speech');
-// const client = new textToSpeech.TextToSpeechClient();
-
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
 console.log("[Сервер] SerpAPI Key:", process.env.SERPAPI_KEY ? "OK" : "Отсутствует");
@@ -124,6 +120,11 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
       console.log('[Python] Успешная транскрипция');
       res.json({ transcription: stdout.trim() });
+      // Генерация голосового ответа
+      const audioFilePath = path.join(audioDir, `${req.file.filename}.mp3`);
+      generateSpeech(stdout.trim(), audioFilePath).then(() => {
+        io.emit('audio', `/audio/${req.file.filename}.mp3`);
+      });
     });
 
   } catch (error) {
