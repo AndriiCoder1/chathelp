@@ -9,6 +9,7 @@ const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
 const googleTTS = require('google-tts-api');
+const { getAllAudioUrls } = require('google-tts-api');
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -139,27 +140,26 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 });
 
 // Обработка текстовых запросов
+function splitText(text, maxLength = 200) {
+  const parts = [];
+  for (let i = 0; i < text.length; i += maxLength) {
+    parts.push(text.slice(i, i + maxLength));
+  }
+  return parts;
+}
+
 async function generateSpeech(text, outputFilePath) {
   console.log(`[generateSpeech] Генерация речи для текста: ${text}`);
   try {
-    const maxLength = 200;
-    const parts = [];
-
-    // Разделение текста на части
-    for (let i = 0; i < text.length; i += maxLength) {
-      parts.push(text.slice(i, i + maxLength));
-    }
+    const urls = getAllAudioUrls(text, {
+      lang: 'ru',
+      slow: false,
+      host: 'https://translate.google.com',
+    });
 
     const buffers = [];
 
-    // Генерация аудио для каждой части
-    for (const part of parts) {
-      const url = googleTTS.getAudioUrl(part, {
-        lang: 'ru',
-        slow: false,
-        host: 'https://translate.google.com',
-      });
-
+    for (const url of urls) {
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
       buffers.push(Buffer.from(arrayBuffer));
@@ -206,9 +206,14 @@ async function handleTextQuery(message, socket) {
 
     // Генерация голосового ответа
     const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
-    await generateSpeech(botResponse, audioFilePath);
-    activeResponses.set(socket.id, audioFilePath);
-    socket.emit('audio', `/audio/${socket.id}.mp3`);
+    try {
+      await generateSpeech(botResponse, audioFilePath);
+      activeResponses.set(socket.id, audioFilePath);
+      socket.emit('audio', `/audio/${socket.id}.mp3`);
+    } catch (error) {
+      console.error('Ошибка генерации речи:', error.message);
+      socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
+    }
 
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
