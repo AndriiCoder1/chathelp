@@ -140,14 +140,21 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 // Обработка текстовых запросов
 async function generateSpeech(text, outputFilePath) {
   console.log(`[generateSpeech] Генерация речи для текста: ${text}`);
-  const command = `python3 "${path.join(__dirname, 'transcribe.py')}" "${text}" "${outputFilePath}"`;
-  exec(command, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`[gTTS] Ошибка: ${stderr}`);
-      throw new Error('Ошибка генерации речи');
-    }
+  try {
+    const url = googleTTS.getAudioUrl(text, {
+      lang: 'ru',
+      slow: false,
+      host: 'https://translate.google.com',
+    });
+
+    const response = await fetch(url);
+    const buffer = await response.buffer();
+    fs.writeFileSync(outputFilePath, buffer);
     console.log(`[generateSpeech] Успешно: ${outputFilePath}`);
-  });
+  } catch (err) {
+    console.error(`[Google TTS] Ошибка: ${err}`);
+    throw new Error('Ошибка генерации речи');
+  }
 }
 
 async function handleTextQuery(message, socket) {
