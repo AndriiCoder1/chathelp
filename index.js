@@ -79,6 +79,7 @@ app.get('/', (req, res) => {
 
 // Хранение сессий
 const userSessions = new Map();
+const messageQueues = new Map();
 
 // Обработка аудио
 app.post('/process-audio', upload.single('audio'), async (req, res) => {
@@ -177,10 +178,25 @@ async function handleTextQuery(message, socket) {
   }
 }
 
+// Обработка очереди сообщений
+async function processMessageQueue(socket) {
+  const queue = messageQueues.get(socket.id) || [];
+  if (queue.length === 0) return;
+
+  const message = queue.shift();
+  await handleTextQuery(message, socket);
+
+  messageQueues.set(socket.id, queue);
+  if (queue.length > 0) {
+    setTimeout(() => processMessageQueue(socket), 1000); // Задержка перед обработкой следующего сообщения
+  }
+}
+
 // WebSocket логика
 io.on('connection', (socket) => {
   console.log(`[WebSocket] Новое подключение: ${socket.id}`);
   userSessions.set(socket.id, []);
+  messageQueues.set(socket.id, []);
 
   socket.on('message', async (message) => {
     try {
@@ -190,7 +206,13 @@ io.on('connection', (socket) => {
         return socket.emit('message', '🎥 Отправьте видеофайл для анализа жестов');
       }
 
-      await handleTextQuery(message, socket);
+      const queue = messageQueues.get(socket.id) || [];
+      queue.push(message);
+      messageQueues.set(socket.id, queue);
+
+      if (queue.length === 1) {
+        await processMessageQueue(socket);
+      }
     } catch (error) {
       console.error(`[WebSocket] Ошибка: ${error.message}`);
       socket.emit('message', '⚠️ Ошибка обработки сообщения');
@@ -200,6 +222,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`[WebSocket] Отключение: ${socket.id}`);
     userSessions.delete(socket.id);
+    messageQueues.delete(socket.id);
   });
 });
 
