@@ -8,7 +8,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
-const gTTS = require('gtts');
+const { gTTS } = require('gtts.js');
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
