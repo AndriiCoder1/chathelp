@@ -149,7 +149,8 @@ async function generateSpeech(text, outputFilePath) {
     });
 
     const response = await fetch(url);
-    const buffer = await response.buffer();
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
     fs.writeFileSync(outputFilePath, buffer);
     console.log(`[generateSpeech] Успешно: ${outputFilePath}`);
   } catch (err) {

@@ -1,10 +1,20 @@
 import sys
 import os
+from dotenv import load_dotenv
 from openai import OpenAI
 from pydub import AudioSegment
 from gtts import gTTS
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Загрузка переменных окружения из файла .env
+load_dotenv()
+
+# Получение ключа API из переменных окружения
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    raise ValueError("Не удалось найти переменную окружения OPENAI_API_KEY")
+
+# Инициализация клиента OpenAI
+client = OpenAI(api_key=api_key)
 
 def check_dependencies():
     try:
