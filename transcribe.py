@@ -2,6 +2,7 @@ import sys
 import os
 from openai import OpenAI
 from pydub import AudioSegment
+import pyttsx3
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -38,16 +39,28 @@ def transcribe_audio(file_path: str) -> str:
         print(f"[Ошибка] OpenAI API: {str(e)}")
         sys.exit(1)
 
+def generate_speech(text, output_path):
+    try:
+        engine = pyttsx3.init()
+        engine.save_to_file(text, output_path)
+        engine.runAndWait()
+        print(f"[Генерация речи] Успешно: {output_path}")
+    except Exception as e:
+        print(f"[Ошибка] Генерация речи: {str(e)}")
+        sys.exit(1)
+
 if __name__ == "__main__":
     try:
-        if len(sys.argv) < 2:
-            raise ValueError("Укажите путь к аудиофайлу")
+        if len(sys.argv) < 3:
+            raise ValueError("Usage: python transcribe.py <input_audio_path> <output_audio_path>")
 
         input_path = sys.argv[1]
+        output_path = sys.argv[2]
         print(f"[Main] Обработка файла: {input_path}")
 
         converted_path = convert_audio(input_path)
         transcription = transcribe_audio(converted_path)
+        generate_speech(transcription, output_path)
 
         print("\nРезультат транскрипции:")
         print(transcription)
