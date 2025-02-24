@@ -144,6 +144,7 @@ async function handleTextQuery(message, socket) {
     });
 
     const botResponse = response.choices[0].message.content;
+    console.log(`[Bot] Ответ: ${botResponse}`); // Логирование ответа бота
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
     
     socket.emit('message', botResponse);
