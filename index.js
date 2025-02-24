@@ -139,6 +139,12 @@ async function handleTextQuery(message, socket) {
     }
 
     const session = userSessions.get(socket.id) || [];
+    const lastMessage = session[session.length - 1];
+    if (lastMessage && lastMessage.content === message) {
+      console.warn('[WebSocket] Дублирующееся сообщение');
+      return;
+    }
+
     const messages = [...session, { role: 'user', content: message }];
 
     const response = await openai.chat.completions.create({
