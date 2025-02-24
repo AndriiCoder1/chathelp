@@ -8,7 +8,10 @@ const fs = require('fs');
 const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
-const gtts = require('gtts');
+
+// Удаление записи о Google Text-to-Speech
+// const textToSpeech = require('@google-cloud/text-to-speech');
+// const client = new textToSpeech.TextToSpeechClient();
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -133,6 +136,17 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 });
 
 // Обработка текстовых запросов
+async function generateSpeech(text, outputFilePath) {
+  const response = await openai.audio.synthesize({
+    text: text,
+    voice: 'ru-RU-Wavenet-D',
+    audioConfig: { audioEncoding: 'MP3' }
+  });
+
+  fs.writeFileSync(outputFilePath, response.audioContent, 'binary');
+  console.log(`Audio content written to file: ${outputFilePath}`);
+}
+
 async function handleTextQuery(message, socket) {
   try {
     if (!message || message.trim() === '' || message === 'undefined') {
@@ -163,16 +177,10 @@ async function handleTextQuery(message, socket) {
     socket.emit('message', botResponse);
 
     // Генерация голосового ответа
-    const gttsInstance = new gtts(botResponse, 'ru');
     const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
-    gttsInstance.save(audioFilePath, (err) => {
-      if (err) {
-        console.error(`[GTTS] Ошибка: ${err.message}`);
-        return;
-      }
-      activeResponses.set(socket.id, audioFilePath);
-      socket.emit('audio', `/audio/${socket.id}.mp3`);
-    });
+    await generateSpeech(botResponse, audioFilePath);
+    activeResponses.set(socket.id, audioFilePath);
+    socket.emit('audio', `/audio/${socket.id}.mp3`);
 
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
