@@ -41,6 +41,7 @@ def transcribe_audio(file_path: str) -> str:
 
 def generate_speech(text, output_path):
     try:
+        print(f"[Генерация речи] Начало генерации: {text}")
         engine = pyttsx3.init()
         engine.save_to_file(text, output_path)
         engine.runAndWait()

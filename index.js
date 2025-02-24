@@ -139,13 +139,14 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
 // Обработка текстовых запросов
 async function generateSpeech(text, outputFilePath) {
+  console.log(`[generateSpeech] Генерация речи для текста: ${text}`);
   const command = `python3 "${path.join(__dirname, 'transcribe.py')}" "${text}" "${outputFilePath}"`;
   exec(command, (error, stdout, stderr) => {
     if (error) {
       console.error(`[pyttsx3] Ошибка: ${stderr}`);
       throw new Error('Ошибка генерации речи');
     }
-    console.log(`Audio content written to file: ${outputFilePath}`);
+    console.log(`[generateSpeech] Успешно: ${outputFilePath}`);
   });
 }
 
