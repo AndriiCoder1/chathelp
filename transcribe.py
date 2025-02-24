@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from pydub import AudioSegment
 from gtts import gTTS
+import hashlib
+from functools import lru_cache
 
 # Загрузка переменных окружения из файла .env
 load_dotenv()
@@ -39,25 +41,38 @@ def convert_audio(input_path: str) -> str:
         print(f"[Ошибка] Конвертация аудио: {str(e)}")
         sys.exit(1)
 
-def transcribe_audio(file_path: str) -> str:
+# Кэширование транскрипций
+@lru_cache(maxsize=100)
+def cached_transcribe(file_path: str) -> str:
     try:
+        # Генерация уникального хеша файла
+        file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
+        cache_dir = "transcription_cache"
+        cache_path = f"{cache_dir}/{file_hash}.txt"
+        
+        if os.path.exists(cache_path):
+            print(f"[Кэш] Использование кэшированной транскрипции: {cache_path}")
+            with open(cache_path, "r") as f:
+                return f.read()
+                
+        # Основная логика Whisper
         with open(file_path, "rb") as audio_file:
-            print("[Transcribe] Отправка в OpenAI...")
-
-            response = client.Audio.transcribe(
+            result = client.audio.transcribe(
                 model="whisper-1",
                 file=audio_file,
-                response_format="verbose_json",
-                temperature=0.2,
+                response_format="verbose_json"
             )
-
-            detected_language = response['language'].upper()
-            print(f"[Transcribe] Определен язык: {detected_language}")
-            return response['text']
+            
+        # Сохранение в кэш
+        os.makedirs(cache_dir, exist_ok=True)
+        with open(cache_path, "w") as f:
+            f.write(result['text'])
+            
+        return result['text']
 
     except Exception as e:
-        print(f"[Ошибка] OpenAI API: {str(e)}")
-        sys.exit(1)
+        print(f"[Whisper] Ошибка: {str(e)}")
+        raise
 
 def generate_speech(text, output_path):
     try:
@@ -81,7 +96,7 @@ if __name__ == "__main__":
         print(f"[Main] Обработка файла: {input_path}")
 
         converted_path = convert_audio(input_path)
-        transcription = transcribe_audio(converted_path)
+        transcription = cached_transcribe(converted_path)
         generate_speech(transcription, output_path)
 
         print("\nРезультат транскрипции:")

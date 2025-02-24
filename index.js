@@ -176,6 +176,34 @@ async function generateSpeech(text, outputFilePath) {
   }
 }
 
+// Добавили кэширование GPT-ответов
+const gptCache = new Map();
+
+async function getCachedGPTResponse(prompt) {
+  const cacheKey = hashString(prompt);
+  
+  if (gptCache.has(cacheKey)) {
+    console.log(`[GPT Кэш] Использование кэша для: ${cacheKey}`);
+    return gptCache.get(cacheKey);
+  }
+
+  const response = await openai.chat.completions.create({ 
+    model: "gpt-3.5-turbo",
+    messages: [{ role: "user", content: prompt }]
+  });
+
+  gptCache.set(cacheKey, response);
+  return response;
+}
+
+// Утилита для хеширования
+function hashString(str) {
+  return str.split('').reduce(
+    (hash, char) => (hash << 5) - hash + char.charCodeAt(0),
+    0
+  ).toString(16);
+}
+
 async function handleTextQuery(message, socket) {
   try {
     if (!message || message.trim() === '' || message === 'undefined') {
@@ -192,12 +220,7 @@ async function handleTextQuery(message, socket) {
 
     const messages = [...session, { role: 'user', content: message }];
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 500
-    });
+    const response = await getCachedGPTResponse(message);
 
     const botResponse = response.choices[0].message.content;
     console.log(`[Bot] Ответ: ${botResponse}`); // Логирование ответа бота
