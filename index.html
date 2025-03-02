@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -104,9 +105,17 @@
     }
 
     @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.1);
+      }
+
+      100% {
+        transform: scale(1);
+      }
     }
 
     .input-container {
@@ -188,13 +197,14 @@
     }
   </style>
 </head>
+
 <body>
   <!-- Элемент таймера -->
   <div id="recording-timer"></div>
-  
+
   <!-- Элемент аудио -->
   <audio id="audio-player" controls style="display: none;"></audio>
-  
+
   <h1>Chat-Help</h1>
   <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
   <button id="theme-toggle">L / D</button>
@@ -212,20 +222,21 @@
     const recordingTimer = document.getElementById('recording-timer');
     const audioPlayer = document.getElementById('audio-player');
     const messageInput = document.getElementById('message-input');
-    
+
     let recognition = null;
     let recordingTimeout = null;
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
     let silenceTimeout = null;
+    let isVoiceMode = false;
 
     // Инициализация аудиозаписи
     async function startAudioRecording() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
-        
+
         mediaRecorder.ondataavailable = (e) => {
           audioChunks.push(e.data);
         };
@@ -252,12 +263,12 @@
       try {
         const formData = new FormData();
         formData.append('audio', audioBlob, 'recording.webm');
-        
+
         const response = await fetch('/process-audio', {
           method: 'POST',
           body: formData
         });
-        
+
         const { transcription } = await response.json();
         document.getElementById('message-input').value = transcription;
         sendMessage();
@@ -279,7 +290,7 @@
     // Обновленная инициализация распознавания речи
     function initSpeechRecognition() {
       window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      
+
       if (!window.SpeechRecognition) {
         sendButton.style.display = 'none';
         console.warn('Голосовой ввод не поддерживается');
@@ -328,12 +339,17 @@
     // Обработчик кнопки отправки/записи
     sendButton.addEventListener('click', () => {
       if (messageInput.value.trim() === '') {
-        if (!isRecording) {
-          if (recognition) recognition.start();
+        // Переключение режима голосового ввода
+        isVoiceMode = !isVoiceMode;
+        if (isVoiceMode) {
+          socket.emit('mode', { isVoiceMode: true });
+          startRecording();
         } else {
+          socket.emit('mode', { isVoiceMode: false });
           stopRecording();
         }
       } else {
+        // Текстовый режим
         sendMessage();
       }
     });
@@ -387,16 +403,19 @@
     // Обработка аудиосообщений
     socket.on('audio', (audioUrl) => {
       console.log('Получено аудио:', audioUrl);
-      stopRecording(); // Остановка записи перед воспроизведением аудио
-      if (recognition) recognition.stop(); // Остановка распознавания речи
-      audioPlayer.src = audioUrl;
-      audioPlayer.style.display = 'block';
-      audioPlayer.play();
-      audioPlayer.onended = () => {
-        console.log('Аудио завершено');
-        socket.emit('audio-ended');
-        if (recognition) recognition.start(); // Возобновление прослушивания после воспроизведения
-      };
+      // Воспроизводим аудио только в голосовом режиме
+      if (isVoiceMode) {
+        stopRecording(); // Остановка записи перед воспроизведением аудио
+        if (recognition) recognition.stop(); // Остановка распознавания речи
+        audioPlayer.src = audioUrl;
+        audioPlayer.style.display = 'block';
+        audioPlayer.play();
+        audioPlayer.onended = () => {
+          console.log('Аудио завершено');
+          socket.emit('audio-ended');
+          if (recognition && isVoiceMode) recognition.start(); // Возобновление прослушивания после воспроизведения
+        };
+      }
     });
 
     document.getElementById('message-input').addEventListener('keydown', (event) => {
@@ -406,15 +425,19 @@
       }
     });
 
+    // Обновляем функцию отправки сообщений
     function sendMessage() {
       const message = document.getElementById('message-input').value.trim();
       if (message) {
         addMessageToChat(message);
         console.log('Отправка сообщения:', message);
+
+        // Явно указываем текстовый режим при отправке текстового сообщения
+        isVoiceMode = false;
+        socket.emit('mode', { isVoiceMode: false });
         socket.emit('message', message);
         document.getElementById('message-input').value = '';
-      } else {
-        console.warn('Пустое сообщение не отправлено');
+        sendButton.classList.remove('sending');
       }
     }
 
@@ -454,4 +477,5 @@
     updateDateTime();
   </script>
 </body>
+
 </html>

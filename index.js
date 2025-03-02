@@ -83,6 +83,11 @@ const userSessions = new Map();
 const messageQueues = new Map();
 const activeResponses = new Map();
 
+// Обновляем путь к Python в зависимости от окружения
+const pythonPath = process.env.NODE_ENV === 'production'
+  ? 'python3'  // для production используем системный Python
+  : '/c/Users/mozart/public/venv/Scripts/python.exe'; // для разработки
+
 // Обработка аудио
 app.post('/process-audio', upload.single('audio'), async (req, res) => {
   try {
@@ -101,16 +106,15 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
     }
 
     // Запуск транскрипции
-    const pythonPath = process.env.PYTHON_PATH || '/c/Users/mozart/public/venv/Scripts/python.exe';
-    const command = `"${pythonPath}" "${path.join(__dirname, 'transcribe.py')}" "${audioPath}"`;
-    
+    const command = `${pythonPath} "${path.join(__dirname, 'transcribe.py')}" "${audioPath}" "${path.join(audioDir, `${req.file.filename}.mp3`)}"`;
+
     exec(command, { encoding: 'utf-8' }, (error, stdout, stderr) => {
       // Очистка временных файлов
       fs.unlinkSync(audioPath);
 
       if (error) {
         console.error(`[Python] Ошибка: ${stderr}`);
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: 'Ошибка транскрипции',
           details: stderr
         });
@@ -132,7 +136,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
   } catch (error) {
     console.error(`[Сервер] Критическая ошибка: ${error.message}`);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Внутренняя ошибка сервера',
       details: error.message
     });
@@ -181,13 +185,13 @@ const gptCache = new Map();
 
 async function getCachedGPTResponse(prompt) {
   const cacheKey = hashString(prompt);
-  
+
   if (gptCache.has(cacheKey)) {
     console.log(`[GPT Кэш] Использование кэша для: ${cacheKey}`);
     return gptCache.get(cacheKey);
   }
 
-  const response = await openai.chat.completions.create({ 
+  const response = await openai.chat.completions.create({
     model: "gpt-3.5-turbo",
     messages: [{ role: "user", content: prompt }]
   });
@@ -204,7 +208,7 @@ function hashString(str) {
   ).toString(16);
 }
 
-async function handleTextQuery(message, socket) {
+async function handleTextQuery(message, socket, isVoiceMode) {
   try {
     if (!message || message.trim() === '' || message === 'undefined') {
       console.warn('[WebSocket] Пустое или некорректное сообщение');
@@ -225,18 +229,20 @@ async function handleTextQuery(message, socket) {
     const botResponse = response.choices[0].message.content;
     console.log(`[Bot] Ответ: ${botResponse}`); // Логирование ответа бота
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
-    
+
     socket.emit('message', botResponse);
 
-    // Генерация голосового ответа
-    const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
-    try {
-      await generateSpeech(botResponse, audioFilePath);
-      activeResponses.set(socket.id, audioFilePath);
-      socket.emit('audio', `/audio/${socket.id}.mp3`);
-    } catch (error) {
-      console.error('Ошибка генерации речи:', error.message);
-      socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
+    // Генерируем голосовой ответ только если включен голосовой режим
+    if (isVoiceMode) {
+      const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+      try {
+        await generateSpeech(botResponse, audioFilePath);
+        activeResponses.set(socket.id, audioFilePath);
+        socket.emit('audio', `/audio/${socket.id}.mp3`);
+      } catch (error) {
+        console.error('Ошибка генерации речи:', error.message);
+        socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
+      }
     }
 
   } catch (error) {
@@ -246,16 +252,38 @@ async function handleTextQuery(message, socket) {
 }
 
 // Обработка очереди сообщений
-async function processMessageQueue(socket) {
+async function processMessageQueue(socket, isVoiceMode) {
   const queue = messageQueues.get(socket.id) || [];
   if (queue.length === 0) return;
 
   const message = queue.shift();
-  await handleTextQuery(message, socket);
+
+  try {
+    const response = await getCachedGPTResponse(message);
+    const botResponse = response.choices[0].message.content;
+
+    socket.emit('message', botResponse);
+
+    // Генерируем голосовой ответ только в голосовом режиме
+    if (isVoiceMode) {
+      const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+      try {
+        await generateSpeech(botResponse, audioFilePath);
+        activeResponses.set(socket.id, audioFilePath);
+        socket.emit('audio', `/audio/${socket.id}.mp3`);
+      } catch (error) {
+        console.error('Ошибка генерации речи:', error.message);
+        socket.emit('message', '⚠️ Произошла ошибка при генерации речи.');
+      }
+    }
+  } catch (error) {
+    console.error(`[GPT] Ошибка: ${error.message}`);
+    socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
+  }
 
   messageQueues.set(socket.id, queue);
   if (queue.length > 0) {
-    setTimeout(() => processMessageQueue(socket), 1000); // Задержка перед обработкой следующего сообщения
+    setTimeout(() => processMessageQueue(socket, isVoiceMode), 1000);
   }
 }
 
@@ -266,10 +294,18 @@ io.on('connection', (socket) => {
   messageQueues.set(socket.id, []);
   activeResponses.set(socket.id, null);
 
+  // Добавляем отслеживание режима для каждого соединения
+  let isVoiceMode = false;
+
+  socket.on('mode', (data) => {
+    isVoiceMode = data.isVoiceMode;
+    console.log(`[WebSocket] Режим ${socket.id}: ${isVoiceMode ? 'голосовой' : 'текстовый'}`);
+  });
+
   socket.on('message', async (message) => {
     try {
       console.log(`[WebSocket] Сообщение от ${socket.id}: ${message}`);
-      
+
       if (/жест|видео|распознай/i.test(message)) {
         return socket.emit('message', '🎥 Отправьте видеофайл для анализа жестов');
       }
@@ -278,8 +314,9 @@ io.on('connection', (socket) => {
       queue.push(message);
       messageQueues.set(socket.id, queue);
 
+      // Передаем информацию о режиме в обработчик очереди
       if (queue.length === 1) {
-        await processMessageQueue(socket);
+        await processMessageQueue(socket, isVoiceMode);
       }
     } catch (error) {
       console.error(`[WebSocket] Ошибка: ${error.message}`);
@@ -292,7 +329,7 @@ io.on('connection', (socket) => {
     activeResponses.set(socket.id, null);
     const queue = messageQueues.get(socket.id) || [];
     if (queue.length > 0) {
-      processMessageQueue(socket);
+      processMessageQueue(socket, isVoiceMode);
     }
   });
 
