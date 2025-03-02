@@ -230,27 +230,43 @@
     // Инициализация аудиозаписи
     async function startAudioRecording() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            channelCount: 1,
+            sampleRate: 16000
+          } 
+        });
+        
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'audio/webm;codecs=opus',
+          audioBitsPerSecond: 16000
+        });
 
         mediaRecorder.ondataavailable = (e) => {
-          audioChunks.push(e.data);
+          if (e.data.size > 0) {
+            audioChunks.push(e.data);
+          }
         };
 
         mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          console.log(`[Recording] Аудиофайл создан: ${audioBlob.size} байт`);
-          await sendAudioToServer(audioBlob);
-          audioChunks = [];
+          if (audioChunks.length > 0) {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            console.log(`[Recording] Аудиофайл создан: ${audioBlob.size} байт`);
+            if (audioBlob.size > 0) {
+              await sendAudioToServer(audioBlob);
+            }
+            audioChunks = [];
+          }
         };
 
-        mediaRecorder.start();
+        mediaRecorder.start(1000); // Записываем по 1 секунде
         isRecording = true;
-        sendButton.classList.add('recording');
         console.log('[Recording] Начало записи');
+        return true;
       } catch (error) {
         console.error('Ошибка доступа к микрофону:', error);
         alert('Разрешите доступ к микрофону в настройках браузера!');
+        throw error;
       }
     }
 
@@ -333,15 +349,24 @@
     }
 
     // Обработчик кнопки отправки/записи
-    sendButton.addEventListener('click', () => {
+    sendButton.addEventListener('click', async () => {
       if (messageInput.value.trim() === '') {
         // Переключение режима голосового ввода
         isVoiceMode = !isVoiceMode;
+        console.log('[Voice Mode]', isVoiceMode ? 'Включен' : 'Выключен');
+        
         if (isVoiceMode) {
           socket.emit('mode', { isVoiceMode: true });
-          if (recognition) {
-            recognition.start(); // Сначала запускаем распознавание
+          try {
+            await startAudioRecording(); // Дожидаемся инициализации записи
+            if (recognition) {
+              recognition.start();
+            }
             sendButton.classList.add('recording');
+          } catch (error) {
+            console.error('Ошибка запуска записи:', error);
+            isVoiceMode = false;
+            socket.emit('mode', { isVoiceMode: false });
           }
         } else {
           socket.emit('mode', { isVoiceMode: false });
@@ -405,18 +430,21 @@
 
     // Обработка аудиосообщений
     socket.on('audio', (audioUrl) => {
-      console.log('Получено аудио:', audioUrl);
-      // Воспроизводим аудио только в голосовом режиме
+      console.log('[Audio] Получено аудио:', audioUrl, 'Режим:', isVoiceMode);
       if (isVoiceMode) {
-        stopRecording(); // Остановка записи перед воспроизведением аудио
-        if (recognition) recognition.stop(); // Остановка распознавания речи
+        stopRecording();
+        if (recognition) recognition.stop();
         audioPlayer.src = audioUrl;
         audioPlayer.style.display = 'block';
-        audioPlayer.play();
+        audioPlayer.play().catch(error => {
+          console.error('Ошибка воспроизведения:', error);
+        });
         audioPlayer.onended = () => {
           console.log('Аудио завершено');
           socket.emit('audio-ended');
-          if (recognition && isVoiceMode) recognition.start(); // Возобновление прослушивания после воспроизведения
+          if (recognition && isVoiceMode) {
+            recognition.start();
+          }
         };
       }
     });

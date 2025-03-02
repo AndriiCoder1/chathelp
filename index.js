@@ -88,7 +88,7 @@ const pythonPath = process.env.NODE_ENV === 'production'
   ? 'python3'  // для production используем системный Python
   : '/c/Users/mozart/public/venv/Scripts/python.exe'; // для разработки
 
-// Обработка аудио
+// Обновляем обработчик аудио
 app.post('/process-audio', upload.single('audio'), async (req, res) => {
   try {
     if (!req.file) {
@@ -105,35 +105,43 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
       return res.status(400).json({ error: 'Аудиофайл пустой' });
     }
 
-    // Запуск транскрипции
-    const command = `${pythonPath} "${path.join(__dirname, 'transcribe.py')}" "${audioPath}" "${path.join(audioDir, `${req.file.filename}.mp3`)}"`;
+    // Обновленная команда с выводом ошибок
+    const command = `${pythonPath} "${path.join(__dirname, 'transcribe.py')}" "${audioPath}" "${path.join(audioDir, `${req.file.filename}.mp3`)}" 2>&1`;
 
-    exec(command, { encoding: 'utf-8' }, (error, stdout, stderr) => {
-      // Очистка временных файлов
-      fs.unlinkSync(audioPath);
+    exec(command, { encoding: 'utf-8' }, async (error, stdout, stderr) => {
+      try {
+        // Очистка временных файлов
+        fs.unlinkSync(audioPath);
 
-      if (error) {
-        console.error(`[Python] Ошибка: ${stderr}`);
-        return res.status(500).json({
-          error: 'Ошибка транскрипции',
-          details: stderr
-        });
+        if (error || stderr) {
+          console.error(`[Python] Ошибка: ${stderr || error}`);
+          return res.status(500).json({
+            error: 'Ошибка транскрипции',
+            details: stderr || error.message
+          });
+        }
+
+        if (!stdout?.trim()) {
+          console.warn('[Python] Пустой ответ');
+          return res.status(500).json({ error: 'Не удалось распознать речь' });
+        }
+
+        console.log('[Python] Успешная транскрипция:', stdout.trim());
+        res.json({ transcription: stdout.trim() });
+
+        // Генерация голосового ответа
+        try {
+          const audioFilePath = path.join(audioDir, `${req.file.filename}.mp3`);
+          await generateSpeech(stdout.trim(), audioFilePath);
+          io.emit('audio', `/audio/${req.file.filename}.mp3`);
+        } catch (err) {
+          console.error('[TTS] Ошибка генерации речи:', err);
+        }
+      } catch (err) {
+        console.error('[Process] Ошибка обработки:', err);
+        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
       }
-
-      if (!stdout?.trim()) {
-        console.warn('[Python] Пустой ответ');
-        return res.status(500).json({ error: 'Не удалось распознать речь' });
-      }
-
-      console.log('[Python] Успешная транскрипция');
-      res.json({ transcription: stdout.trim() });
-      // Генерация голосового ответа
-      const audioFilePath = path.join(audioDir, `${req.file.filename}.mp3`);
-      generateSpeech(stdout.trim(), audioFilePath).then(() => {
-        io.emit('audio', `/audio/${req.file.filename}.mp3`);
-      });
     });
-
   } catch (error) {
     console.error(`[Сервер] Критическая ошибка: ${error.message}`);
     res.status(500).json({
