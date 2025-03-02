@@ -88,7 +88,7 @@ const pythonPath = process.env.NODE_ENV === 'production'
   ? 'python3'  // для production используем системный Python
   : '/c/Users/mozart/public/venv/Scripts/python.exe'; // для разработки
 
-// Обновляем обработчик аудио
+// Заменяем обработчик аудио на прямую обработку через OpenAI
 app.post('/process-audio', upload.single('audio'), async (req, res) => {
   try {
     if (!req.file) {
@@ -100,7 +100,6 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
     const outputPath = path.join(audioDir, `${req.file.filename}.mp3`);
 
     console.log(`[Аудио] Обработка файла: ${audioPath} (${req.file.size} байт)`);
-    console.log(`[Аудио] Выходной файл: ${outputPath}`);
 
     if (req.file.size === 0) {
       console.error('[Аудио] Файл пустой');
@@ -108,55 +107,44 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
       return res.status(400).json({ error: 'Аудиофайл пустой' });
     }
 
-    // Проверяем права доступа
     try {
-      await fs.promises.access(audioPath, fs.constants.R_OK);
-      await fs.promises.access(path.dirname(outputPath), fs.constants.W_OK);
-    } catch (err) {
-      console.error('[Аудио] Ошибка прав доступа:', err);
-      return res.status(500).json({ error: 'Ошибка прав доступа к файлам' });
-    }
+      // Прямая транскрипция через OpenAI Whisper API
+      const audioFile = fs.createReadStream(audioPath);
+      const result = await openai.audio.transcriptions.create({
+        file: audioFile,
+        model: "whisper-1",
+        language: "ru"
+      });
 
-    // Обновленная команда с выводом ошибок
-    const command = `${pythonPath} "${path.join(__dirname, 'transcribe.py')}" "${audioPath}" "${outputPath}" 2>&1`;
+      const transcription = result.text;
+      console.log('[Whisper] Транскрипция:', transcription);
 
-    exec(command, { encoding: 'utf-8' }, async (error, stdout, stderr) => {
+      // Генерация голосового ответа через Google TTS
       try {
-        // Очистка временных файлов
-        if (fs.existsSync(audioPath)) {
-          fs.unlinkSync(audioPath);
-        }
+        await generateSpeech(transcription, outputPath);
+        console.log('[TTS] Сгенерирован файл:', outputPath);
 
-        if (error || stderr) {
-          console.error(`[Python] Ошибка выполнения: ${error?.message || stderr}`);
-          return res.status(500).json({
-            error: 'Ошибка транскрипции',
-            details: stderr || error?.message
-          });
-        }
+        res.json({ transcription });
 
-        const output = stdout.trim();
-        console.log('[Python] Вывод:', output);
-
-        if (!output) {
-          console.warn('[Python] Пустой ответ');
-          return res.status(500).json({ error: 'Не удалось распознать речь' });
-        }
-
-        console.log('[Python] Успешная транскрипция');
-        res.json({ transcription: output });
-
-        // Проверяем существование файла перед отправкой
         if (fs.existsSync(outputPath)) {
           io.emit('audio', `/audio/${req.file.filename}.mp3`);
-        } else {
-          console.error('[Аудио] Файл не создан:', outputPath);
         }
-      } catch (err) {
-        console.error('[Process] Ошибка обработки:', err);
-        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+      } catch (ttsError) {
+        console.error('[TTS] Ошибка:', ttsError);
+        res.json({ transcription }); // Отправляем хотя бы текст, если аудио не удалось
       }
-    });
+    } catch (error) {
+      console.error('[Whisper] Ошибка:', error);
+      res.status(500).json({
+        error: 'Ошибка распознавания речи',
+        details: error.message
+      });
+    } finally {
+      // Очистка входного файла
+      if (fs.existsSync(audioPath)) {
+        fs.unlinkSync(audioPath);
+      }
+    }
   } catch (error) {
     console.error(`[Сервер] Критическая ошибка: ${error.message}`);
     res.status(500).json({
@@ -166,6 +154,38 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
   }
 });
 
+// Обновляем генерацию речи, добавляя обработку ошибок и повторные попытки
+async function generateSpeech(text, outputFilePath, retries = 3) {
+  console.log(`[generateSpeech] Генерация речи для текста: ${text}`);
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const urls = getAllAudioUrls(text, {
+        lang: 'ru',
+        slow: false,
+        host: 'https://translate.google.com',
+      });
+
+      const buffers = [];
+      for (const urlObj of urls) {
+        const response = await fetch(urlObj.url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const arrayBuffer = await response.arrayBuffer();
+        buffers.push(Buffer.from(arrayBuffer));
+      }
+
+      const finalBuffer = Buffer.concat(buffers);
+      await fs.promises.writeFile(outputFilePath, finalBuffer);
+      console.log(`[generateSpeech] Успешно: ${outputFilePath}`);
+      return;
+    } catch (err) {
+      console.error(`[TTS] Попытка ${attempt}/${retries} неудачна:`, err);
+      if (attempt === retries) throw err;
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Пауза перед следующей попыткой
+    }
+  }
+}
+
 // Обработка текстовых запросов
 function splitText(text, maxLength = 200) {
   const parts = [];
@@ -173,34 +193,6 @@ function splitText(text, maxLength = 200) {
     parts.push(text.slice(i, i + maxLength));
   }
   return parts;
-}
-
-async function generateSpeech(text, outputFilePath) {
-  console.log(`[generateSpeech] Генерация речи для текста: ${text}`);
-  try {
-    const urls = getAllAudioUrls(text, {
-      lang: 'ru',
-      slow: false,
-      host: 'https://translate.google.com',
-    });
-
-    const buffers = [];
-
-    for (const urlObj of urls) {
-      const url = urlObj.url; // Извлечение URL из объекта
-      const response = await fetch(url);
-      const arrayBuffer = await response.arrayBuffer();
-      buffers.push(Buffer.from(arrayBuffer));
-    }
-
-    // Объединение всех частей в один аудиофайл
-    const finalBuffer = Buffer.concat(buffers);
-    fs.writeFileSync(outputFilePath, finalBuffer);
-    console.log(`[generateSpeech] Успешно: ${outputFilePath}`);
-  } catch (err) {
-    console.error(`[Google TTS] Ошибка: ${err}`);
-    throw new Error('Ошибка генерации речи');
-  }
 }
 
 // Добавили кэширование GPT-ответов
