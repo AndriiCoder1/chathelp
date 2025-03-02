@@ -1,0 +1,10 @@
+{
+    "venvPath": ".",
+    "venv": "venv",
+    "pythonPath": "./venv/Scripts/python.exe",
+    "analysis": {
+        "autoImportCompletions": true,
+        "useLibraryCodeForTypes": true,
+        "diagnosticMode": "workspace"
+    }
+}

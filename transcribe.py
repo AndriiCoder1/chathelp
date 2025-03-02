@@ -1,3 +1,4 @@
+from typing import Optional
 import sys
 import os
 from dotenv import load_dotenv
@@ -44,6 +45,13 @@ def convert_audio(input_path: str) -> str:
 # Кэширование транскрипций
 @lru_cache(maxsize=100)
 def cached_transcribe(file_path: str) -> str:
+    """
+    Transcribe audio file with caching
+    Args:
+        file_path: Path to audio file
+    Returns:
+        str: Transcription text
+    """
     try:
         # Использование абсолютного пути для cache_dir
         cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "transcription_cache")
@@ -67,18 +75,18 @@ def cached_transcribe(file_path: str) -> str:
         
         # Основная логика Whisper
         with open(file_path, "rb") as audio_file:
-            result = client.audio.transcribe(
+            transcription_text = client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file,
-                response_format="verbose_json"
+                response_format="text"  # Изменили формат ответа на text
             )
             
         # Сохранение в кэш
         with open(cache_path, "w", encoding='utf-8') as f:
-            f.write(result['text'])
+            f.write(transcription_text)  # Используем текст напрямую
         print(f"[Кэш] Сохранена новая транскрипция: {cache_path}")
             
-        return result['text']
+        return transcription_text  # Возвращаем текст напрямую
 
     except Exception as e:
         print(f"[Кэш] Ошибка: {str(e)}")
@@ -97,7 +105,7 @@ def generate_speech(text, output_path):
 if __name__ == "__main__":
     try:
         check_dependencies()
-
+        
         if len(sys.argv) < 3:
             raise ValueError("Usage: python transcribe.py <input_audio_path> <output_audio_path>")
 
@@ -105,18 +113,24 @@ if __name__ == "__main__":
         output_path = sys.argv[2]
         print(f"[Main] Обработка файла: {input_path}")
 
-        converted_path = convert_audio(input_path)
-        transcription = cached_transcribe(converted_path)
-        generate_speech(transcription, output_path)
+        # Инициализируем converted_path как Optional[str] для Python 3.8
+        converted_path = None  # type: Optional[str]
+        
+        try:
+            # Конвертация и транскрипция
+            converted_path = convert_audio(input_path)
+            transcription = cached_transcribe(converted_path)
+            generate_speech(transcription, output_path)
 
-        print("\nРезультат транскрипции:")
-        print(transcription)
+            print("\nРезультат транскрипции:")
+            print(transcription)
+
+        finally:
+            # Проверяем существование converted_path перед удалением
+            if converted_path and os.path.exists(converted_path):
+                os.remove(converted_path)
+                print(f"[Очистка] Удален временный файл: {converted_path}")
 
     except Exception as e:
         print(f"[Критическая ошибка] {str(e)}")
         sys.exit(1)
-
-    finally:
-        if 'converted_path' in locals() and os.path.exists(converted_path):
-            os.remove(converted_path)
-            print(f"[Очистка] Удален временный файл: {converted_path}")
