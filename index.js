@@ -101,7 +101,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
     }
 
     // Запуск транскрипции
-    const pythonPath = process.env.PYTHON_PATH || 'python3';
+    const pythonPath = process.env.PYTHON_PATH || '/c/Users/mozart/public/venv/Scripts/python.exe';
     const command = `"${pythonPath}" "${path.join(__dirname, 'transcribe.py')}" "${audioPath}"`;
     
     exec(command, { encoding: 'utf-8' }, (error, stdout, stderr) => {
