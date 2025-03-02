@@ -288,18 +288,17 @@
       window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
       if (!window.SpeechRecognition) {
-        sendButton.style.display = 'none';
         console.warn('Голосовой ввод не поддерживается');
         return;
       }
 
       recognition = new window.SpeechRecognition();
-      recognition.lang = 'ru-RU'; // Русский язык
+      recognition.lang = 'ru-RU';
       recognition.continuous = true;
       recognition.interimResults = false;
 
       recognition.onstart = () => {
-        sendButton.classList.add('recording');
+        console.log('[Recognition] Начало распознавания');
         startAudioRecording();
       };
 
@@ -309,25 +308,26 @@
           .join('');
         document.getElementById('message-input').value = transcript;
 
-        // Сброс таймера тишины
         if (silenceTimeout) clearTimeout(silenceTimeout);
 
-        // Установка таймера тишины на 2 секунды
         silenceTimeout = setTimeout(() => {
-          stopRecording();
-          sendMessage();
-          if (recognition) recognition.start(); // Возобновление прослушивания
+          if (isVoiceMode) {
+            stopRecording();
+            sendMessage();
+          }
         }, 2000);
       };
 
       recognition.onerror = (event) => {
         console.error('Ошибка распознавания:', event.error);
         stopRecording();
+        sendButton.classList.remove('recording');
       };
 
       recognition.onend = () => {
-        if (!isRecording) {
-          startAudioRecording();
+        console.log('[Recognition] Конец распознавания');
+        if (isVoiceMode) {
+          recognition.start(); // Автоматически перезапускаем, если всё ещё в голосовом режиме
         }
       };
     }
@@ -339,10 +339,17 @@
         isVoiceMode = !isVoiceMode;
         if (isVoiceMode) {
           socket.emit('mode', { isVoiceMode: true });
-          startRecording();
+          if (recognition) {
+            recognition.start(); // Сначала запускаем распознавание
+            sendButton.classList.add('recording');
+          }
         } else {
           socket.emit('mode', { isVoiceMode: false });
           stopRecording();
+          if (recognition) {
+            recognition.stop();
+          }
+          sendButton.classList.remove('recording');
         }
       } else {
         // Текстовый режим
