@@ -131,3 +131,28 @@ dist
 
 # Игнорировать папку uploads
 /uploads/
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+transcription_cache/
+temp_converted.wav
+
+# Audio files
+/audio/
+*.mp3
+*.wav
+*.webm
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
