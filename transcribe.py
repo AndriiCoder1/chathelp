@@ -45,16 +45,26 @@ def convert_audio(input_path: str) -> str:
 @lru_cache(maxsize=100)
 def cached_transcribe(file_path: str) -> str:
     try:
+        # Использование абсолютного пути для cache_dir
+        cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "transcription_cache")
+        
+        # Создаем директорию, если её нет
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+            print(f"[Кэш] Создана директория кэша: {cache_dir}")
+        
         # Генерация уникального хеша файла
         file_hash = hashlib.md5(open(file_path, 'rb').read()).hexdigest()
-        cache_dir = "transcription_cache"
-        cache_path = f"{cache_dir}/{file_hash}.txt"
+        cache_path = os.path.join(cache_dir, f"{file_hash}.txt")
         
+        # Проверка существующего кэша
         if os.path.exists(cache_path):
-            print(f"[Кэш] Использование кэшированной транскрипции: {cache_path}")
-            with open(cache_path, "r") as f:
+            print(f"[Кэш] Найдена кэшированная транскрипция: {cache_path}")
+            with open(cache_path, "r", encoding='utf-8') as f:
                 return f.read()
                 
+        print(f"[Кэш] Кэш не найден, выполняется транскрипция")
+        
         # Основная логика Whisper
         with open(file_path, "rb") as audio_file:
             result = client.audio.transcribe(
@@ -64,14 +74,14 @@ def cached_transcribe(file_path: str) -> str:
             )
             
         # Сохранение в кэш
-        os.makedirs(cache_dir, exist_ok=True)
-        with open(cache_path, "w") as f:
+        with open(cache_path, "w", encoding='utf-8') as f:
             f.write(result['text'])
+        print(f"[Кэш] Сохранена новая транскрипция: {cache_path}")
             
         return result['text']
 
     except Exception as e:
-        print(f"[Whisper] Ошибка: {str(e)}")
+        print(f"[Кэш] Ошибка: {str(e)}")
         raise
 
 def generate_speech(text, output_path):
