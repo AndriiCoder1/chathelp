@@ -5,6 +5,13 @@
     "analysis": {
         "autoImportCompletions": true,
         "useLibraryCodeForTypes": true,
-        "diagnosticMode": "workspace"
-    }
+        "diagnosticMode": "workspace",
+        "typeCheckingMode": "basic"
+    },
+    "include": ["*.py"],
+    "exclude": [
+        "**/node_modules",
+        "**/__pycache__",
+        ".git"
+    ]
 }
