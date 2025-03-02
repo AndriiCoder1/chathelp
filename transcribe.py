@@ -75,18 +75,18 @@ def cached_transcribe(file_path: str) -> str:
         
         # Основная логика Whisper
         with open(file_path, "rb") as audio_file:
-            transcription_text = client.audio.transcriptions.create(
+            result = client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file,
-                response_format="text"  # Изменили формат ответа на text
+                response_format="json"  # Изменили формат ответа
             )
             
         # Сохранение в кэш
         with open(cache_path, "w", encoding='utf-8') as f:
-            f.write(transcription_text)  # Используем текст напрямую
+            f.write(result.text)  # Используем result.text
         print(f"[Кэш] Сохранена новая транскрипция: {cache_path}")
             
-        return transcription_text  # Возвращаем текст напрямую
+        return result.text  # Возвращаем text из result
 
     except Exception as e:
         print(f"[Кэш] Ошибка: {str(e)}")

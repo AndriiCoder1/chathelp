@@ -1,6 +1,6 @@
-openai
-pydub
+openai>=1.0.0
+pydub>=0.25.1
 python-dotenv>=1.0.0
-gtts
+gtts>=2.5.0
 speechrecognition>=3.8.1
 simpleaudio>=1.0.4

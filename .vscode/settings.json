@@ -1,5 +1,5 @@
 {
-    "python.defaultInterpreterPath": "C:\\Users\\mozart\\public\\venv\\Scripts\\python.exe",
+    "python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe",
     "python.languageServer": "Pylance",
     "editor.formatOnSave": true
 }
