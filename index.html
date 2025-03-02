@@ -175,6 +175,7 @@
       background-color: #4a4e51;
     }
 
+    /* Удаляем стили таймера */
     #recording-timer {
       display: none;
     }
@@ -199,9 +200,6 @@
 </head>
 
 <body>
-  <!-- Элемент таймера -->
-  <div id="recording-timer"></div>
-
   <!-- Элемент аудио -->
   <audio id="audio-player" controls style="display: none;"></audio>
 
@@ -219,12 +217,10 @@
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
     const sendButton = document.getElementById('send-button');
-    const recordingTimer = document.getElementById('recording-timer');
     const audioPlayer = document.getElementById('audio-player');
     const messageInput = document.getElementById('message-input');
 
     let recognition = null;
-    let recordingTimeout = null;
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
