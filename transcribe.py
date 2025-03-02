@@ -107,26 +107,52 @@ if __name__ == "__main__":
         check_dependencies()
         
         if len(sys.argv) < 3:
-            raise ValueError("Usage: python transcribe.py <input_audio_path> <output_audio_path>")
+            print("Usage: python transcribe.py <input_audio_path> <output_audio_path>")
+            sys.exit(1)
 
         input_path = sys.argv[1]
         output_path = sys.argv[2]
         print(f"[Main] Обработка файла: {input_path}")
 
-        # Инициализируем converted_path как Optional[str] для Python 3.8
+        # Убедимся, что входной файл существует
+        if not os.path.exists(input_path):
+            print(f"[Ошибка] Входной файл не найден: {input_path}")
+            sys.exit(1)
+
+        # Убедимся, что директория для выходного файла существует
+        output_dir = os.path.dirname(output_path)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            print(f"[Main] Создана директория: {output_dir}")
+
         converted_path = None  # type: Optional[str]
         
         try:
             # Конвертация и транскрипция
             converted_path = convert_audio(input_path)
+            if not os.path.exists(converted_path):
+                print(f"[Ошибка] Конвертированный файл не создан: {converted_path}")
+                sys.exit(1)
+                
             transcription = cached_transcribe(converted_path)
-            generate_speech(transcription, output_path)
-
-            print("\nРезультат транскрипции:")
+            if not transcription:
+                print("[Ошибка] Пустая транскрипция")
+                sys.exit(1)
+                
+            print("\nТекст транскрипции:")
             print(transcription)
+            
+            # Генерация речи
+            generate_speech(transcription, output_path)
+            if not os.path.exists(output_path):
+                print(f"[Ошибка] Выходной файл не создан: {output_path}")
+                sys.exit(1)
 
+        except Exception as e:
+            print(f"[Ошибка обработки] {str(e)}")
+            sys.exit(1)
         finally:
-            # Проверяем существование converted_path перед удалением
+            # Очистка временных файлов
             if converted_path and os.path.exists(converted_path):
                 os.remove(converted_path)
                 print(f"[Очистка] Удален временный файл: {converted_path}")
