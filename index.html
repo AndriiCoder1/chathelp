@@ -348,8 +348,8 @@
       };
     }
 
-    // Обработчик кнопки отправки/записи
-    sendButton.addEventListener('click', async () => {
+    // Обновляем обработчик кнопки отправки/записи
+    sendButton.addEventListener('click', () => {
       if (messageInput.value.trim() === '') {
         // Переключение режима голосового ввода
         isVoiceMode = !isVoiceMode;
@@ -357,28 +357,29 @@
         
         if (isVoiceMode) {
           socket.emit('mode', { isVoiceMode: true });
-          try {
-            await startAudioRecording(); // Дожидаемся инициализации записи
-            if (recognition) {
-              recognition.start();
-            }
-            sendButton.classList.add('recording');
-          } catch (error) {
-            console.error('Ошибка запуска записи:', error);
-            isVoiceMode = false;
-            socket.emit('mode', { isVoiceMode: false });
-          }
+          startRecording();
+          sendButton.classList.add('recording');
         } else {
           socket.emit('mode', { isVoiceMode: false });
           stopRecording();
-          if (recognition) {
-            recognition.stop();
-          }
           sendButton.classList.remove('recording');
         }
       } else {
         // Текстовый режим
         sendMessage();
+      }
+    });
+
+    // Обновляем обработчик аудио
+    socket.on('audio', (audioUrl) => {
+      console.log('[Audio] Получено аудио:', audioUrl);
+      if (isVoiceMode) {
+        stopRecording();
+        audioPlayer.src = audioUrl;
+        audioPlayer.style.display = 'block';
+        audioPlayer.play().catch(error => {
+          console.error('Ошибка воспроизведения:', error);
+        });
       }
     });
 
