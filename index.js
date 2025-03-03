@@ -327,34 +327,6 @@ function hashString(str) {
   ).toString(16);
 }
 
-async function handleTextQuery(message, socket, isVoiceMode) {
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: message }]
-    });
-
-    const botResponse = response.choices[0].message.content;
-    console.log(`[Bot] Ответ: ${botResponse}`);
-
-    socket.emit('message', botResponse);
-
-    // Генерируем голосовой ответ только в голосовом режиме
-    if (isVoiceMode) {
-      try {
-        const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
-        await generateSpeech(botResponse, audioFilePath);
-        socket.emit('audio', `/audio/${socket.id}.mp3`);
-      } catch (error) {
-        console.error('[TTS] Ошибка:', error);
-      }
-    }
-  } catch (error) {
-    console.error(`[GPT] Ошибка: ${error.message}`);
-    socket.emit('message', '⚠️ Ошибка обработки запроса');
-  }
-}
-
 // Обработка очереди сообщений
 async function processMessageQueue(socket, isVoiceMode) {
   const queue = messageQueues.get(socket.id) || [];
