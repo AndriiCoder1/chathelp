@@ -118,6 +118,28 @@
       }
     }
 
+    /* Добавьте анимацию мигания глаз кролика */
+    #send-button.recording::after {
+      content: '';
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      width: 5px;
+      height: 5px;
+      background-color: red;
+      border-radius: 50%;
+      animation: blink 0.5s infinite alternate;
+    }
+
+    @keyframes blink {
+      0% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+
     .input-container {
       width: 100%;
       max-width: 600px;

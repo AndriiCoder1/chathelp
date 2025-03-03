@@ -327,6 +327,26 @@ function hashString(str) {
   ).toString(16);
 }
 
+// Добавьте эту функцию перед использованием
+async function getCachedGPTResponse(message) {
+  const cacheKey = hashString(message);
+  let response;
+
+  // Проверяем кэш GPT
+  if (gptCache.has(cacheKey)) {
+    console.log('[GPT] Использование кэша');
+    response = gptCache.get(cacheKey);
+  } else {
+    response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: message }]
+    });
+    gptCache.set(cacheKey, response);
+  }
+
+  return response;
+}
+
 // Обработка очереди сообщений
 async function processMessageQueue(socket, isVoiceMode) {
   const queue = messageQueues.get(socket.id) || [];
