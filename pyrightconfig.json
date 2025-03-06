@@ -8,7 +8,9 @@
         "diagnosticMode": "workspace",
         "typeCheckingMode": "basic"
     },
-    "include": ["*.py"],
+    "include": [
+        "*.py"
+    ],
     "exclude": [
         "**/node_modules",
         "**/__pycache__",

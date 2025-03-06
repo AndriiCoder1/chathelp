@@ -102,7 +102,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
     // Запуск транскрипции
     const pythonPath = process.env.PYTHON_PATH || 'python3';
-    const command = `"${pythonPath}" "${path.join(__dirname, 'transcribe.py')}" "${audioPath}"`;
+    const command = `"${pythonPath}" "${path.join(__dirname, 'transcribe.py')}" "${audioPath}" "${audioPath.replace('.webm', '.mp3')}"`;
 
     exec(command, { encoding: 'utf-8' }, (error, stdout, stderr) => {
       // Очистка временных файлов
@@ -127,6 +127,8 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
       const audioFilePath = path.join(audioDir, `${req.file.filename}.mp3`);
       generateSpeech(stdout.trim(), audioFilePath).then(() => {
         io.emit('audio', `/audio/${req.file.filename}.mp3`);
+      }).catch(err => {
+        console.error('Ошибка генерации речи:', err.message);
       });
     });
 
@@ -204,15 +206,16 @@ async function handleTextQuery(message, socket) {
 
     socket.emit('message', botResponse);
 
-    // Генерация голосового ответа
-    const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
-    try {
-      await generateSpeech(botResponse, audioFilePath);
-      activeResponses.set(socket.id, audioFilePath);
-      socket.emit('audio', `/audio/${socket.id}.mp3`);
-    } catch (error) {
-      console.error('Ошибка генерации речи:', error.message);
-      socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
+    if (message.includes('audio')) {
+      const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+      try {
+        await generateSpeech(botResponse, audioFilePath);
+        activeResponses.set(socket.id, audioFilePath);
+        socket.emit('audio', `/audio/${socket.id}.mp3`);
+      } catch (error) {
+        console.error('Ошибка генерации речи:', error.message);
+        socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
+      }
     }
 
   } catch (error) {

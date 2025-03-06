@@ -173,6 +173,10 @@
     .dark-theme #recording-timer {
       display: none;
     }
+
+    #audio-player {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -224,6 +228,11 @@
           audioChunks = [];
         };
 
+        mediaRecorder.onerror = (e) => {
+          console.error('Ошибка записи аудио:', e);
+          stopRecording();
+        };
+
         mediaRecorder.start();
         isRecording = true;
         sendButton.classList.add('recording');
@@ -261,6 +270,9 @@
         sendButton.classList.remove('recording');
         console.log('[Recording] Остановка записи');
       }
+      if (recognition) {
+        recognition.stop();
+      }
     }
 
     // Обновленная инициализация распознавания речи
@@ -292,12 +304,12 @@
         // Сброс таймера тишины
         if (silenceTimeout) clearTimeout(silenceTimeout);
 
-        // Установка таймера тишины на 2 секунды
+        // Установка таймера тишины на 5 секунд
         silenceTimeout = setTimeout(() => {
           stopRecording();
           sendMessage();
           if (recognition) recognition.start(); // Возобновление прослушивания
-        }, 2000);
+        }, 5000);
       };
 
       recognition.onerror = (event) => {
@@ -374,6 +386,7 @@
       audioPlayer.play();
       audioPlayer.onended = () => {
         console.log('Аудио завершено');
+        audioPlayer.style.display = 'none'; // Скрытие плеера после завершения
         socket.emit('audio-ended');
         if (recognition) recognition.start(); // Возобновление прослушивания после воспроизведения
       };

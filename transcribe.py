@@ -1,7 +1,7 @@
 import sys
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
+import openai
 from pydub import AudioSegment
 from gtts import gTTS
 
@@ -14,7 +14,7 @@ if not api_key:
     raise ValueError("Не удалось найти переменную окружения OPENAI_API_KEY")
 
 # Инициализация клиента OpenAI
-client = OpenAI(api_key=api_key)
+openai.api_key = api_key
 
 def check_dependencies():
     try:
@@ -44,10 +44,10 @@ def transcribe_audio(file_path: str) -> str:
         with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...")
 
-            response = client.Audio.transcribe(
+            response = openai.Audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file,
-                response_format="verbose_json",
+                response_format="json",
                 temperature=0.2,
             )
 
