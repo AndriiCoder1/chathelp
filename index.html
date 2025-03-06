@@ -6,7 +6,6 @@
   <title>Chat-Help</title>
   <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
   <style>
-    /* ... (существующие стили остаются без изменений) ... */
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f7fa;
@@ -75,12 +74,39 @@
       background-color: #007bff;
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 50%;
       cursor: pointer;
+      background-image: url('/images/rabbit_1.png');
+      background-size: cover;
+      width: 50px;
+      height: 50px;
     }
 
-    #send-button:hover {
-      background-color: #0056b3;
+    #send-button.sending {
+      background-image: url('/images/send_icon.png');
+    }
+
+    #send-button.recording {
+      background-color: #dc3545;
+      animation: pulse 1s infinite;
+    }
+
+    #send-button.recording::before {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 10px;
+      height: 10px;
+      background-color: red;
+      border-radius: 50%;
+      box-shadow: 20px 0 0 red;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
     }
 
     .input-container {
@@ -140,78 +166,46 @@
       background-color: #4a4e51;
     }
 
-    #voice-btn {
-      background-color: #28a745;
-      color: white;
-      padding: 8px;
-      border-radius: 50%;
-      cursor: pointer;
-      margin-left: 10px;
-      font-size: 20px;
-      transition: all 0.3s;
-    }
-
-    #voice-btn:hover {
-      background-color: #218838;
-    }
-
-    #voice-btn.recording {
-      background-color: #dc3545;
-      animation: pulse 1s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
-
-    /* Добавляем стили для таймера */
     #recording-timer {
-      position: fixed;
-      top: 70px;
-      right: 20px;
-      font-size: 24px;
-      color: #dc3545;
       display: none;
-      background: rgba(0,0,0,0.7);
-      padding: 5px 10px;
-      border-radius: 5px;
     }
 
     .dark-theme #recording-timer {
-      color: #ff6b6b;
-      background: rgba(255,255,255,0.1);
+      display: none;
     }
   </style>
 </head>
 <body>
-  <!-- Добавляем элемент таймера -->
-  <div id="recording-timer">00:60</div>
+  <!-- Элемент таймера -->
+  <div id="recording-timer"></div>
   
-  <!-- Остальная разметка без изменений -->
+  <!-- Элемент аудио -->
+  <audio id="audio-player" controls style="display: none;"></audio>
+  
   <h1>Chat-Help</h1>
   <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
   <button id="theme-toggle">L / D</button>
   <div id="chat-log"></div>
   <div class="input-container">
     <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
-    <button id="send-button">Schicken</button>
-    <button id="voice-btn" title="Klicken Sie zum Aufzeichnen">🎤</button>
+    <button id="send-button" title="Senden Sie eine Nachricht oder starten Sie die Aufnahme"></button>
   </div>
 
   <script>
     const socket = io();
     const themeToggleButton = document.getElementById('theme-toggle');
     const bodyElement = document.body;
-    const voiceButton = document.getElementById('voice-btn');
+    const sendButton = document.getElementById('send-button');
     const recordingTimer = document.getElementById('recording-timer');
+    const audioPlayer = document.getElementById('audio-player');
+    const messageInput = document.getElementById('message-input');
     
     let recognition = null;
     let recordingTimeout = null;
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
+    let silenceTimeout = null;
 
     // Инициализация аудиозаписи
     async function startAudioRecording() {
@@ -225,13 +219,15 @@
 
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          console.log(`[Recording] Аудиофайл создан: ${audioBlob.size} байт`);
           await sendAudioToServer(audioBlob);
           audioChunks = [];
         };
 
         mediaRecorder.start();
         isRecording = true;
-        startRecordingTimer();
+        sendButton.classList.add('recording');
+        console.log('[Recording] Начало записи');
       } catch (error) {
         console.error('Ошибка доступа к микрофону:', error);
         alert('Разрешите доступ к микрофону в настройках браузера!');
@@ -257,29 +253,13 @@
       }
     }
 
-    // Таймер записи
-    function startRecordingTimer() {
-      let seconds = 60;
-      recordingTimer.style.display = 'block';
-      
-      const timerInterval = setInterval(() => {
-        seconds--;
-        recordingTimer.textContent = `00:${seconds.toString().padStart(2, '0')}`;
-        
-        if (seconds <= 0) {
-          clearInterval(timerInterval);
-          stopRecording();
-        }
-      }, 1000);
-    }
-
     // Остановка записи
     function stopRecording() {
       if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
         isRecording = false;
-        recordingTimer.style.display = 'none';
-        voiceButton.classList.remove('recording');
+        sendButton.classList.remove('recording');
+        console.log('[Recording] Остановка записи');
       }
     }
 
@@ -288,18 +268,18 @@
       window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       
       if (!window.SpeechRecognition) {
-        voiceButton.style.display = 'none';
+        sendButton.style.display = 'none';
         console.warn('Голосовой ввод не поддерживается');
         return;
       }
 
       recognition = new window.SpeechRecognition();
-      recognition.lang = 'ru-RU'; // Исправлено на русский язык
+      recognition.lang = 'ru-RU'; // Русский язык
       recognition.continuous = true;
       recognition.interimResults = false;
 
       recognition.onstart = () => {
-        voiceButton.classList.add('recording');
+        sendButton.classList.add('recording');
         startAudioRecording();
       };
 
@@ -308,6 +288,16 @@
           .map(result => result[0].transcript)
           .join('');
         document.getElementById('message-input').value = transcript;
+
+        // Сброс таймера тишины
+        if (silenceTimeout) clearTimeout(silenceTimeout);
+
+        // Установка таймера тишины на 2 секунды
+        silenceTimeout = setTimeout(() => {
+          stopRecording();
+          sendMessage();
+          if (recognition) recognition.start(); // Возобновление прослушивания
+        }, 2000);
       };
 
       recognition.onerror = (event) => {
@@ -316,20 +306,35 @@
       };
 
       recognition.onend = () => {
-        stopRecording();
+        if (!isRecording) {
+          startAudioRecording();
+        }
       };
     }
 
-    // Обработчик кнопки голосового ввода
-    voiceButton.addEventListener('click', () => {
-      if (!isRecording) {
-        if (recognition) recognition.start();
+    // Обработчик кнопки отправки/записи
+    sendButton.addEventListener('click', () => {
+      if (messageInput.value.trim() === '') {
+        if (!isRecording) {
+          if (recognition) recognition.start();
+        } else {
+          stopRecording();
+        }
       } else {
-        stopRecording();
+        sendMessage();
       }
     });
 
-    // Остальной код без изменений
+    // Обработчик изменения текста в поле ввода
+    messageInput.addEventListener('input', () => {
+      if (messageInput.value.trim() === '') {
+        sendButton.classList.remove('sending');
+      } else {
+        sendButton.classList.add('sending');
+      }
+    });
+
+    // Функция добавленния сообщения в чат
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log');
       const messageElement = document.createElement('p');
@@ -353,11 +358,27 @@
 
     socket.on('message', (message) => {
       console.log('Получено сообщение:', message);
+      if (message === 'undefined') {
+        console.warn('Получено сообщение undefined');
+      }
       addMessageToChat(message, true);
     });
 
-    document.getElementById('send-button').addEventListener('click', sendMessage);
-    
+    // Обработка аудиосообщений
+    socket.on('audio', (audioUrl) => {
+      console.log('Получено аудио:', audioUrl);
+      stopRecording(); // Остановка записи перед воспроизведением аудио
+      if (recognition) recognition.stop(); // Остановка распознавания речи
+      audioPlayer.src = audioUrl;
+      audioPlayer.style.display = 'block';
+      audioPlayer.play();
+      audioPlayer.onended = () => {
+        console.log('Аудио завершено');
+        socket.emit('audio-ended');
+        if (recognition) recognition.start(); // Возобновление прослушивания после воспроизведения
+      };
+    });
+
     document.getElementById('message-input').addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
@@ -369,12 +390,15 @@
       const message = document.getElementById('message-input').value.trim();
       if (message) {
         addMessageToChat(message);
+        console.log('Отправка сообщения:', message);
         socket.emit('message', message);
         document.getElementById('message-input').value = '';
+      } else {
+        console.warn('Пустое сообщение не отправлено');
       }
     }
 
-    // Остальные функции без изменений
+    // Фунуция переключения темы
     function toggleTheme() {
       const isDarkMode = bodyElement.classList.toggle('dark-theme');
       themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark';
@@ -388,6 +412,7 @@
       themeToggleButton.textContent = 'Light';
     }
 
+    // Функция обновления даты и времени
     function updateDateTime() {
       const datetimeElement = document.getElementById('datetime');
       const now = new Date();

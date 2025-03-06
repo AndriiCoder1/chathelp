@@ -8,6 +8,8 @@ const fs = require('fs');
 const multer = require('multer');
 const { exec } = require('child_process');
 const cors = require('cors');
+const googleTTS = require('google-tts-api');
+const { getAllAudioUrls } = require('google-tts-api');
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -60,7 +62,16 @@ const upload = multer({
 
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/images', express.static(path.join(__dirname, 'images'))); // Раздача статических файлов из папки images
+app.use('/audio', express.static(path.join(__dirname, 'audio'))); // Раздача аудиофайлов
 app.use(express.json({ limit: '25mb' }));
+
+// Проверка и создание директории для аудиофайлов
+const audioDir = path.join(__dirname, 'audio');
+if (!fs.existsSync(audioDir)) {
+  fs.mkdirSync(audioDir);
+  console.log(`[Сервер] Директория создана: ${audioDir}`);
+}
 
 // Маршруты
 app.get('/', (req, res) => {
@@ -69,6 +80,8 @@ app.get('/', (req, res) => {
 
 // Хранение сессий
 const userSessions = new Map();
+const messageQueues = new Map();
+const activeResponses = new Map();
 
 // Обработка аудио
 app.post('/process-audio', upload.single('audio'), async (req, res) => {
@@ -81,16 +94,23 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
     const audioPath = req.file.path;
     console.log(`[Аудио] Обработка файла: ${audioPath} (${req.file.size} байт)`);
 
+    if (req.file.size === 0) {
+      console.error('[Аудио] Файл пустой');
+      fs.unlinkSync(audioPath);
+      return res.status(400).json({ error: 'Аудиофайл пустой' });
+    }
+
     // Запуск транскрипции
-    const command = `python3 "${path.join(__dirname, 'transcribe.py')}" "${audioPath}"`;
-    
+    const pythonPath = process.env.PYTHON_PATH || 'python3';
+    const command = `"${pythonPath}" "${path.join(__dirname, 'transcribe.py')}" "${audioPath}"`;
+
     exec(command, { encoding: 'utf-8' }, (error, stdout, stderr) => {
       // Очистка временных файлов
       fs.unlinkSync(audioPath);
 
       if (error) {
         console.error(`[Python] Ошибка: ${stderr}`);
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: 'Ошибка транскрипции',
           details: stderr
         });
@@ -103,11 +123,16 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
       console.log('[Python] Успешная транскрипция');
       res.json({ transcription: stdout.trim() });
+      // Генерация голосового ответа
+      const audioFilePath = path.join(audioDir, `${req.file.filename}.mp3`);
+      generateSpeech(stdout.trim(), audioFilePath).then(() => {
+        io.emit('audio', `/audio/${req.file.filename}.mp3`);
+      });
     });
 
   } catch (error) {
     console.error(`[Сервер] Критическая ошибка: ${error.message}`);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Внутренняя ошибка сервера',
       details: error.message
     });
@@ -115,9 +140,55 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 });
 
 // Обработка текстовых запросов
+function splitText(text, maxLength = 200) {
+  const parts = [];
+  for (let i = 0; i < text.length; i += maxLength) {
+    parts.push(text.slice(i, i + maxLength));
+  }
+  return parts;
+}
+
+async function generateSpeech(text, outputFilePath) {
+  console.log(`[generateSpeech] Генерация речи для текста: ${text}`);
+  try {
+    const urls = getAllAudioUrls(text, {
+      lang: 'ru',
+      slow: false,
+      host: 'https://translate.google.com',
+    });
+
+    const buffers = [];
+
+    for (const url of urls) {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      buffers.push(Buffer.from(arrayBuffer));
+    }
+
+    // Объединение всех частей в один аудиофайл
+    const finalBuffer = Buffer.concat(buffers);
+    fs.writeFileSync(outputFilePath, finalBuffer);
+    console.log(`[generateSpeech] Успешно: ${outputFilePath}`);
+  } catch (err) {
+    console.error(`[Google TTS] Ошибка: ${err}`);
+    throw new Error('Ошибка генерации речи');
+  }
+}
+
 async function handleTextQuery(message, socket) {
   try {
+    if (!message || message.trim() === '' || message === 'undefined') {
+      console.warn('[WebSocket] Пустое или некорректное сообщение');
+      return socket.emit('message', '⚠️ Пустое или некорректное сообщение не может быть обработано');
+    }
+
     const session = userSessions.get(socket.id) || [];
+    const lastMessage = session[session.length - 1];
+    if (lastMessage && lastMessage.content === message) {
+      console.warn('[WebSocket] Дублирующееся сообщение');
+      return;
+    }
+
     const messages = [...session, { role: 'user', content: message }];
 
     const response = await openai.chat.completions.create({
@@ -128,12 +199,39 @@ async function handleTextQuery(message, socket) {
     });
 
     const botResponse = response.choices[0].message.content;
+    console.log(`[Bot] Ответ: ${botResponse}`); // Логирование ответа бота
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
-    
+
     socket.emit('message', botResponse);
+
+    // Генерация голосового ответа
+    const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+    try {
+      await generateSpeech(botResponse, audioFilePath);
+      activeResponses.set(socket.id, audioFilePath);
+      socket.emit('audio', `/audio/${socket.id}.mp3`);
+    } catch (error) {
+      console.error('Ошибка генерации речи:', error.message);
+      socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
+    }
+
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
     socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
+  }
+}
+
+// Обработка очереди сообщений
+async function processMessageQueue(socket) {
+  const queue = messageQueues.get(socket.id) || [];
+  if (queue.length === 0) return;
+
+  const message = queue.shift();
+  await handleTextQuery(message, socket);
+
+  messageQueues.set(socket.id, queue);
+  if (queue.length > 0) {
+    setTimeout(() => processMessageQueue(socket), 1000); // Задержка перед обработкой следующего сообщения
   }
 }
 
@@ -141,25 +239,44 @@ async function handleTextQuery(message, socket) {
 io.on('connection', (socket) => {
   console.log(`[WebSocket] Новое подключение: ${socket.id}`);
   userSessions.set(socket.id, []);
+  messageQueues.set(socket.id, []);
+  activeResponses.set(socket.id, null);
 
   socket.on('message', async (message) => {
     try {
       console.log(`[WebSocket] Сообщение от ${socket.id}: ${message}`);
-      
+
       if (/жест|видео|распознай/i.test(message)) {
         return socket.emit('message', '🎥 Отправьте видеофайл для анализа жестов');
       }
 
-      await handleTextQuery(message, socket);
+      const queue = messageQueues.get(socket.id) || [];
+      queue.push(message);
+      messageQueues.set(socket.id, queue);
+
+      if (queue.length === 1) {
+        await processMessageQueue(socket);
+      }
     } catch (error) {
       console.error(`[WebSocket] Ошибка: ${error.message}`);
       socket.emit('message', '⚠️ Ошибка обработки сообщения');
     }
   });
 
+  socket.on('audio-ended', () => {
+    console.log(`[WebSocket] Аудио завершено для: ${socket.id}`);
+    activeResponses.set(socket.id, null);
+    const queue = messageQueues.get(socket.id) || [];
+    if (queue.length > 0) {
+      processMessageQueue(socket);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log(`[WebSocket] Отключение: ${socket.id}`);
     userSessions.delete(socket.id);
+    messageQueues.delete(socket.id);
+    activeResponses.delete(socket.id);
   });
 });
 
