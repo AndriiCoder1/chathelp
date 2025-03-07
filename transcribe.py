@@ -57,8 +57,10 @@ def transcribe_audio(file_path: str) -> str:
             return response['text']
     except Exception as e:
         import traceback
-        print("[Ошибка] OpenAI API:\n", traceback.format_exc())
-        sys.exit(1)
+        error_msg = "[Ошибка] OpenAI API:\n" + traceback.format_exc()
+        print(error_msg)
+        # Вместо аварийного завершения возвращаем строку с сообщением об ошибке
+        return "Ошибка транскрипции: " + str(e)
 
 def generate_speech(text, output_path):
     try:
