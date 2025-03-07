@@ -5,6 +5,11 @@ import openai
 from pydub import AudioSegment
 from gtts import gTTS
 
+# Явные импорты для Pylance
+import openai.api_resources.audio as openai_audio
+import pydub.audio_segment as pydub_audio_segment
+import gtts.tts as gtts_tts
+
 # Загрузка переменных окружения из файла .env
 load_dotenv()
 
@@ -44,7 +49,7 @@ def transcribe_audio(file_path: str) -> str:
         with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...")
 
-            response = openai.Audio.transcribe(
+            response = openai_audio.transcribe(
                 model="whisper-1",
                 file=audio_file,
                 response_format="json",
