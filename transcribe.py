@@ -33,10 +33,12 @@ def convert_audio(input_path: str) -> str:
         audio = audio.set_frame_rate(16000).set_channels(1)
         output_path = "temp_converted.wav"
         audio.export(output_path, format="wav")
+        if os.path.getsize(output_path) == 0:
+            raise Exception("Конвертированный файл пустой. Проверьте наличие ffmpeg.")
         print(f"[Конвертация] Успешно: {output_path}")
         return output_path
     except Exception as e:
-        print(f"[Ошибка] Конвертация аудио: {str(e)}")
+        print(f"[Ошибка] Конвертация аудио: {e}")
         sys.exit(1)
 
 def transcribe_audio(file_path: str) -> str:
@@ -49,11 +51,13 @@ def transcribe_audio(file_path: str) -> str:
                 response_format="json",
                 temperature=0.2,
             )
+            print("[Transcribe] Response:", response)
             detected_language = response['language'].upper()
             print(f"[Transcribe] Определен язык: {detected_language}")
             return response['text']
     except Exception as e:
-        print(f"[Ошибка] OpenAI API: {str(e)}")
+        import traceback
+        print("[Ошибка] OpenAI API:\n", traceback.format_exc())
         sys.exit(1)
 
 def generate_speech(text, output_path):
