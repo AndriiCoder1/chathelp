@@ -45,7 +45,7 @@ def transcribe_audio(file_path: str) -> str:
     try:
         with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...")
-            response = openai.Audio.transcriptions.create(  # type: ignore
+            response = openai.Audio.transcribe(  # type: ignore
                 model="whisper-1",
                 file=audio_file,
                 response_format="json",
