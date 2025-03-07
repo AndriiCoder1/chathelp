@@ -59,7 +59,7 @@ def transcribe_audio(file_path: str) -> str:
     except openai_error.PermissionError as e:
         error_msg = "[Ошибка] Доступ к модели отсутствует: " + str(e)
         print(error_msg)
-        return "Ошибка транскрипции: Нет доступа к модели whisper-1. Проверьте настройки доступа в вашем проекте."
+        return "Ошибка транскрипции: Нет доступа к модели whisper-1. Проверьте настройки доступа в вашем аккаунте OpenAI."
     except Exception as e:
         import traceback
         error_msg = "[Ошибка] OpenAI API:\n" + traceback.format_exc()
