@@ -2,6 +2,7 @@ import sys
 import os
 from dotenv import load_dotenv
 import openai
+from openai import error as openai_error  # type: ignore  - устраняет предупреждение
 from pydub import AudioSegment
 from gtts import gTTS
 
@@ -46,7 +47,7 @@ def transcribe_audio(file_path: str) -> str:
         with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...")
             response = openai.Audio.transcribe(  # type: ignore
-                model="whisper-1",
+                model="whisper",  # изменено: вместо "whisper-1"
                 file=audio_file,
                 response_format="json",
                 temperature=0.2,
@@ -55,6 +56,10 @@ def transcribe_audio(file_path: str) -> str:
             detected_language = response.get("language", "unknown").upper()
             print(f"[Transcribe] Определен язык: {detected_language}")
             return response["text"]
+    except openai_error.PermissionError as e:
+        error_msg = "[Ошибка] Доступ к модели отсутствует: " + str(e)
+        print(error_msg)
+        return "Ошибка транскрипции: Нет доступа к модели whisper-1. Проверьте настройки доступа в вашем проекте."
     except Exception as e:
         import traceback
         error_msg = "[Ошибка] OpenAI API:\n" + traceback.format_exc()
