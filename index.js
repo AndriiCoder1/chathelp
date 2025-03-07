@@ -162,7 +162,7 @@ async function generateSpeech(text, outputFilePath) {
     const buffers = [];
 
     for (const url of urls) {
-      const response = await fetch(url);
+      const response = await fetch(String(url));  // изменено: String(url)
       const arrayBuffer = await response.arrayBuffer();
       buffers.push(Buffer.from(arrayBuffer));
     }
