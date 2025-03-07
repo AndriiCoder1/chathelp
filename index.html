@@ -210,6 +210,7 @@
     let audioChunks = [];
     let isRecording = false;
     let silenceTimeout = null;
+    let isRecognizing = false; // новый флаг запуска голосового режима
 
     // Инициализация аудиозаписи
     async function startAudioRecording() {
@@ -287,50 +288,55 @@
 
       recognition = new window.SpeechRecognition();
       recognition.lang = 'ru-RU'; // Русский язык
-      recognition.continuous = true;
+      recognition.continuous = false; // отключаем постоянное прослушивание
       recognition.interimResults = false;
 
       recognition.onstart = () => {
+        isRecognizing = true;
         sendButton.classList.add('recording');
-        startAudioRecording();
+        console.log('[Speech] Начало распознавания');
       };
 
       recognition.onresult = (event) => {
         const transcript = Array.from(event.results)
           .map(result => result[0].transcript)
           .join('');
-        document.getElementById('message-input').value = transcript;
-
-        // Сброс таймера тишины
-        if (silenceTimeout) clearTimeout(silenceTimeout);
-
-        // Установка таймера тишины на 5 секунд
-        silenceTimeout = setTimeout(() => {
-          stopRecording();
-          sendMessage();
-          if (recognition) recognition.start(); // Возобновление прослушивания
-        }, 5000);
+        messageInput.value = transcript;
+        console.log('[Speech] Результат:', transcript);
       };
 
       recognition.onerror = (event) => {
         console.error('Ошибка распознавания:', event.error);
-        stopRecording();
+        stopRecognition();
       };
 
       recognition.onend = () => {
-        if (!isRecording) {
-          startAudioRecording();
-        }
+        console.log('[Speech] Завершено');
+        stopRecognition();
       };
+    }
+
+    function stopRecognition() {
+      if (recognition && isRecognizing) {
+        recognition.stop();
+      }
+      isRecognizing = false;
+      sendButton.classList.remove('recording');
     }
 
     // Обработчик кнопки отправки/записи
     sendButton.addEventListener('click', () => {
+      // Если аудио плеер виден (то есть бот говорит), не запускаем голосовой ввод
+      if (audioPlayer.style.display === 'block') {
+        console.log('[UI] Сейчас воспроизводится ответ бота, голосовой ввод не запускается');
+        return;
+      }
       if (messageInput.value.trim() === '') {
-        if (!isRecording) {
+        if (!isRecognizing) {
           if (recognition) recognition.start();
         } else {
-          stopRecording();
+          stopRecognition();
+          sendMessage();
         }
       } else {
         sendMessage();
@@ -388,7 +394,6 @@
         console.log('Аудио завершено');
         audioPlayer.style.display = 'none'; // Скрытие плеера после завершения
         socket.emit('audio-ended');
-        if (recognition) recognition.start(); // Возобновление прослушивания после воспроизведения
       };
     });
 

@@ -79,15 +79,14 @@ def generate_speech(text, output_path):
 if __name__ == "__main__":
     converted_path = None  # инициализация для избежания UnboundLocalVariable
     try:
-        # Перенаправляем служебные логи в stderr, чтобы stdout содержал только результат
-        check_dependencies()
+        # В production не вызываем check_dependencies(), чтобы не загрязнять stderr
+        # check_dependencies()
         
         if len(sys.argv) < 3:
             raise ValueError("Usage: python transcribe.py <input_audio_path> <output_audio_path>")
     
         input_path = sys.argv[1]
         output_path = sys.argv[2]
-        # Логирование в stderr
         print(f"[Main] Обработка файла: {input_path}", file=sys.stderr)
     
         converted_path = convert_audio(input_path)

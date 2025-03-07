@@ -237,13 +237,12 @@ async function processMessageQueue(socket) {
 
   messageQueues.set(socket.id, queue);
   if (queue.length > 0) {
-    setTimeout(() => processMessageQueue(socket), 1000); // Задержка перед обработкой следующего сообщения
+    setTimeout(() => processMessageQueue(socket), 0); // убрана задержка
   }
 }
 
 // WebSocket логика
 io.on('connection', (socket) => {
-  // Логируем также IP-адрес клиента
   console.log(`[WebSocket] Новое подключение: ${socket.id}, IP: ${socket.handshake.address}`);
   userSessions.set(socket.id, []);
   messageQueues.set(socket.id, []);
