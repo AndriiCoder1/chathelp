@@ -5,11 +5,6 @@ import openai
 from pydub import AudioSegment
 from gtts import gTTS
 
-# Явные импорты для Pylance
-import openai.api_resources.audio as openai_audio
-import pydub.audio_segment as pydub_audio_segment
-import gtts.tts as gtts_tts
-
 # Загрузка переменных окружения из файла .env
 load_dotenv()
 
@@ -48,18 +43,15 @@ def transcribe_audio(file_path: str) -> str:
     try:
         with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...")
-
-            response = openai_audio.transcribe(
+            response = openai.Audio.transcribe(  # type: ignore
                 model="whisper-1",
                 file=audio_file,
                 response_format="json",
                 temperature=0.2,
             )
-
             detected_language = response['language'].upper()
             print(f"[Transcribe] Определен язык: {detected_language}")
             return response['text']
-
     except Exception as e:
         print(f"[Ошибка] OpenAI API: {str(e)}")
         sys.exit(1)
@@ -75,6 +67,7 @@ def generate_speech(text, output_path):
         sys.exit(1)
 
 if __name__ == "__main__":
+    converted_path = None  # инициализация для избежания UnboundLocalVariable
     try:
         check_dependencies()
 
@@ -97,6 +90,6 @@ if __name__ == "__main__":
         sys.exit(1)
 
     finally:
-        if 'converted_path' in locals() and os.path.exists(converted_path):
+        if converted_path and os.path.exists(converted_path):
             os.remove(converted_path)
             print(f"[Очистка] Удален временный файл: {converted_path}")
