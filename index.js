@@ -26,6 +26,8 @@ if (!process.env.SERPAPI_KEY) {
 
 // Настройка Express
 const app = express();
+// Добавляем настройку доверия к прокси, чтобы получать реальный IP
+app.set('trust proxy', true);
 const server = http.createServer(app);
 
 // Настройка CORS
@@ -241,7 +243,8 @@ async function processMessageQueue(socket) {
 
 // WebSocket логика
 io.on('connection', (socket) => {
-  console.log(`[WebSocket] Новое подключение: ${socket.id}`);
+  // Логируем также IP-адрес клиента
+  console.log(`[WebSocket] Новое подключение: ${socket.id}, IP: ${socket.handshake.address}`);
   userSessions.set(socket.id, []);
   messageQueues.set(socket.id, []);
   activeResponses.set(socket.id, null);
