@@ -214,7 +214,8 @@ async function handleTextQuery(message, socket) {
       try {
         await generateSpeech(botResponse, audioFilePath);
         activeResponses.set(socket.id, audioFilePath);
-        socket.emit('audio', `/audio/${socket.id}.mp3`);
+        // Добавляем timestamp в URL аудио для предотвращения кэширования
+        socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
       } catch (error) {
         console.error('Ошибка генерации речи:', error.message);
         socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
