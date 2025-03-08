@@ -205,6 +205,7 @@
     const messageInput = document.getElementById('message-input');
     
     let recognition = null;
+    let autoSendTimer = null; // новый таймер для автосабмита
     let recordingTimeout = null;
     let mediaRecorder = null;
     let audioChunks = [];
@@ -296,6 +297,10 @@
         isRecognizing = true;
         sendButton.classList.add('recording');
         console.log('[Speech] Начало распознавания');
+        if (autoSendTimer) {
+          clearTimeout(autoSendTimer);
+          autoSendTimer = null;
+        }
       };
 
       recognition.onresult = (event) => {
@@ -314,7 +319,15 @@
 
       recognition.onend = () => {
         console.log('[Speech] Завершено');
-        stopRecognition();
+        isRecognizing = false;
+        sendButton.classList.remove('recording');
+        // Если голосовой ввод был получен и текст не пуст, ждем 3 секунды и отправляем
+        if (isVoiceInput && messageInput.value.trim() !== "") {
+          autoSendTimer = setTimeout(() => {
+            console.log('[Speech] Автоматическая отправка сообщения');
+            sendMessage();
+          }, 3000);
+        }
       };
     }
 
@@ -324,6 +337,10 @@
       }
       isRecognizing = false;
       sendButton.classList.remove('recording');
+      if (autoSendTimer) {
+        clearTimeout(autoSendTimer);
+        autoSendTimer = null;
+      }
     }
 
     // Обработчик кнопки отправки/записи
@@ -421,6 +438,10 @@
       socket.emit('message', message);
       document.getElementById('message-input').value = '';
       isVoiceInput = false; // сбрасываем флаг после отправки
+      if (autoSendTimer) {
+        clearTimeout(autoSendTimer);
+        autoSendTimer = null;
+      }
     }
 
     // Фунуция переключения темы
