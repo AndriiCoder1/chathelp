@@ -34,12 +34,13 @@
       background-color: #fff;
       margin-bottom: 20px;
       transition: background-color 0.3s, border-color 0.3s;
+      margin-top: 220px; /* увеличен отступ сверху */
     }
 
     #message-input {
       border: 3px solid green;
       width: 100%;
-      min-height: 40px;
+      min-height: 60px; /* раньше 40px */
       padding: 10px;
       font-size: 18px;
       margin-right: 10px;
@@ -118,9 +119,11 @@
       max-width: 600px;
       display: flex;
       align-items: center;
-      position: relative;
-      margin-bottom: 20px;
-      margin-top: 20px;
+      position: fixed;
+      top: 120px; /* устанавливает ввод выше */
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 0; /* убираем отступ */
     }
 
     #theme-toggle {
@@ -193,6 +196,10 @@
       border-radius: 5px;
       cursor: pointer;
       transition: background-color 0.3s;
+      background-image: url('/images/globe.png'); /* заменяем текст на иконку */
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 20px 20px;
     }
 
     #search-button:hover {
