@@ -211,6 +211,7 @@
     let isRecording = false;
     let silenceTimeout = null;
     let isRecognizing = false; // новый флаг запуска голосового режима
+    let isVoiceInput = false;  // новый флаг, сигнализирующий, что сообщение получено голосовым вводом
 
     // Инициализация аудиозаписи
     async function startAudioRecording() {
@@ -302,6 +303,7 @@
           .map(result => result[0].transcript)
           .join('');
         messageInput.value = transcript;
+        isVoiceInput = true; // помечаем, что сообщение получено голосом
         console.log('[Speech] Результат:', transcript);
       };
 
@@ -405,15 +407,20 @@
     });
 
     function sendMessage() {
-      const message = document.getElementById('message-input').value.trim();
-      if (message) {
-        addMessageToChat(message);
-        console.log('Отправка сообщения:', message);
-        socket.emit('message', message);
-        document.getElementById('message-input').value = '';
-      } else {
+      let message = document.getElementById('message-input').value.trim();
+      if (!message) {
         console.warn('Пустое сообщение не отправлено');
+        return;
       }
+      // Если сообщение отправлено по голосовому вводу, добавляем метку для голосового ответа
+      if (isVoiceInput && !message.includes('audio')) {
+        message += ' audio';
+      }
+      addMessageToChat(message);
+      console.log('Отправка сообщения:', message);
+      socket.emit('message', message);
+      document.getElementById('message-input').value = '';
+      isVoiceInput = false; // сбрасываем флаг после отправки
     }
 
     // Фунуция переключения темы
