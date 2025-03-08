@@ -193,6 +193,8 @@
   <div class="input-container">
     <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
     <button id="send-button" title="Senden Sie eine Nachricht oder starten Sie die Aufnahme"></button>
+    <!-- Новая кнопка для поиска -->
+    <button id="search-button" title="Найти информацию в интернете">Поиск</button>
   </div>
 
   <script>
@@ -478,6 +480,19 @@
     initSpeechRecognition();
     setInterval(updateDateTime, 1000);
     updateDateTime();
+
+    // Обработчик кнопки поиска
+    const searchButton = document.getElementById('search-button');
+    searchButton.addEventListener('click', () => {
+      let query = messageInput.value.trim();
+      if (query !== "") {
+        // Отправляем запрос с префиксом SEARCH:
+        const searchQuery = "SEARCH: " + query;
+        socket.emit('message', searchQuery);
+        addMessageToChat(searchQuery);
+        messageInput.value = '';
+      }
+    });
   </script>
 </body>
 </html>

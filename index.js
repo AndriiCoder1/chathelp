@@ -85,6 +85,9 @@ const userSessions = new Map();
 const messageQueues = new Map();
 const activeResponses = new Map();
 
+// Добавляем глобальный кэш для ответов (ключ – нормализованный вопрос)
+const globalCache = new Map();
+
 // Обработка аудио
 app.post('/process-audio', upload.single('audio'), async (req, res) => {
   try {
@@ -187,6 +190,46 @@ async function handleTextQuery(message, socket) {
       return socket.emit('message', '⚠️ Пустое или некорректное сообщение не может быть обработано');
     }
 
+    // Новая логика для запросов о дате и времени
+    if (/^(.*(время|день|число|год).*)$/i.test(message)) {
+      const now = new Date();
+      const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      };
+      const currentTime = now.toLocaleString('ru-RU', options);
+      console.log(`[Time] Отправка локального времени: ${currentTime}`);
+      socket.emit('message', `Сейчас ${currentTime}`);
+      return;
+    }
+
+    // Нормализуем сообщение для кэширования (например, переводим в нижний регистр)
+    const normalizedMessage = message.toLowerCase().trim();
+    if (globalCache.has(normalizedMessage)) {
+      // Если ответ найден – сразу вернуть сохранённый ответ
+      const cachedAnswer = globalCache.get(normalizedMessage);
+      console.log(`[Cache] Используем кэшированный ответ для: "${message}"`);
+      socket.emit('message', cachedAnswer);
+      if (message.includes('audio')) {
+        const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+        try {
+          await generateSpeech(cachedAnswer, audioFilePath);
+          activeResponses.set(socket.id, audioFilePath);
+          socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
+        } catch (error) {
+          console.error('Ошибка генерации речи:', error.message);
+          socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
+        }
+      }
+      return;
+    }
+
+    // Рабочая логика для новой сессии
     const session = userSessions.get(socket.id) || [];
     const lastMessage = session[session.length - 1];
     if (lastMessage && lastMessage.content === message) {
@@ -204,7 +247,9 @@ async function handleTextQuery(message, socket) {
     });
 
     const botResponse = response.choices[0].message.content;
-    console.log(`[Bot] Ответ: ${botResponse}`); // Логирование ответа бота
+    console.log(`[Bot] Ответ: ${botResponse}`);
+    // Сохраняем ответ в глобальный кэш
+    globalCache.set(normalizedMessage, botResponse);
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
 
     socket.emit('message', botResponse);
@@ -214,7 +259,6 @@ async function handleTextQuery(message, socket) {
       try {
         await generateSpeech(botResponse, audioFilePath);
         activeResponses.set(socket.id, audioFilePath);
-        // Добавляем timestamp в URL аудио для предотвращения кэширования
         socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
       } catch (error) {
         console.error('Ошибка генерации речи:', error.message);
@@ -253,6 +297,31 @@ io.on('connection', (socket) => {
     try {
       console.log(`[WebSocket] Сообщение от ${socket.id}: ${message}`);
 
+      // Новая логика для запроса поиска
+      if (message.startsWith("SEARCH:")) {
+        const query = message.replace(/^SEARCH:\s*/, "");
+        const params = {
+          q: query,
+          google_domain: "google.com",
+          gl: "us",
+          hl: "ru",
+          api_key: process.env.SERPAPI_KEY,
+        };
+        try {
+          const results = await search(params);
+          const topResults = results.organic_results.slice(0, 3);
+          const summaries = topResults.map(result => {
+            return `Название: ${result.title}\nСсылка: ${result.link}\nОписание: ${result.snippet || "Описание отсутствует"}\n`;
+          }).join('\n');
+          socket.emit('message', `Вот результаты поиска:\n${summaries}`);
+        } catch (err) {
+          console.error("Ошибка при выполнении поиска:", err);
+          socket.emit('message', "Произошла ошибка при выполнении поиска.");
+        }
+        return;
+      }
+
+      // ...existing code для остальных сообщений...
       if (/жест|видео|распознай/i.test(message)) {
         return socket.emit('message', '🎥 Отправьте видеофайл для анализа жестов');
       }
