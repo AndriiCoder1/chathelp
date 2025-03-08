@@ -10,6 +10,7 @@ const { exec } = require('child_process');
 const cors = require('cors');
 const googleTTS = require('google-tts-api');
 const { getAllAudioUrls } = require('google-tts-api');
+const { getJson: search } = require('serpapi');
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -205,6 +206,11 @@ async function handleTextQuery(message, socket) {
       const currentTime = now.toLocaleString('ru-RU', options);
       console.log(`[Time] Отправка локального времени: ${currentTime}`);
       socket.emit('message', `Сейчас ${currentTime}`);
+
+      // Генерация голосового ответа для времени
+      const audioFilePath = path.join(audioDir, `${socket.id}_time.mp3`);
+      await generateSpeech(`Сейчас ${currentTime}`, audioFilePath);
+      socket.emit('audio', `/audio/${socket.id}_time.mp3?ts=${Date.now()}`);
       return;
     }
 
