@@ -148,6 +148,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 });
 
 // Обработка текстовых запросов
+// eslint-disable-next-line no-unused-vars
 function splitText(text, maxLength = 200) {
   const parts = [];
   for (let i = 0; i < text.length; i += maxLength) {
