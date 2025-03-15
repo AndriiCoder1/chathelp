@@ -212,7 +212,8 @@ async function handleTextQuery(message, socket) {
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit'
+        second: '2-digit',
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone  // добавлено для локального времени
       };
       const currentTime = now.toLocaleString('ru-RU', options);
       console.log(`[Time] Отправка локального времени: ${currentTime}`);

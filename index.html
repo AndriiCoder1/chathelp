@@ -242,6 +242,7 @@
     let silenceTimeout = null;
     let isRecognizing = false; // новый флаг запуска голосового режима
     let isVoiceInput = false;  // новый флаг, сигнализирующий, что сообщение получено голосовым вводом
+    let isSearchMode = false; // новый флаг для режима поиска
 
     // Инициализация аудиозаписи
     async function startAudioRecording() {
@@ -459,11 +460,17 @@
         console.warn('Пустое сообщение не отправлено');
         return;
       }
+      // Если включен режим поиска, добавляем префикс SEARCH:
+      if (isSearchMode) {
+        message = "SEARCH: " + message;
+        isSearchMode = false;
+        messageInput.placeholder = "Eingabe nachricht...";
+      }
       let messageToSend = message;
       if (isVoiceInput && !message.includes('audio')) {
         messageToSend += ' audio';
       }
-      addMessageToChat(message); // отображаем сообщение без флага "audio"
+      addMessageToChat(message);
       console.log('Отправка сообщения:', messageToSend);
       socket.emit('message', messageToSend);
       document.getElementById('message-input').value = '';
@@ -504,7 +511,7 @@
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone  // добавлено для явного указания часового пояса
       };
       
-      datetimeElement.textContent = now.toLocaleString('ru-RU', options);
+      datetimeElement.textContent = now.toLocaleString('De-de', options);
     }
 
     // Инициализация при загрузке
@@ -515,20 +522,25 @@
     // Обработчик кнопки поиска
     const searchButton = document.getElementById('search-button');
     searchButton.addEventListener('click', () => {
-      // Отменяем автосабмит, если он был запущен (например, в голосовом режиме)
       if (autoSendTimer) {
         clearTimeout(autoSendTimer);
         autoSendTimer = null;
       }
-      // Сбрасываем флаг голосового ввода, чтобы не добавлялась метка "audio"
-      isVoiceInput = false;
-      let query = messageInput.value.trim();
-      if (query !== "") {
-        // Отправляем запрос с префиксом SEARCH:
-        const searchQuery = "SEARCH: " + query;
+      // Если поле ввода пустое, включаем режим поиска
+      if (messageInput.value.trim() === "") {
+        isSearchMode = true;
+        messageInput.placeholder = "Введите запрос для поиска...";
+        messageInput.focus();
+        console.log('[Search] Режим поиска активирован');
+        return;
+      } else {
+        // Если уже есть текст, отправляем как поисковый запрос и сбрасываем режим
+        const searchQuery = "SEARCH: " + messageInput.value.trim();
         socket.emit('message', searchQuery);
         addMessageToChat(searchQuery);
         messageInput.value = '';
+        isSearchMode = false;
+        messageInput.placeholder = "Eingabe nachricht...";
       }
     });
   </script>
