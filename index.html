@@ -500,10 +500,11 @@
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        timeZoneName: 'short'
+        timeZoneName: 'short',
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone  // добавлено для явного указания часового пояса
       };
       
-      datetimeElement.textContent = now.toLocaleString('de-DE', options);
+      datetimeElement.textContent = now.toLocaleString('ru-RU', options);
     }
 
     // Инициализация при загрузке

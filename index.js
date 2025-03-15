@@ -200,8 +200,10 @@ async function handleTextQuery(message, socket) {
       userSessions.set(socket.id, session);
     }
 
-    // Новая логика для запросов о дате и времени
-    if (/^(.*(время|день|число|год).*)$/i.test(message)) {
+    // Обновлённая логика определения запросов о дате и времени:
+    // Если сообщение содержит ключевые слова для времени, но не содержит указаний на поиск,
+    // то обрабатываем как запрос о времени
+    if (/(время|сейчас|день|число)\b/i.test(message) && !/(айфон|интернете|посмотри)/i.test(message)) {
       const now = new Date();
       const options = {
         weekday: 'long',
