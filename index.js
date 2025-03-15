@@ -214,10 +214,8 @@ async function handleTextQuery(message, socket) {
       return;
     }
 
-    // Нормализуем сообщение для кэширования (например, переводим в нижний регистр)
     const normalizedMessage = message.toLowerCase().trim();
     if (globalCache.has(normalizedMessage)) {
-      // Если ответ найден – сразу вернуть сохранённый ответ
       const cachedAnswer = globalCache.get(normalizedMessage);
       console.log(`[Cache] Используем кэшированный ответ для: "${message}"`);
       socket.emit('message', cachedAnswer);
@@ -242,24 +240,27 @@ async function handleTextQuery(message, socket) {
       console.warn('[WebSocket] Дублирующееся сообщение');
       return;
     }
-
-    const messages = [...session, { role: 'user', content: message }];
+    let messages;
+    if (session.length === 0) {
+      messages = [
+        { role: 'system', content: 'Отвечай сразу по существу. Не упоминай, что не умеешь воспроизводить аудио. Если пользователь использует слово "audio", отвечай максимально дружелюбно, например: "У меня всё хорошо, чем могу помочь?"' },
+        { role: 'user', content: message }
+      ];
+    } else {
+      messages = [...session, { role: 'user', content: message }];
+    }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4.5-preview", // изменено для использования GPT-4.5
+      model: "gpt-4.5-preview",
       messages: messages,
       temperature: 0.7,
       max_tokens: 500
     });
-
     const botResponse = response.choices[0].message.content;
     console.log(`[Bot] Ответ: ${botResponse}`);
-    // Сохраняем ответ в глобальный кэш
     globalCache.set(normalizedMessage, botResponse);
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
-
     socket.emit('message', botResponse);
-
     if (message.includes('audio')) {
       const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
       try {
@@ -271,7 +272,6 @@ async function handleTextQuery(message, socket) {
         socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
       }
     }
-
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
     socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
