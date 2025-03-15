@@ -318,7 +318,8 @@
       }
 
       recognition = new window.SpeechRecognition();
-      recognition.lang = 'ru-RU'; // Русский язык
+      // Возвращаем принудительную установку языка на 'ru-RU'
+      recognition.lang = 'ru-RU';
       recognition.continuous = false; // отключаем постоянное прослушивание
       recognition.interimResults = false;
 
@@ -458,15 +459,15 @@
         console.warn('Пустое сообщение не отправлено');
         return;
       }
-      // Если сообщение отправлено по голосовому вводу, добавляем метку для голосового ответа
+      let messageToSend = message;
       if (isVoiceInput && !message.includes('audio')) {
-        message += ' audio';
+        messageToSend += ' audio';
       }
-      addMessageToChat(message);
-      console.log('Отправка сообщения:', message);
-      socket.emit('message', message);
+      addMessageToChat(message); // отображаем сообщение без флага "audio"
+      console.log('Отправка сообщения:', messageToSend);
+      socket.emit('message', messageToSend);
       document.getElementById('message-input').value = '';
-      isVoiceInput = false; // сбрасываем флаг после отправки
+      isVoiceInput = false;
       if (autoSendTimer) {
         clearTimeout(autoSendTimer);
         autoSendTimer = null;
@@ -499,8 +500,10 @@
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
+        timeZoneName: 'short'
       };
-      datetimeElement.textContent = now.toLocaleDateString('de-DE', options);
+      
+      datetimeElement.textContent = now.toLocaleString('de-DE', options);
     }
 
     // Инициализация при загрузке
@@ -511,6 +514,13 @@
     // Обработчик кнопки поиска
     const searchButton = document.getElementById('search-button');
     searchButton.addEventListener('click', () => {
+      // Отменяем автосабмит, если он был запущен (например, в голосовом режиме)
+      if (autoSendTimer) {
+        clearTimeout(autoSendTimer);
+        autoSendTimer = null;
+      }
+      // Сбрасываем флаг голосового ввода, чтобы не добавлялась метка "audio"
+      isVoiceInput = false;
       let query = messageInput.value.trim();
       if (query !== "") {
         // Отправляем запрос с префиксом SEARCH:
