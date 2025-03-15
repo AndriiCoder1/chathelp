@@ -191,6 +191,14 @@ async function handleTextQuery(message, socket) {
       return socket.emit('message', '⚠️ Пустое или некорректное сообщение не может быть обработано');
     }
 
+    // Сброс сессии, если пользователь задаёт вопрос, чтобы не включать предыдущий ответ
+    let session = userSessions.get(socket.id) || [];
+    if (session.length > 0 && message.toLowerCase().includes("умеешь делать")) {
+      // сбрасываем контекст для нового запроса
+      session = [];
+      userSessions.set(socket.id, session);
+    }
+
     // Новая логика для запросов о дате и времени
     if (/^(.*(время|день|число|год).*)$/i.test(message)) {
       const now = new Date();
@@ -234,7 +242,6 @@ async function handleTextQuery(message, socket) {
     }
 
     // Рабочая логика для новой сессии
-    const session = userSessions.get(socket.id) || [];
     const lastMessage = session[session.length - 1];
     if (lastMessage && lastMessage.content === message) {
       console.warn('[WebSocket] Дублирующееся сообщение');
@@ -243,7 +250,7 @@ async function handleTextQuery(message, socket) {
     let messages;
     if (session.length === 0) {
       messages = [
-        { role: 'system', content: 'Отвечай сразу по существу. Не упоминай, что не умеешь воспроизводить аудио. Если пользователь использует слово "audio", отвечай максимально дружелюбно, например: "У меня всё хорошо, чем могу помочь?"' },
+        { role: 'system', content: 'Отвечай максимально по существу и не повторяй свои предыдущие ответы. Если вопрос отличается, дай новый, оригинальный ответ.' },
         { role: 'user', content: message }
       ];
     } else {
