@@ -68,23 +68,27 @@ def transcribe_audio(file_path: str) -> str:
 
 def generate_speech(text, output_path):
     try:
-        print(f"[Генерация речи] Используем новую модель с голосом alloy: {text}", file=sys.stderr)
-        response = openai.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            voice="alloy",
-            input=text
-        )
-        response.stream_to_file(output_path)
-        print(f"[Генерация речи] Успешно сохранено: {output_path}", file=sys.stderr)
+        print(f"[Генерация речи] Используем gTTS для генерации: {text}", file=sys.stderr)
+        tts = gTTS(text=text, lang='ru')
+        tts.save(output_path)
+        print(f"[Генерация речи] gTTS успешно сгенерировала аудио: {output_path}", file=sys.stderr)
     except Exception as e:
-        print(f"[Ошибка] Генерация речи через новую модель не сработала: {str(e)}", file=sys.stderr)
-        print("[Фоллбэк] Используем gTTS для генерации речи", file=sys.stderr)
+        print(f"[Ошибка] gTTS не сработала: {str(e)}", file=sys.stderr)
+        print("[Фоллбэк] Используем pyttsx3 для генерации речи", file=sys.stderr)
         try:
-            tts = gTTS(text=text, lang='ru')
-            tts.save(output_path)
-            print(f"[Фоллбэк] gTTS успешно сгенерировала аудио: {output_path}", file=sys.stderr)
+            import pyttsx3  # type: ignore
+            engine = pyttsx3.init()
+            voices = engine.getProperty('voices')
+            # Вывод списка голосов для определения нужного:
+            for i, voice in enumerate(voices):
+                print(f"[Voice] {i}: {voice.name}", file=sys.stderr)
+            # Замените индекс ниже на тот, который вам подходит:
+            engine.setProperty('voice', voices[1].id)
+            engine.save_to_file(text, output_path)
+            engine.runAndWait()
+            print(f"[Фоллбэк] pyttsx3 успешно сгенерировала аудио: {output_path}", file=sys.stderr)
         except Exception as fe:
-            print(f"[Критическая ошибка] gTTS: {str(fe)}", file=sys.stderr)
+            print(f"[Критическая ошибка] pyttsx3: {str(fe)}", file=sys.stderr)
             sys.exit(1)
 
 if __name__ == "__main__":
