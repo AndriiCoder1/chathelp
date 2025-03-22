@@ -264,7 +264,6 @@ async function handleTextQuery(message, socket) {
     const response = await openai.chat.completions.create({
       model: "o3-mini",  // изменено: использование модели o3-mini
       messages: messages,
-      temperature: 0.7,
       max_completion_tokens: 500
     });
     const botResponse = response.choices[0].message.content;
