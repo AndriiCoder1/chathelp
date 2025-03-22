@@ -259,7 +259,7 @@ async function handleTextQuery(message, socket) {
     let messages;
     if (session.length === 0) {
       messages = [
-        { role: 'system', content: 'Отвечай максимально подробно и информативно на любой вопрос. Не оставляй пустых ответов.' },
+        { role: 'system', content: 'Отвечай максимально подробно и информативно, не оставляй пустых ответов. Давай содержательное объяснение.' },
         { role: 'user', content: message }
       ];
     } else {
@@ -274,8 +274,8 @@ async function handleTextQuery(message, socket) {
     // Обработка пустого ответа от модели
     let botResponse = response.choices[0].message.content.trim();
     if (!botResponse) {
-      console.warn("[Bot] Пустой ответ от модели");
-      botResponse = "Извините, не удалось сгенерировать ответ.";
+      console.warn("[Bot] Пустой ответ от модели. Подставляем дефолтное сообщение.");
+      botResponse = "Извините, система не смогла сформулировать ответ на ваш запрос.";
     }
     console.log(`[Bot] Ответ: ${botResponse}`);
     globalCache.set(normalizedMessage, botResponse);
