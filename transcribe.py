@@ -47,10 +47,10 @@ def transcribe_audio(file_path: str) -> str:
         with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...", file=sys.stderr)
             response = openai.Audio.transcribe(
-                model="o3-mini-transcribe",  # изменено: используем модель o3-mini-transcribe
+                model="whisper-1",  # изменено: теперь используем Whisper для транскрипции
                 file=audio_file,
-                response_format="json",
-                temperature=0.2,
+                response_format="json"
+                # temperature не используется для whisper
             )
             print("[Transcribe] Response:", response, file=sys.stderr)
             detected_language = response.get("language", "unknown").upper()
@@ -59,7 +59,7 @@ def transcribe_audio(file_path: str) -> str:
     except openai_error.PermissionError as e:
         error_msg = "[Ошибка] Доступ к модели отсутствует: " + str(e)
         print(error_msg, file=sys.stderr)
-        return "Ошибка транскрипции: Нет доступа к модели gpt-4o-mini-transcribe. Проверьте настройки доступа в вашем аккаунте OpenAI."
+        return "Ошибка транскрипции: Нет доступа к модели Whisper. Проверьте настройки доступа в вашем аккаунте OpenAI."
     except Exception as e:
         import traceback
         error_msg = "[Ошибка] OpenAI API:\n" + traceback.format_exc()
@@ -68,9 +68,15 @@ def transcribe_audio(file_path: str) -> str:
 
 def generate_speech(text, output_path):
     try:
-        print(f"[Генерация речи] Начало генерации: {text}", file=sys.stderr)
-        tts = gTTS(text, lang='ru')
-        tts.save(output_path)
+        print(f"[Генерация речи] Используем модель эмбер для генерации: {text}", file=sys.stderr)
+        # Новый вызов синтеза речи через OpenAI (модель гpt-4o-mini-tts или аналогичная)
+        response = openai.Audio.synthesize(
+            model="gpt-4o-mini-tts",  # изменено: используем модель преобразования текста в речь с голосом эмбер
+            text=text,
+            response_format="mp3"
+        )
+        with open(output_path, "wb") as f:
+            f.write(response["audio_content"])
         print(f"[Генерация речи] Успешно: {output_path}", file=sys.stderr)
     except Exception as e:
         print(f"[Ошибка] Генерация речи: {str(e)}", file=sys.stderr)
