@@ -68,21 +68,17 @@ def transcribe_audio(file_path: str) -> str:
 
 def generate_speech(text, output_path):
     try:
-        print(f"[Генерация речи] Используем модель эмбер для генерации: {text}", file=sys.stderr)
-        response = openai.Audio.synthesize(
-            model="gpt-4o-mini-tts",  # используем модель для преобразования текста в речь с голосом эмбер
-            text=text,
-            response_format="mp3"
+        print(f"[Генерация речи] Используем новую модель с голосом alloy: {text}", file=sys.stderr)
+        response = openai.audio.speech.create(
+            model="gpt-4o-mini-tts",
+            voice="alloy",
+            input=text
         )
-        if not response.get("audio_content"):
-            raise ValueError("Пустой аудиоконтент от gpt-4o-mini-tts")
-        with open(output_path, "wb") as f:
-            f.write(response["audio_content"])
-        print(f"[Генерация речи] Успешно: {output_path}", file=sys.stderr)
+        response.stream_to_file(output_path)
+        print(f"[Генерация речи] Успешно сохранено: {output_path}", file=sys.stderr)
     except Exception as e:
-        print(f"[Ошибка] Генерация речи через gpt-4o-mini-tts не сработала: {str(e)}", file=sys.stderr)
+        print(f"[Ошибка] Генерация речи через новую модель не сработала: {str(e)}", file=sys.stderr)
         print("[Фоллбэк] Используем gTTS для генерации речи", file=sys.stderr)
-        # Фоллбэк через gTTS
         try:
             tts = gTTS(text=text, lang='ru')
             tts.save(output_path)
