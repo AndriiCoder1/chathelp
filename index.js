@@ -266,12 +266,14 @@ async function handleTextQuery(message, socket) {
       messages = [...session, { role: 'user', content: message }];
     }
 
+    // При необходимости временно поменяйте модель, например, на "gpt-3.5-turbo"
     const response = await openai.chat.completions.create({
-      model: "o3-mini",  // изменено: использование модели o3-mini
+      model: "gpt-4o-mini",  // изменено с "o3-mini"
       messages: messages,
       max_completion_tokens: 500
     });
-    // Обработка пустого ответа от модели
+    console.log("[GPT] Полный ответ:", JSON.stringify(response)); // новое логирование
+
     let botResponse = response.choices[0].message.content.trim();
     if (!botResponse) {
       console.warn("[Bot] Пустой ответ от модели. Подставляем дефолтное сообщение.");

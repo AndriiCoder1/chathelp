@@ -47,10 +47,10 @@ def transcribe_audio(file_path: str) -> str:
         with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...", file=sys.stderr)
             response = openai.Audio.transcribe(
-                model="whisper-1",  # изменено: теперь используем Whisper для транскрипции
+                model="whisper-1",  # используем Whisper для транскрипции
                 file=audio_file,
                 response_format="json"
-                # temperature не используется для whisper
+                
             )
             print("[Transcribe] Response:", response, file=sys.stderr)
             detected_language = response.get("language", "unknown").upper()
