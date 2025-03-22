@@ -6,7 +6,12 @@
         "autoImportCompletions": true,
         "useLibraryCodeForTypes": true,
         "diagnosticMode": "workspace",
-        "typeCheckingMode": "basic"
+        "typeCheckingMode": "basic",
+        "reportMissingModuleSource": false,
+        "reportAttributeAccessIssue": "none",
+        "ignore": [
+            "openai"
+        ]
     },
     "include": [
         "*.py"
