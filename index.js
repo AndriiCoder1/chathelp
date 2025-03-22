@@ -259,7 +259,7 @@ async function handleTextQuery(message, socket) {
     let messages;
     if (session.length === 0) {
       messages = [
-        { role: 'system', content: 'Отвечай максимально по существу, не повторяй свои предыдущие ответы и не упоминай, что не умеешь воспроизводить аудио. Если вопрос отличается, дай новый, оригинальный ответ.' },
+        { role: 'system', content: 'Отвечай максимально подробно и информативно на любой вопрос. Не оставляй пустых ответов.' },
         { role: 'user', content: message }
       ];
     } else {
