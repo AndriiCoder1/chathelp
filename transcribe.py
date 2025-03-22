@@ -69,18 +69,27 @@ def transcribe_audio(file_path: str) -> str:
 def generate_speech(text, output_path):
     try:
         print(f"[Генерация речи] Используем модель эмбер для генерации: {text}", file=sys.stderr)
-        # Новый вызов синтеза речи через OpenAI (модель гpt-4o-mini-tts или аналогичная)
         response = openai.Audio.synthesize(
-            model="gpt-4o-mini-tts",  # изменено: используем модель преобразования текста в речь с голосом эмбер
+            model="gpt-4o-mini-tts",  # используем модель для преобразования текста в речь с голосом эмбер
             text=text,
             response_format="mp3"
         )
+        if not response.get("audio_content"):
+            raise ValueError("Пустой аудиоконтент от gpt-4o-mini-tts")
         with open(output_path, "wb") as f:
             f.write(response["audio_content"])
         print(f"[Генерация речи] Успешно: {output_path}", file=sys.stderr)
     except Exception as e:
-        print(f"[Ошибка] Генерация речи: {str(e)}", file=sys.stderr)
-        sys.exit(1)
+        print(f"[Ошибка] Генерация речи через gpt-4o-mini-tts не сработала: {str(e)}", file=sys.stderr)
+        print("[Фоллбэк] Используем gTTS для генерации речи", file=sys.stderr)
+        # Фоллбэк через gTTS
+        try:
+            tts = gTTS(text=text, lang='ru')
+            tts.save(output_path)
+            print(f"[Фоллбэк] gTTS успешно сгенерировала аудио: {output_path}", file=sys.stderr)
+        except Exception as fe:
+            print(f"[Критическая ошибка] gTTS: {str(fe)}", file=sys.stderr)
+            sys.exit(1)
 
 if __name__ == "__main__":
     converted_path = None  # инициализация для избежания UnboundLocalVariable
