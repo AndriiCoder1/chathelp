@@ -47,7 +47,7 @@ def transcribe_audio(file_path: str) -> str:
         with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...", file=sys.stderr)
             response = openai.Audio.transcribe(  # type: ignore
-                model="whisper-1",  # изменено: вместо "whisper"
+                model="gpt-4o-mini-transcribe",  # изменено: тестируем новую модель вместо whisper-1
                 file=audio_file,
                 response_format="json",
                 temperature=0.2,
@@ -59,7 +59,7 @@ def transcribe_audio(file_path: str) -> str:
     except openai_error.PermissionError as e:
         error_msg = "[Ошибка] Доступ к модели отсутствует: " + str(e)
         print(error_msg, file=sys.stderr)
-        return "Ошибка транскрипции: Нет доступа к модели whisper-1. Проверьте настройки доступа в вашем аккаунте OpenAI."
+        return "Ошибка транскрипции: Нет доступа к модели gpt-4o-mini-transcribe. Проверьте настройки доступа в вашем аккаунте OpenAI."
     except Exception as e:
         import traceback
         error_msg = "[Ошибка] OpenAI API:\n" + traceback.format_exc()

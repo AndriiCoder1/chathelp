@@ -262,7 +262,7 @@ async function handleTextQuery(message, socket) {
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4.5-preview",
+      model: "o3 mini",  // изменено с "gpt-4.5-preview" на "o3 mini"
       messages: messages,
       temperature: 0.7,
       max_tokens: 500
