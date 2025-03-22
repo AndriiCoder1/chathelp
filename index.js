@@ -158,6 +158,11 @@ function splitText(text, maxLength = 200) {
 }
 
 async function generateSpeech(text, outputFilePath) {
+  // Проверка: если текст пустой, пропускаем генерацию речи
+  if (!text || !text.trim()) {
+    console.error("[generateSpeech] Пустой текст для генерации речи");
+    return;
+  }
   console.log(`[generateSpeech] Генерация речи для текста: ${text}`);
   try {
     const urls = getAllAudioUrls(text, {
