@@ -271,7 +271,12 @@ async function handleTextQuery(message, socket) {
       messages: messages,
       max_completion_tokens: 500
     });
-    const botResponse = response.choices[0].message.content;
+    // Обработка пустого ответа от модели
+    let botResponse = response.choices[0].message.content.trim();
+    if (!botResponse) {
+      console.warn("[Bot] Пустой ответ от модели");
+      botResponse = "Извините, не удалось сгенерировать ответ.";
+    }
     console.log(`[Bot] Ответ: ${botResponse}`);
     globalCache.set(normalizedMessage, botResponse);
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
