@@ -402,8 +402,8 @@ function sendMessage() {
     isSearchMode = false;
     messageInput.placeholder = "Eingabe nachricht...";
   }
-  // Убираем добавление суффикса " audio"
-  let messageToSend = message;
+  // Если сообщение получено голосовым вводом, добавляем суффикс " audio"
+  let messageToSend = isVoiceInput ? message + " audio" : message;
   addMessageToChat(message);
   console.log('Отправка сообщения:', messageToSend);
   socket.emit('message', messageToSend);

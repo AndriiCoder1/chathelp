@@ -12,4 +12,4 @@ class Audio:
     def synthesize(*args: Any, **kwargs: Any) -> Any: ...
 
 audio: Audio = Audio()
-audio.speech = Speech()
+audio.speech = Speech()  # Это присваивание теперь должно работать корректно
