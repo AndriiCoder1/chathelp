@@ -10,8 +10,7 @@
         "reportMissingModuleSource": false,
         "reportAttributeAccessIssue": "none",
         "ignore": [
-            "openai",
-            "pyttsx3"
+            "openai"
         ]
     },
     "include": [
