@@ -397,14 +397,13 @@ function sendMessage() {
     console.warn('Пустое сообщение не отправлено');
     return;
   }
-  // Если включен режим поиска, добавляем префикс SEARCH:
   if (isSearchMode) {
     message = "SEARCH: " + message;
     isSearchMode = false;
     messageInput.placeholder = "Eingabe nachricht...";
   }
-  // Отправляем сообщение без добавления флага " audio"
-  let messageToSend = message;  // блок добавления ' audio' убран
+  // Больше не добавляем суффикс " audio" для голосового ввода
+  let messageToSend = message;
   addMessageToChat(message);
   console.log('Отправка сообщения:', messageToSend);
   socket.emit('message', messageToSend);
