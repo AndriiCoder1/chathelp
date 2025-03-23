@@ -404,9 +404,10 @@ function sendMessage() {
     messageInput.placeholder = "Eingabe nachricht...";
   }
   // Отправляем сообщение без добавления флага " audio"
+  let messageToSend = message;  // блок добавления ' audio' убран
   addMessageToChat(message);
-  console.log('Отправка сообщения:', message);
-  socket.emit('message', message);
+  console.log('Отправка сообщения:', messageToSend);
+  socket.emit('message', messageToSend);
   document.getElementById('message-input').value = '';
   isVoiceInput = false;
   if (autoSendTimer) {

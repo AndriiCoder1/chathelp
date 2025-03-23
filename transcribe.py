@@ -82,16 +82,23 @@ def generate_speech(text, output_path):
             # Вывод доступных голосов для контроля
             for voice in voices:
                 print(f"[Available Voice] {voice.name}", file=sys.stderr)
-            # Выбираем голос по условию (например, ищем "Microsoft David")
             desired_voice = None
-            for voice in voices:
-                if "Microsoft David" in voice.name:  # измените условие по необходимости
-                    desired_voice = voice.id
-                    break
+            if sys.platform == 'darwin':
+                # Для macOS выбираем голос, содержащий 'Alex'
+                for voice in voices:
+                    if "Alex" in voice.name:
+                        desired_voice = voice.id
+                        break
+            else:
+                # Для остальных пытаемся выбрать голос "Microsoft David"
+                for voice in voices:
+                    if "Microsoft David" in voice.name:
+                        desired_voice = voice.id
+                        break
             if desired_voice:
                 engine.setProperty('voice', desired_voice)
             else:
-                engine.setProperty('voice', voices[0].id)  # fallback на первый голос
+                engine.setProperty('voice', voices[0].id)
             engine.save_to_file(text, output_path)
             engine.runAndWait()
             print(f"[Фоллбэк] pyttsx3 успешно сгенерировала аудио: {output_path}", file=sys.stderr)
