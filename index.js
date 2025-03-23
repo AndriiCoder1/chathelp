@@ -402,7 +402,7 @@ function sendMessage() {
     isSearchMode = false;
     messageInput.placeholder = "Eingabe nachricht...";
   }
-  // Больше не добавляем суффикс " audio" для голосового ввода
+  // Убираем добавление суффикса " audio"
   let messageToSend = message;
   addMessageToChat(message);
   console.log('Отправка сообщения:', messageToSend);

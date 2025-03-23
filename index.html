@@ -467,9 +467,6 @@
         messageInput.placeholder = "Eingabe nachricht...";
       }
       let messageToSend = message;
-      if (isVoiceInput && !message.includes('audio')) {
-        messageToSend += ' audio';
-      }
       addMessageToChat(message);
       console.log('Отправка сообщения:', messageToSend);
       socket.emit('message', messageToSend);
