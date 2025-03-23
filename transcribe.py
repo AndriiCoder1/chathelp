@@ -79,11 +79,19 @@ def generate_speech(text, output_path):
             import pyttsx3  # type: ignore
             engine = pyttsx3.init()
             voices = engine.getProperty('voices')
-            # Вывод списка голосов для определения нужного:
-            for i, voice in enumerate(voices):
-                print(f"[Voice] {i}: {voice.name}", file=sys.stderr)
-            # Замените индекс ниже на тот, который вам подходит:
-            engine.setProperty('voice', voices[1].id)
+            # Вывод доступных голосов для контроля
+            for voice in voices:
+                print(f"[Available Voice] {voice.name}", file=sys.stderr)
+            # Выбираем голос по условию (например, ищем "Microsoft David")
+            desired_voice = None
+            for voice in voices:
+                if "Microsoft David" in voice.name:  # измените условие по необходимости
+                    desired_voice = voice.id
+                    break
+            if desired_voice:
+                engine.setProperty('voice', desired_voice)
+            else:
+                engine.setProperty('voice', voices[0].id)  # fallback на первый голос
             engine.save_to_file(text, output_path)
             engine.runAndWait()
             print(f"[Фоллбэк] pyttsx3 успешно сгенерировала аудио: {output_path}", file=sys.stderr)
