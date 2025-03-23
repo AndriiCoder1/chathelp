@@ -390,3 +390,27 @@ server.listen(PORT, () => {
   console.log(`[Сервер] Запущен на порту ${PORT}`);
   console.log('[Сервер] Режим:', process.env.NODE_ENV || 'development');
 });
+
+function sendMessage() {
+  let message = document.getElementById('message-input').value.trim();
+  if (!message) {
+    console.warn('Пустое сообщение не отправлено');
+    return;
+  }
+  // Если включен режим поиска, добавляем префикс SEARCH:
+  if (isSearchMode) {
+    message = "SEARCH: " + message;
+    isSearchMode = false;
+    messageInput.placeholder = "Eingabe nachricht...";
+  }
+  // Убрано добавление флага " audio"
+  addMessageToChat(message);
+  console.log('Отправка сообщения:', message);
+  socket.emit('message', message);
+  document.getElementById('message-input').value = '';
+  isVoiceInput = false;
+  if (autoSendTimer) {
+    clearTimeout(autoSendTimer);
+    autoSendTimer = null;
+  }
+}
