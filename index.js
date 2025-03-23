@@ -180,6 +180,7 @@ async function generateSpeech(text, outputFilePath) {
   }
 }
 
+// Изменения в функции handleTextQuery: меняем модель на gpt-4o-mini
 async function handleTextQuery(message, socket) {
   try {
     if (!message || message.trim() === '' || message === 'undefined') {
@@ -197,7 +198,7 @@ async function handleTextQuery(message, socket) {
     const messages = [...session, { role: 'user', content: message }];
 
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",  // изменено с "gpt-3.5-turbo"
       messages: messages,
       temperature: 0.7,
       max_tokens: 500
