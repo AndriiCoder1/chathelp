@@ -196,7 +196,12 @@ async function handleTextQuery(message, socket) {
       console.warn('[WebSocket] Пустое или некорректное сообщение');
       return socket.emit('message', '⚠️ Пустое или некорректное сообщение не может быть обработано');
     }
-
+    // Если сообщение заканчивается на " audio", удаляем суффикс и запоминаем флаг
+    let generateAudio = false;
+    if (message.toLowerCase().endsWith(" audio")) {
+      generateAudio = true;
+      message = message.substring(0, message.length - " audio".length).trim();
+    }
     // Сброс сессии, если пользователь задаёт вопрос, чтобы не включать предыдущий ответ
     let session = userSessions.get(socket.id) || [];
     if (session.length > 0 && message.toLowerCase().includes("умеешь делать")) {
@@ -236,7 +241,7 @@ async function handleTextQuery(message, socket) {
       const cachedAnswer = globalCache.get(normalizedMessage);
       console.log(`[Cache] Используем кэшированный ответ для: "${message}"`);
       socket.emit('message', cachedAnswer);
-      if (message.includes('audio')) {
+      if (generateAudio) {
         const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
         try {
           await generateSpeech(cachedAnswer, audioFilePath);
@@ -283,7 +288,7 @@ async function handleTextQuery(message, socket) {
     globalCache.set(normalizedMessage, botResponse);
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
     socket.emit('message', botResponse);
-    if (message.includes('audio')) {
+    if (generateAudio) {
       const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
       try {
         await generateSpeech(botResponse, audioFilePath);
@@ -402,7 +407,7 @@ function sendMessage() {
     isSearchMode = false;
     messageInput.placeholder = "Eingabe nachricht...";
   }
-  // Если сообщение получено голосовым вводом, добавляем суффикс " audio"
+  // Если сообщение получено голосовым вводом, добавляем флаг " audio" в конец
   let messageToSend = isVoiceInput ? message + " audio" : message;
   addMessageToChat(message);
   console.log('Отправка сообщения:', messageToSend);
