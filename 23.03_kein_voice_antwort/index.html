@@ -34,12 +34,13 @@
       background-color: #fff;
       margin-bottom: 20px;
       transition: background-color 0.3s, border-color 0.3s;
+      margin-top: 220px; /* увеличен отступ сверху */
     }
 
     #message-input {
       border: 3px solid green;
       width: 100%;
-      min-height: 40px;
+      min-height: 60px; /* раньше 40px */
       padding: 10px;
       font-size: 18px;
       margin-right: 10px;
@@ -48,6 +49,7 @@
       transition: border-color 0.4s, background-color 0.4s;
       resize: none;
       overflow: hidden;
+      padding-right: 80px; /* резерв под кнопку поиска */
     }
 
     .dark-theme #message-input {
@@ -80,6 +82,9 @@
       background-size: cover;
       width: 50px;
       height: 50px;
+      position: absolute;
+      right: 0;
+      margin: 0;
     }
 
     #send-button.sending {
@@ -113,9 +118,12 @@
       width: 100%;
       max-width: 600px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      position: fixed;
+      top: 120px; /* устанавливает ввод выше */
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 0; /* убираем отступ */
     }
 
     #theme-toggle {
@@ -177,6 +185,26 @@
     #audio-player {
       display: none;
     }
+
+    #search-button {
+      position: absolute;
+      right: 60px; /* отступ от правой стороны ввода */
+      background-color: rgba(0,0,0,0.3);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      background-image: url('/images/globe.png'); /* заменяем текст на иконку */
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 20px 20px;
+    }
+
+    #search-button:hover {
+      background-color: rgba(0,0,0,0.6);
+    }
   </style>
 </head>
 <body>
@@ -192,6 +220,7 @@
   <div id="chat-log"></div>
   <div class="input-container">
     <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
+    <button id="search-button" title="Найти информацию в интернете">Поиск</button>
     <button id="send-button" title="Senden Sie eine Nachricht oder starten Sie die Aufnahme"></button>
   </div>
 
@@ -213,6 +242,7 @@
     let silenceTimeout = null;
     let isRecognizing = false; // новый флаг запуска голосового режима
     let isVoiceInput = false;  // новый флаг, сигнализирующий, что сообщение получено голосовым вводом
+    let isSearchMode = false; // новый флаг для режима поиска
 
     // Инициализация аудиозаписи
     async function startAudioRecording() {
@@ -289,7 +319,8 @@
       }
 
       recognition = new window.SpeechRecognition();
-      recognition.lang = 'ru-RU'; // Русский язык
+      // Возвращаем принудительную установку языка на 'ru-RU'
+      recognition.lang = 'ru-RU';
       recognition.continuous = false; // отключаем постоянное прослушивание
       recognition.interimResults = false;
 
@@ -429,15 +460,18 @@
         console.warn('Пустое сообщение не отправлено');
         return;
       }
-      // Если сообщение отправлено по голосовому вводу, добавляем метку для голосового ответа
-      if (isVoiceInput && !message.includes('audio')) {
-        message += ' audio';
+      // Если включен режим поиска, добавляем префикс SEARCH:
+      if (isSearchMode) {
+        message = "SEARCH: " + message;
+        isSearchMode = false;
+        messageInput.placeholder = "Eingabe nachricht...";
       }
+      let messageToSend = message;
       addMessageToChat(message);
-      console.log('Отправка сообщения:', message);
-      socket.emit('message', message);
+      console.log('Отправка сообщения:', messageToSend);
+      socket.emit('message', messageToSend);
       document.getElementById('message-input').value = '';
-      isVoiceInput = false; // сбрасываем флаг после отправки
+      isVoiceInput = false;
       if (autoSendTimer) {
         clearTimeout(autoSendTimer);
         autoSendTimer = null;
@@ -470,14 +504,42 @@
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
+        timeZoneName: 'short',
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone  // добавлено для явного указания часового пояса
       };
-      datetimeElement.textContent = now.toLocaleDateString('de-DE', options);
+      
+      datetimeElement.textContent = now.toLocaleString('De-de', options);
     }
 
     // Инициализация при загрузке
     initSpeechRecognition();
     setInterval(updateDateTime, 1000);
     updateDateTime();
+
+    // Обработчик кнопки поиска
+    const searchButton = document.getElementById('search-button');
+    searchButton.addEventListener('click', () => {
+      if (autoSendTimer) {
+        clearTimeout(autoSendTimer);
+        autoSendTimer = null;
+      }
+      // Если поле ввода пустое, включаем режим поиска
+      if (messageInput.value.trim() === "") {
+        isSearchMode = true;
+        messageInput.placeholder = "Введите запрос для поиска...";
+        messageInput.focus();
+        console.log('[Search] Режим поиска активирован');
+        return;
+      } else {
+        // Если уже есть текст, отправляем как поисковый запрос и сбрасываем режим
+        const searchQuery = "SEARCH: " + messageInput.value.trim();
+        socket.emit('message', searchQuery);
+        addMessageToChat(searchQuery);
+        messageInput.value = '';
+        isSearchMode = false;
+        messageInput.placeholder = "Eingabe nachricht...";
+      }
+    });
   </script>
 </body>
 </html>

@@ -46,11 +46,11 @@ def transcribe_audio(file_path: str) -> str:
     try:
         with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...", file=sys.stderr)
-            response = openai.Audio.transcribe(  # type: ignore
-                model="whisper-1",  # изменено: вместо "whisper"
+            response = openai.Audio.transcribe(
+                model="whisper-1",  # используем Whisper для транскрипции
                 file=audio_file,
-                response_format="json",
-                temperature=0.2,
+                response_format="json"
+                
             )
             print("[Transcribe] Response:", response, file=sys.stderr)
             detected_language = response.get("language", "unknown").upper()
@@ -59,7 +59,7 @@ def transcribe_audio(file_path: str) -> str:
     except openai_error.PermissionError as e:
         error_msg = "[Ошибка] Доступ к модели отсутствует: " + str(e)
         print(error_msg, file=sys.stderr)
-        return "Ошибка транскрипции: Нет доступа к модели whisper-1. Проверьте настройки доступа в вашем аккаунте OpenAI."
+        return "Ошибка транскрипции: Нет доступа к модели Whisper. Проверьте настройки доступа в вашем аккаунте OpenAI."
     except Exception as e:
         import traceback
         error_msg = "[Ошибка] OpenAI API:\n" + traceback.format_exc()
@@ -68,13 +68,43 @@ def transcribe_audio(file_path: str) -> str:
 
 def generate_speech(text, output_path):
     try:
-        print(f"[Генерация речи] Начало генерации: {text}", file=sys.stderr)
-        tts = gTTS(text, lang='ru')
+        print(f"[Генерация речи] Используем gTTS для генерации: {text}", file=sys.stderr)
+        tts = gTTS(text=text, lang='ru')
         tts.save(output_path)
-        print(f"[Генерация речи] Успешно: {output_path}", file=sys.stderr)
+        print(f"[Генерация речи] gTTS успешно сгенерировала аудио: {output_path}", file=sys.stderr)
     except Exception as e:
-        print(f"[Ошибка] Генерация речи: {str(e)}", file=sys.stderr)
-        sys.exit(1)
+        print(f"[Ошибка] gTTS не сработала: {str(e)}", file=sys.stderr)
+        print("[Фоллбэк] Используем pyttsx3 для генерации речи", file=sys.stderr)
+        try:
+            import pyttsx3  # type: ignore
+            engine = pyttsx3.init()
+            voices = engine.getProperty('voices')
+            # Вывод доступных голосов для контроля
+            for voice in voices:
+                print(f"[Available Voice] {voice.name}", file=sys.stderr)
+            desired_voice = None
+            if sys.platform == 'darwin':
+                # Для macOS выбираем голос, содержащий 'Alex'
+                for voice in voices:
+                    if "Alex" in voice.name:
+                        desired_voice = voice.id
+                        break
+            else:
+                # Для остальных пытаемся выбрать голос "Microsoft David"
+                for voice in voices:
+                    if "Microsoft David" in voice.name:
+                        desired_voice = voice.id
+                        break
+            if desired_voice:
+                engine.setProperty('voice', desired_voice)
+            else:
+                engine.setProperty('voice', voices[0].id)
+            engine.save_to_file(text, output_path)
+            engine.runAndWait()
+            print(f"[Фоллбэк] pyttsx3 успешно сгенерировала аудио: {output_path}", file=sys.stderr)
+        except Exception as fe:
+            print(f"[Критическая ошибка] pyttsx3: {str(fe)}", file=sys.stderr)
+            sys.exit(1)
 
 if __name__ == "__main__":
     converted_path = None  # инициализация для избежания UnboundLocalVariable
