@@ -187,6 +187,38 @@ async function handleTextQuery(message, socket) {
       console.warn('[WebSocket] Пустое или некорректное сообщение');
       return socket.emit('message', '⚠️ Пустое или некорректное сообщение не может быть обработано');
     }
+    message = message.trim();
+
+    // Новая логика: если запрос начинается с "SEARCH:"
+    if (message.toLowerCase().startsWith("search:")) {
+      const query = message.slice(7).trim();
+      const { GoogleSearch } = require("serpapi");
+      const search = new GoogleSearch(process.env.SERPAPI_KEY);
+      const params = { q: query, location: "Москва, Россия", hl: "ru", gl: "ru" };
+      try {
+        const searchResults = await search.json(params);
+        let resultText = "Результаты поиска не найдены.";
+        if (searchResults.organic_results && searchResults.organic_results.length > 0) {
+          resultText = searchResults.organic_results[0].snippet || searchResults.organic_results[0].title;
+        }
+        console.log(`[Search] Результаты: ${resultText}`);
+        return socket.emit('message', resultText);
+      } catch (err) {
+        console.error("Ошибка поискового запроса:", err);
+        return socket.emit('message', "Ошибка при поиске в интернете.");
+      }
+    }
+
+    // Новая логика: при запросах о дне или времени – возвращаем локальное значение
+    if (
+      message.toLowerCase().includes("какой сегодня день") ||
+      message.toLowerCase().includes("сколько сейчас время")
+    ) {
+      const now = new Date();
+      const localTime = now.toLocaleString("ru-RU", { timeZone: "Europe/Moscow" });
+      console.log(`[LocalTime] Отправка локального времени: ${localTime}`);
+      return socket.emit('message', localTime);
+    }
 
     const session = userSessions.get(socket.id) || [];
     const lastMessage = session[session.length - 1];
