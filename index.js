@@ -192,7 +192,8 @@ async function handleTextQuery(message, socket) {
     // Новая логика: если запрос начинается с "SEARCH:"
     if (message.toLowerCase().startsWith("search:")) {
       const query = message.slice(7).trim();
-      const { GoogleSearch } = require("serpapi");
+      // Правильное получение конструктора GoogleSearch
+      const GoogleSearch = require("google-search-results-nodejs").GoogleSearch;
       const search = new GoogleSearch(process.env.SERPAPI_KEY);
       const params = { q: query, location: "Москва, Россия", hl: "ru", gl: "ru" };
       try {
@@ -202,59 +203,65 @@ async function handleTextQuery(message, socket) {
           resultText = searchResults.organic_results[0].snippet || searchResults.organic_results[0].title;
         }
         console.log(`[Search] Результаты: ${resultText}`);
-        return socket.emit('message', resultText);
+        socket.emit('message', resultText);
+        if (message.includes('audio')) {
+          const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+          await generateSpeech(resultText, audioFilePath);
+          socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
+        }
       } catch (err) {
         console.error("Ошибка поискового запроса:", err);
-        return socket.emit('message', "Ошибка при поиске в интернете.");
+        socket.emit('message', "Ошибка при поиске в интернете.");
       }
+      return;
     }
 
-    // Новая логика: при запросах о дне или времени – возвращаем локальное значение
+    // Новая логика: если запрос о дне или времени – используем системное время
     if (
       message.toLowerCase().includes("какой сегодня день") ||
       message.toLowerCase().includes("сколько сейчас время")
     ) {
       const now = new Date();
-      const localTime = now.toLocaleString("ru-RU", { timeZone: "Europe/Moscow" });
+      const localTime = now.toLocaleString("ru-RU"); // Используем системное время без принудительного timezone
       console.log(`[LocalTime] Отправка локального времени: ${localTime}`);
-      return socket.emit('message', localTime);
+      socket.emit('message', localTime);
+      if (message.includes('audio')) {
+        const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+        await generateSpeech(localTime, audioFilePath);
+        socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
+      }
+      return;
     }
 
+    // ...existing код сессии и вызова OpenAI...
     const session = userSessions.get(socket.id) || [];
     const lastMessage = session[session.length - 1];
     if (lastMessage && lastMessage.content === message) {
       console.warn('[WebSocket] Дублирующееся сообщение');
       return;
     }
-
     const messages = [...session, { role: 'user', content: message }];
-
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: messages,
       temperature: 0.7,
       max_tokens: 500
     });
-
     const botResponse = response.choices[0].message.content;
-    console.log(`[Bot] Ответ: ${botResponse}`); // Логирование ответа бота
+    console.log(`[Bot] Ответ: ${botResponse}`);
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
-
     socket.emit('message', botResponse);
-
     if (message.includes('audio')) {
       const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
       try {
         await generateSpeech(botResponse, audioFilePath);
         activeResponses.set(socket.id, audioFilePath);
-        // Добавляем timestamp в URL аудио для предотвращения кэширования
         socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
       } catch (error) {
         console.error('Ошибка генерации речи:', error.message);
         socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
       }
     }
-
   } catch (error) {
     console.error(`[GPT] Ошибка: ${error.message}`);
     socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
