@@ -193,6 +193,8 @@
   <div class="input-container">
     <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
     <button id="send-button" title="Senden Sie eine Nachricht oder starten Sie die Aufnahme"></button>
+    <!-- Добавляем кнопку для поиска в интернете -->
+    <button id="search-button" title="Поиск в интернете">🔍</button>
   </div>
 
   <script>
@@ -368,6 +370,18 @@
         sendButton.classList.remove('sending');
       } else {
         sendButton.classList.add('sending');
+      }
+    });
+
+    // Добавляем обработчик для кнопки поиска
+    document.getElementById('search-button').addEventListener('click', () => {
+      let query = messageInput.value.trim();
+      if (query) {
+        let searchQuery = "SEARCH: " + query;
+        addMessageToChat(searchQuery);
+        console.log('Отправка поискового запроса:', searchQuery);
+        socket.emit('message', searchQuery);
+        messageInput.value = "";
       }
     });
 

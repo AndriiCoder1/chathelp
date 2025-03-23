@@ -198,7 +198,7 @@ async function handleTextQuery(message, socket) {
     const messages = [...session, { role: 'user', content: message }];
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",  // изменено с "gpt-3.5-turbo"
+      model: "gpt-3.5-turbo",
       messages: messages,
       temperature: 0.7,
       max_tokens: 500
@@ -294,3 +294,33 @@ server.listen(PORT, () => {
   console.log(`[Сервер] Запущен на порту ${PORT}`);
   console.log('[Сервер] Режим:', process.env.NODE_ENV || 'development');
 });
+
+function sendMessage() {
+  let message = document.getElementById('message-input').value.trim();
+  if (!message) {
+    console.warn('Пустое сообщение не отправлено');
+    return;
+  }
+  // Если включён режим поиска, добавляем префикс без изменений
+  if (isSearchMode) {
+    message = "SEARCH: " + message;
+    isSearchMode = false;
+    messageInput.placeholder = "Eingabe nachricht...";
+  }
+  // Сохраняем исходное сообщение для отображения в чате
+  const originalMessage = message;
+  // Если сообщение получено голосом, добавляем суффикс только для отправки на сервер
+  let messageToSend = isVoiceInput && !message.endsWith(" audio")
+    ? message + " audio"
+    : message;
+  // Выводим в чат исходное сообщение без суффикса
+  addMessageToChat(originalMessage);
+  console.log('Отправка сообщения:', messageToSend);
+  socket.emit('message', messageToSend);
+  document.getElementById('message-input').value = '';
+  isVoiceInput = false;
+  if (autoSendTimer) {
+    clearTimeout(autoSendTimer);
+    autoSendTimer = null;
+  }
+}
