@@ -403,7 +403,7 @@ function sendMessage() {
     isSearchMode = false;
     messageInput.placeholder = "Eingabe nachricht...";
   }
-  // Убрано добавление флага " audio"
+  // Отправляем сообщение без добавления флага " audio"
   addMessageToChat(message);
   console.log('Отправка сообщения:', message);
   socket.emit('message', message);
