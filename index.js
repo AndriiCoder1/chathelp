@@ -195,7 +195,8 @@ async function handleTextQuery(message, socket) {
       // Правильное получение конструктора GoogleSearch
       const GoogleSearch = require("google-search-results-nodejs").GoogleSearch;
       const search = new GoogleSearch(process.env.SERPAPI_KEY);
-      const params = { q: query, location: "Москва, Россия", hl: "ru", gl: "ru" };
+      // Изменили значение параметра location
+      const params = { q: query, location: "Moscow, Russia", hl: "ru", gl: "ru" };
       try {
         const searchResults = await search.json(params);
         let resultText = "Результаты поиска не найдены.";
