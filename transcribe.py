@@ -5,6 +5,7 @@ import openai
 from openai import error as openai_error  # type: ignore  - устраняет предупреждение
 from pydub import AudioSegment
 from gtts import gTTS
+from typing import Any, Dict  # добавлено
 
 # Загрузка переменных окружения из файла .env
 load_dotenv()
@@ -46,16 +47,17 @@ def transcribe_audio(file_path: str) -> str:
     try:
         with open(file_path, "rb") as audio_file:
             print("[Transcribe] Отправка в OpenAI...", file=sys.stderr)
-            response = openai.Audio.transcribe(  # type: ignore
-                model="whisper-1",  # изменено: вместо "whisper"
+            # Приводим результат к типу Dict[str, Any]
+            response: Dict[str, Any] = openai.Audio.transcribe(  # type: ignore
+                model="whisper-1",
                 file=audio_file,
                 response_format="json",
                 temperature=0.2,
             )
             print("[Transcribe] Response:", response, file=sys.stderr)
-            detected_language = response.get("language", "unknown").upper()
+            detected_language = response.get("language", "unknown").upper()  # теперь get распознается
             print(f"[Transcribe] Определен язык: {detected_language}", file=sys.stderr)
-            return response["text"]
+            return response["text"]  # теперь ошибок быть не должно
     except openai_error.PermissionError as e:
         error_msg = "[Ошибка] Доступ к модели отсутствует: " + str(e)
         print(error_msg, file=sys.stderr)

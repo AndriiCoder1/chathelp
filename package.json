@@ -32,7 +32,8 @@
     "node-fetch": "^3.3.2",
     "openai": "^4.82.0",
     "serpapi": "^2.1.0",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "google-search-results-nodejs": "^2.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
