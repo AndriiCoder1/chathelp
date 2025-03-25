@@ -10,6 +10,7 @@ const { exec } = require('child_process');
 const cors = require('cors');
 const googleTTS = require('google-tts-api');
 const { getAllAudioUrls } = require('google-tts-api');
+const crypto = require('crypto'); // добавлено для кеширования
 
 // Логирование загрузки ключей
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
@@ -73,6 +74,13 @@ const audioDir = path.join(__dirname, 'audio');
 if (!fs.existsSync(audioDir)) {
   fs.mkdirSync(audioDir);
   console.log(`[Сервер] Директория создана: ${audioDir}`);
+}
+
+// Создаём директорию для кэша
+const cacheFolder = path.join(__dirname, 'cache');
+if (!fs.existsSync(cacheFolder)) {
+  fs.mkdirSync(cacheFolder);
+  console.log(`[Сервер] Директория кэша создана: ${cacheFolder}`);
 }
 
 // Маршруты
@@ -189,23 +197,34 @@ async function handleTextQuery(message, socket) {
     }
     message = message.trim();
 
+    // Добавляем проверку кэша
+    const hash = crypto.createHash('md5').update(message).digest('hex');
+    const cacheFile = path.join(cacheFolder, `${hash}.json`);
+    if (fs.existsSync(cacheFile)) {
+      const cachedData = fs.readFileSync(cacheFile, 'utf-8');
+      const cachedResponse = JSON.parse(cachedData);
+      console.log(`[Cache] Использование кэша для сообщения: ${message}`);
+      socket.emit('message', cachedResponse.response);
+      if (message.includes('audio')) {
+        const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+        await generateSpeech(cachedResponse.response, audioFilePath);
+        socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
+      }
+      return;
+    }
+
     // Новая логика: если запрос начинается с "SEARCH:"
     if (message.toLowerCase().startsWith("search:")) {
       const query = message.slice(7).trim();
+      // Правильное получение конструктора GoogleSearch
       const GoogleSearch = require("google-search-results-nodejs").GoogleSearch;
       const search = new GoogleSearch(process.env.SERPAPI_KEY);
+      // Изменили значение параметра location
       const params = { q: query, location: "Moscow, Russia", hl: "ru", gl: "ru" };
       try {
-        const searchResults = await new Promise((resolve, reject) => {
-          search.json(params, (data) => {
-            if (data.error) {
-              return reject(data.error);
-            }
-            resolve(data);
-          });
-        });
+        const searchResults = await search.json(params);
         let resultText = "Результаты поиска не найдены.";
-        if (searchResults && searchResults.organic_results && searchResults.organic_results.length > 0) {
+        if (searchResults.organic_results && searchResults.organic_results.length > 0) {
           resultText = searchResults.organic_results[0].snippet || searchResults.organic_results[0].title;
         }
         console.log(`[Search] Результаты: ${resultText}`);
@@ -256,6 +275,10 @@ async function handleTextQuery(message, socket) {
     const botResponse = response.choices[0].message.content;
     console.log(`[Bot] Ответ: ${botResponse}`);
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
+
+    // Кэшируем ответ
+    fs.writeFileSync(cacheFile, JSON.stringify({ response: botResponse }));
+
     socket.emit('message', botResponse);
     if (message.includes('audio')) {
       const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
