@@ -192,15 +192,20 @@ async function handleTextQuery(message, socket) {
     // Новая логика: если запрос начинается с "SEARCH:"
     if (message.toLowerCase().startsWith("search:")) {
       const query = message.slice(7).trim();
-      // Правильное получение конструктора GoogleSearch
       const GoogleSearch = require("google-search-results-nodejs").GoogleSearch;
       const search = new GoogleSearch(process.env.SERPAPI_KEY);
-      // Изменили значение параметра location
       const params = { q: query, location: "Moscow, Russia", hl: "ru", gl: "ru" };
       try {
-        const searchResults = await search.json(params);
+        const searchResults = await new Promise((resolve, reject) => {
+          search.json(params, (data) => {
+            if (data.error) {
+              return reject(data.error);
+            }
+            resolve(data);
+          });
+        });
         let resultText = "Результаты поиска не найдены.";
-        if (searchResults.organic_results && searchResults.organic_results.length > 0) {
+        if (searchResults && searchResults.organic_results && searchResults.organic_results.length > 0) {
           resultText = searchResults.organic_results[0].snippet || searchResults.organic_results[0].title;
         }
         console.log(`[Search] Результаты: ${resultText}`);
