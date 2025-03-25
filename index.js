@@ -163,22 +163,20 @@ function splitText(text, maxLength = 200) {
 async function generateSpeech(text, outputFilePath) {
   console.log(`[generateSpeech] Генерация речи для текста: ${text}`);
   try {
-    const urls = getAllAudioUrls(text, {
+    // Ограничиваем длину текста для TTS (google-tts-api имеет лимит)
+    const ttsText = text.length > 200 ? text.slice(0, 200) + "..." : text;
+    const urls = getAllAudioUrls(ttsText, {
       lang: 'ru',
       slow: false,
       host: 'https://translate.google.com',
     });
-
     const buffers = [];
-
     for (const item of urls) {
-      const url = typeof item === 'string' ? item : item.url;  // извлекаем URL если элемент объект
+      const url = typeof item === 'string' ? item : item.url;
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
       buffers.push(Buffer.from(arrayBuffer));
     }
-
-    // Объединение всех частей в один аудиофайл
     const finalBuffer = Buffer.concat(buffers);
     fs.writeFileSync(outputFilePath, finalBuffer);
     console.log(`[generateSpeech] Успешно: ${outputFilePath}`);
@@ -229,7 +227,15 @@ async function handleTextQuery(message, socket) {
         });
         let resultText = "Результаты поиска не найдены.";
         if (searchResults.organic_results && searchResults.organic_results.length > 0) {
-          resultText = searchResults.organic_results[0].snippet || searchResults.organic_results[0].title;
+          const result = searchResults.organic_results[0];
+          resultText = "";
+          if (result.title) {
+            resultText += result.title + ". ";
+          }
+          if (result.snippet) {
+            resultText += result.snippet;
+          }
+          resultText = resultText.trim();
         }
         console.log(`[Search] Результаты: ${resultText}`);
         socket.emit('message', resultText);
