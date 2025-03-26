@@ -251,14 +251,14 @@ async function handleTextQuery(message, socket) {
         // Новая функция для извлечения релевантной информации
         function extractRelevantInfo(text, query) {
           if (query.toLowerCase().includes("погода")) {
-            const tempMatch = text.match(/([+-]?\d+(?:[.,]\d+)?\s*(°|градус(?:ов)?))/i);
+            const tempMatch = text.match(/\d+[.,]?\d*\s*(°|градус(?:ов)?)/i);
             if (tempMatch) {
               return `Погода: ${tempMatch[0]}`;
             }
+            return text; // если число не найдено, вернуть полный результат
           }
-          // Для других запросов возвращаем первую фразу
-          const sentences = text.split('.');
-          return sentences[0].trim();
+          // Для других запросов возвращаем полный текст
+          return text;
         }
         resultText = extractRelevantInfo(resultText, query);
         console.log(`[Search] Результаты: ${resultText}`);
@@ -404,22 +404,16 @@ function sendMessage() {
     console.warn('Пустое сообщение не отправлено');
     return;
   }
-  // Если включён режим поиска, добавляем префикс без изменений
-  if (isSearchMode) {
-    message = "SEARCH: " + message;
-    isSearchMode = false;
-    messageInput.placeholder = "Eingabe nachricht...";
+  let displayMessage = message;
+  // Если сообщение получено голосом, добавляем метку для отправки,
+  // но для отображения убираем суффикс " audio"
+  if (isVoiceInput && !message.includes('audio')) {
+    message += ' audio';
+    displayMessage = message.replace(/ audio$/, '');
   }
-  // Сохраняем исходное сообщение для отображения в чате
-  const originalMessage = message;
-  // Если сообщение получено голосом, добавляем суффикс только для отправки на сервер
-  let messageToSend = isVoiceInput && !message.endsWith(" audio")
-    ? message + " audio"
-    : message;
-  // Выводим в чат исходное сообщение без суффикса
-  addMessageToChat(originalMessage);
-  console.log('Отправка сообщения:', messageToSend);
-  socket.emit('message', messageToSend);
+  addMessageToChat(displayMessage);
+  console.log('Отправка сообщения:', message);
+  socket.emit('message', message);
   document.getElementById('message-input').value = '';
   isVoiceInput = false;
   if (autoSendTimer) {
