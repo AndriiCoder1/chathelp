@@ -241,9 +241,22 @@ async function handleTextQuery(message, socket) {
           }
           resultText = resultText.trim();
         }
+        // Новая функция для извлечения релевантной информации
+        function extractRelevantInfo(text, query) {
+          if (query.toLowerCase().includes("погода")) {
+            const tempMatch = text.match(/(\д+\с*(°|градус(?:ов)?))/i);
+            if (tempMatch) {
+              return `Погода: ${tempMatch[0]}`;
+            }
+          }
+          // Для других запросов возвращаем первую фразу
+          const sentences = text.split('.');
+          return sentences[0].trim();
+        }
+        resultText = extractRelevantInfo(resultText, query);
         console.log(`[Search] Результаты: ${resultText}`);
         socket.emit('message', resultText);
-        // Генерируем голосовой ответ всегда, без проверки message.includes('audio')
+        // Генерируем голосовой ответ всегда
         const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
         await generateSpeech(resultText, audioFilePath);
         socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
