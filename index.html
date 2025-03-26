@@ -485,8 +485,8 @@
         minute: '2-digit',
         second: '2-digit'
       };
-      // Используем локальные настройки устройства, передавая undefined
-      datetimeElement.textContent = now.toLocaleString(undefined, options);
+      // Используем локальные настройки устройства
+      datetimeElement.textContent = now.toLocaleString("de-DE", options);
     }
 
     // Инициализация при загрузке
