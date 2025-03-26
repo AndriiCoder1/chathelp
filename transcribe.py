@@ -55,9 +55,9 @@ def transcribe_audio(file_path: str) -> str:
                 temperature=0.2,
             )
             print("[Transcribe] Response:", response, file=sys.stderr)
-            detected_language = response.get("language", "unknown").upper()  # теперь get распознается
+            detected_language = response.get("language", "unknown").upper()  # получаем язык из ответа
             print(f"[Transcribe] Определен язык: {detected_language}", file=sys.stderr)
-            return response["text"]  # теперь ошибок быть не должно
+            return response["text"]  # теперь обращаемся к ключу text
     except openai_error.PermissionError as e:
         error_msg = "[Ошибка] Доступ к модели отсутствует: " + str(e)
         print(error_msg, file=sys.stderr)

@@ -163,9 +163,8 @@ function splitText(text, maxLength = 200) {
 async function generateSpeech(text, outputFilePath) {
   console.log(`[generateSpeech] Генерация речи для текста: ${text}`);
   try {
-    // Ограничиваем длину текста для TTS (google-tts-api имеет лимит)
-    const ttsText = text.length > 200 ? text.slice(0, 200) + "..." : text;
-    const urls = getAllAudioUrls(ttsText, {
+    // Используем полный текст без ограничения (удалена логика обрезания до 200 символов)
+    const urls = getAllAudioUrls(text, {
       lang: 'ru',
       slow: false,
       host: 'https://translate.google.com',
@@ -216,7 +215,12 @@ async function handleTextQuery(message, socket) {
       const query = message.slice(7).trim();
       const GoogleSearch = require("google-search-results-nodejs").GoogleSearch;
       const search = new GoogleSearch(process.env.SERPAPI_KEY);
-      const params = { q: query, location: "Moscow, Russia", hl: "ru", gl: "ru" };
+      const params = { q: query, hl: "ru", gl: "ru" };
+      if (query.toLowerCase().includes("погода")) {
+        console.log("[Search] Запрос о погоде – не ограничиваем поиск по локации");
+      } else {
+        params.location = "Moscow, Russia";
+      }
       try {
         const searchResults = await new Promise((resolve, reject) => {
           search.json(params, (data) => {
@@ -239,11 +243,10 @@ async function handleTextQuery(message, socket) {
         }
         console.log(`[Search] Результаты: ${resultText}`);
         socket.emit('message', resultText);
-        if (message.includes('audio')) {
-          const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
-          await generateSpeech(resultText, audioFilePath);
-          socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
-        }
+        // Генерируем голосовой ответ всегда, без проверки message.includes('audio')
+        const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+        await generateSpeech(resultText, audioFilePath);
+        socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
       } catch (err) {
         console.error("Ошибка поискового запроса:", err);
         socket.emit('message', "Ошибка при поиске в интернете.");
@@ -317,7 +320,7 @@ async function processMessageQueue(socket) {
 
   messageQueues.set(socket.id, queue);
   if (queue.length > 0) {
-    setTimeout(() => processMessageQueue(socket), 0); // убрана задержка
+    setTimeout(() => processMessageQueue(socket), 0);
   }
 }
 
