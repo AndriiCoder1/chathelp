@@ -326,7 +326,9 @@ async function processMessageQueue(socket) {
 
 // WebSocket логика
 io.on('connection', (socket) => {
-  console.log(`[WebSocket] Новое подключение: ${socket.id}, IP: ${socket.handshake.address}`);
+  // Получаем реальный IP из заголовка X-Forwarded-For, если он передан
+  const clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
+  console.log(`[WebSocket] Новое подключение: ${socket.id}, IP: ${clientIp}`);
   userSessions.set(socket.id, []);
   messageQueues.set(socket.id, []);
   activeResponses.set(socket.id, null);
