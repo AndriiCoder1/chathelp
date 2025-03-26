@@ -226,7 +226,7 @@ async function handleTextQuery(message, socket) {
       } else if (query.toLowerCase().includes("лондон")) {
         params.location = "London, United Kingdom";
       } else {
-        params.location = "Europa"; // Для всех остальных запросов
+        params.location = "En"; // По умолчанию - англоязычные результаты
       }
       try {
         const searchResults = await new Promise((resolve, reject) => {
