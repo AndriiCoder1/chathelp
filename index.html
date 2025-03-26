@@ -443,15 +443,18 @@
         console.warn('Пустое сообщение не отправлено');
         return;
       }
-      // Если сообщение отправлено по голосовому вводу, добавляем метку для голосового ответа
-      if (isVoiceInput && !message.includes('audio')) {
+      let displayMessage = message;
+      // Если сообщение отправлено голосовым вводом, добавляем метку для сервера,
+      // но для отображения убираем суффикс " audio"
+      if (isVoiceInput && !message.includes(' audio')) {
         message += ' audio';
+        displayMessage = message.replace(/ audio$/, '');
       }
-      addMessageToChat(message);
+      addMessageToChat(displayMessage);
       console.log('Отправка сообщения:', message);
       socket.emit('message', message);
       document.getElementById('message-input').value = '';
-      isVoiceInput = false; // сбрасываем флаг после отправки
+      isVoiceInput = false;
       if (autoSendTimer) {
         clearTimeout(autoSendTimer);
         autoSendTimer = null;
