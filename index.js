@@ -216,10 +216,17 @@ async function handleTextQuery(message, socket) {
       const GoogleSearch = require("google-search-results-nodejs").GoogleSearch;
       const search = new GoogleSearch(process.env.SERPAPI_KEY);
       const params = { q: query, hl: "ru", gl: "ru" };
+      // Задаем локацию в зависимости от текста запроса
       if (query.toLowerCase().includes("погода")) {
         console.log("[Search] Запрос о погоде – не ограничиваем поиск по локации");
+      } else if (query.toLowerCase().includes("киев")) {
+        params.location = "Kyiv, Ukraine";
+      } else if (query.toLowerCase().includes("берн")) {
+        params.location = "Bern, Switzerland";
+      } else if (query.toLowerCase().includes("лондон")) {
+        params.location = "London, United Kingdom";
       } else {
-        params.location = "Moscow, Russia";
+        params.location = "Europa"; // Для всех остальных запросов
       }
       try {
         const searchResults = await new Promise((resolve, reject) => {
