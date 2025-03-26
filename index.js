@@ -251,7 +251,7 @@ async function handleTextQuery(message, socket) {
         // Новая функция для извлечения релевантной информации
         function extractRelevantInfo(text, query) {
           if (query.toLowerCase().includes("погода")) {
-            const tempMatch = text.match(/(\d+\s*(°|градус(?:ов)?))/i);
+            const tempMatch = text.match(/([+-]?\d+(?:[.,]\d+)?\s*(°|градус(?:ов)?))/i);
             if (tempMatch) {
               return `Погода: ${tempMatch[0]}`;
             }
@@ -280,7 +280,7 @@ async function handleTextQuery(message, socket) {
       message.toLowerCase().includes("сколько сейчас время")
     ) {
       const now = new Date();
-      const localTime = now.toLocaleString("ru-RU"); // Используем системное время без принудительного timezone
+      const localTime = now.toLocaleString("ru-RU", { timeZone: "Europe/Berlin" }); // явная таймзона
       console.log(`[LocalTime] Отправка локального времени: ${localTime}`);
       socket.emit('message', localTime);
       if (message.includes('audio')) {
