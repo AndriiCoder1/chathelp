@@ -250,15 +250,28 @@ async function handleTextQuery(message, socket) {
         }
         // Новая функция для извлечения релевантной информации
         function extractRelevantInfo(text, query) {
-          if (query.toLowerCase().includes("погода")) {
-            const tempMatch = text.match(/([+-]?\d+[.,]?\d*)\s*(°|градус(?:ов)?)/i);
-            if (tempMatch) {
-              return `Погода: ${tempMatch[1]}°`;
+          const lowerQuery = query.toLowerCase();
+          if (lowerQuery.includes("погода")) {
+            // Ищем все совпадения вида число + ° или градус(ов)
+            const matches = [...text.matchAll(/([+-]?\d+[.,]?\d*)\s*(°|градус(?:ов)?)/gi)];
+            if (matches.length) {
+              // Фильтруем по диапазону, типичному для температур
+              const temps = matches.map(m => parseFloat(m[1])).filter(val => val > -50 && val < 60);
+              if (temps.length) {
+                return `Погода: ${temps[0]}°`;
+              }
             }
-            return text; // если число не найдено, вернуть полный результат
+            // Если совпадений не получено, возвращаем первое предложение
+            return text.split('.')[0].trim();
+          } else if (lowerQuery.includes("лексус")) {
+            // Для запросов о Lexus возвращаем только первую фразу
+            return text.split('.')[0].trim() + '.';
+          } else if (/(последн(ая|ий)|новый|этого года|свежий|новейший|новое устройство|последняя модель)/i.test(query)) {
+            // Для запросов, содержащих ключевые слова для получения конкретной информации,
+            // возвращаем только первую фразу.
+            return text.split('.')[0].trim() + '.';
           }
-          // Для других запросов возвращаем полный текст
-          return text;
+          return text; // для прочих запросов возвращаем полный текст
         }
         resultText = extractRelevantInfo(resultText, query);
         console.log(`[Search] Результаты: ${resultText}`);
