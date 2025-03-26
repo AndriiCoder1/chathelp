@@ -251,9 +251,9 @@ async function handleTextQuery(message, socket) {
         // Новая функция для извлечения релевантной информации
         function extractRelevantInfo(text, query) {
           if (query.toLowerCase().includes("погода")) {
-            const tempMatch = text.match(/\d+[.,]?\d*\s*(°|градус(?:ов)?)/i);
+            const tempMatch = text.match(/([+-]?\d+[.,]?\d*)\s*(°|градус(?:ов)?)/i);
             if (tempMatch) {
-              return `Погода: ${tempMatch[0]}`;
+              return `Погода: ${tempMatch[1]}°`;
             }
             return text; // если число не найдено, вернуть полный результат
           }
