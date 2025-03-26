@@ -405,9 +405,9 @@ function sendMessage() {
     return;
   }
   let displayMessage = message;
-  // Если сообщение получено голосом, добавляем метку для отправки,
+  // Если сообщение отправлено голосом, добавляем метку для сервера,
   // но для отображения убираем суффикс " audio"
-  if (isVoiceInput && !message.includes('audio')) {
+  if (isVoiceInput && !message.includes(' audio')) {
     message += ' audio';
     displayMessage = message.replace(/ audio$/, '');
   }
