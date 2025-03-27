@@ -27,7 +27,7 @@
     #chat-log {
       width: 100%;
       max-width: 600px;
-      height: calc(100vh - 160px);
+      height: calc(100vh - 140px);
       overflow-y: auto;
       border: 1px solid #ccc;
       padding: 10px;
@@ -115,7 +115,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+      position: relative; /* для позиционирования кнопки поиска */
     }
 
     #theme-toggle {
@@ -177,6 +178,19 @@
     #audio-player {
       display: none;
     }
+
+    /* Новый стиль для кнопки поиска внутри поля ввода */
+    #search-button {
+      position: absolute;
+      right: 5px;
+      bottom: 5px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -193,8 +207,8 @@
   <div class="input-container">
     <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
     <button id="send-button" title="Senden Sie eine Nachricht oder starten Sie die Aufnahme"></button>
-    <!-- Добавляем кнопку для поиска в интернете -->
-    <button id="search-button" title="Поиск в интернете">🔍</button>
+    <!-- Изменённая кнопка поиска с новым символом -->
+    <button id="search-button" title="Поиск в интернете">🌐</button>
   </div>
 
   <script>
