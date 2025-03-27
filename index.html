@@ -113,10 +113,13 @@
       width: 100%;
       max-width: 600px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
-      position: relative; /* для позиционирования кнопки поиска */
+    }
+
+    .input-wrapper {
+      position: relative;
+      width: 100%;
     }
 
     #theme-toggle {
@@ -179,7 +182,6 @@
       display: none;
     }
 
-    /* Новый стиль для кнопки поиска внутри поля ввода */
     #search-button {
       position: absolute;
       right: 5px;
@@ -190,6 +192,7 @@
       cursor: pointer;
       padding: 0;
       margin: 0;
+      z-index: 2;
     }
   </style>
 </head>
@@ -205,10 +208,11 @@
   <button id="theme-toggle">L / D</button>
   <div id="chat-log"></div>
   <div class="input-container">
-    <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
+    <div class="input-wrapper">
+      <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
+      <button id="search-button" title="Поиск в интернете">🌐</button>
+    </div>
     <button id="send-button" title="Senden Sie eine Nachricht oder starten Sie die Aufnahme"></button>
-    <!-- Изменённая кнопка поиска с новым символом -->
-    <button id="search-button" title="Поиск в интернете">🌐</button>
   </div>
 
   <script>
