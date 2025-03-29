@@ -254,6 +254,7 @@ async function handleTextQuery(message, socket) {
 
           // Обработка запросов о погоде или температуре
           if (lowerQuery.includes("погода") || lowerQuery.includes("температура")) {
+            // Попробуем найти температуру в тексте
             const matches = [...text.matchAll(/([+-]?\d+(?:[.,]\d+)?)\s*(°|градус(?:ов)?|C|F)/gi)];
             if (matches.length) {
               const temps = matches.map(m => parseFloat(m[1])).filter(val => val > -50 && val < 60);
@@ -265,10 +266,12 @@ async function handleTextQuery(message, socket) {
                 return temperature;
               }
             }
+
+            // Если температура не найдена, возвращаем ссылку на погоду
             if (firstLink) {
               return `Погода: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
             }
-            return text.split('.')[0].trim();
+            return "Информация о погоде недоступна.";
           }
 
           // Обработка запросов о продуктах, моделях, брендах
@@ -290,7 +293,7 @@ async function handleTextQuery(message, socket) {
             if (firstLink) {
               return `Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
             }
-            return text.split('.')[0].trim();
+            return "Информация о продукте недоступна.";
           }
 
           // Если ничего не найдено, возвращаем первую ссылку, если она доступна
