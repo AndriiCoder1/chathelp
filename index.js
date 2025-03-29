@@ -251,19 +251,19 @@ async function handleTextQuery(message, socket) {
         // Новая функция для извлечения релевантной информации
         function extractRelevantInfo(text, query) {
           const lowerQuery = query.toLowerCase();
-          if (lowerQuery.includes("погода")) {
+          if (lowerQuery.includes("погода") || lowerQuery.includes("температура")) {
             // Ищем все совпадения вида число + ° или градус(ов)
-            const matches = [...text.matchAll(/([+-]?\d+[.,]?\d*)\s*(°|градус(?:ов)?)/gi)];
+            const matches = [...text.matchAll(/([+-]?\d+(?:[.,]\d+)?)\s*(°|градус(?:ов)?|C|F)/gi)];
             if (matches.length) {
               // Фильтруем по диапазону, типичному для температур
               const temps = matches.map(m => parseFloat(m[1])).filter(val => val > -50 && val < 60);
               if (temps.length) {
-                return `Погода: ${temps[0]}°`;
+                return `Температура: ${temps[0]}°C`;
               }
             }
-            // Если совпадений не получено, возвращаем первое предложение
+            // Если совпадений не найдено, возвращаем первое предложение
             return text.split('.')[0].trim();
-          } else if (lowerQuery.includes("лексус")) {
+          } else if (lowerQuery.includes("лексус, айфон, айпад, мерседес, самсунг")) {
             // Для запросов о Lexus возвращаем только первую фразу
             return text.split('.')[0].trim() + '.';
           } else if (/(последн(ая|ий)|новый|этого года|свежий|новейший|новое устройство|последняя модель)/i.test(query)) {
