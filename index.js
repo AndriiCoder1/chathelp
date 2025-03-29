@@ -249,31 +249,48 @@ async function handleTextQuery(message, socket) {
           resultText = resultText.trim();
         }
         // Новая функция для извлечения релевантной информации
-        function extractRelevantInfo(text, query) {
+        function extractRelevantInfo(text, query, firstLink) {
           const lowerQuery = query.toLowerCase();
+
+          // Обработка запросов о погоде или температуре
           if (lowerQuery.includes("погода") || lowerQuery.includes("температура")) {
-            // Ищем все совпадения вида число + ° или градус(ов)
             const matches = [...text.matchAll(/([+-]?\d+(?:[.,]\d+)?)\s*(°|градус(?:ов)?|C|F)/gi)];
             if (matches.length) {
-              // Фильтруем по диапазону, типичному для температур
               const temps = matches.map(m => parseFloat(m[1])).filter(val => val > -50 && val < 60);
               if (temps.length) {
                 return `Температура: ${temps[0]}°C`;
               }
             }
-            // Если совпадений не найдено, возвращаем первое предложение
             return text.split('.')[0].trim();
-          } else if (lowerQuery.includes("лексус, айфон, айпад, мерседес, самсунг")) {
-            // Для запросов о Lexus возвращаем только первую фразу
-            return text.split('.')[0].trim() + '.';
-          } else if (/(последн(ая|ий)|новый|этого года|свежий|новейший|новое устройство|последняя модель)/i.test(query)) {
-            // Для запросов, содержащих ключевые слова для получения конкретной информации,
-            // возвращаем только первую фразу.
-            return text.split('.')[0].trim() + '.';
           }
-          return text; // для прочих запросов возвращаем полный текст
+
+          // Обработка запросов о продуктах, моделях, брендах
+          if (
+            lowerQuery.includes("новый") ||
+            lowerQuery.includes("последний") ||
+            lowerQuery.includes("модель") ||
+            lowerQuery.includes("этого года")
+          ) {
+            const productMatch = text.match(/(?:новый|последний|модель|этого года)\s+([\w\s\-]+)/i);
+            if (productMatch) {
+              return `Найдено: ${productMatch[1].trim()}`;
+            }
+
+            // Если есть ключевые слова, но нет точного совпадения, возвращаем первое предложение
+            return text.split('.')[0].trim();
+          }
+
+          // Если ничего не найдено, возвращаем первую ссылку, если она доступна
+          if (firstLink) {
+            return `Результаты поиска: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
+          }
+
+          // Если ссылки нет, возвращаем весь текст
+          return text;
         }
-        resultText = extractRelevantInfo(resultText, query);
+        // Вызов функции extractRelevantInfo с передачей первой ссылки
+        let firstLink = searchResults.organic_results?.[0]?.link || null;
+        resultText = extractRelevantInfo(resultText, query, firstLink);
         console.log(`[Search] Результаты: ${resultText}`);
         socket.emit('message', resultText);
         // Генерируем голосовой ответ всегда
