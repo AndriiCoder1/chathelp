@@ -258,8 +258,15 @@ async function handleTextQuery(message, socket) {
             if (matches.length) {
               const temps = matches.map(m => parseFloat(m[1])).filter(val => val > -50 && val < 60);
               if (temps.length) {
-                return `Температура: ${temps[0]}°C`;
+                const temperature = `Температура: ${temps[0]}°C`;
+                if (firstLink) {
+                  return `${temperature}. Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
+                }
+                return temperature;
               }
+            }
+            if (firstLink) {
+              return `Погода: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
             }
             return text.split('.')[0].trim();
           }
@@ -273,10 +280,16 @@ async function handleTextQuery(message, socket) {
           ) {
             const productMatch = text.match(/(?:новый|последний|модель|этого года)\s+([\w\s\-]+)/i);
             if (productMatch) {
-              return `Найдено: ${productMatch[1].trim()}`;
+              const productInfo = `Найдено: ${productMatch[1].trim()}`;
+              if (firstLink) {
+                return `${productInfo}. Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
+              }
+              return productInfo;
             }
 
-            // Если есть ключевые слова, но нет точного совпадения, возвращаем первое предложение
+            if (firstLink) {
+              return `Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
+            }
             return text.split('.')[0].trim();
           }
 
