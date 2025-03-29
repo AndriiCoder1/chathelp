@@ -237,7 +237,16 @@ async function handleTextQuery(message, socket) {
           });
         });
         let resultText = "Результаты поиска не найдены.";
-        if (searchResults.organic_results && searchResults.organic_results.length > 0) {
+        let firstLink = searchResults.organic_results?.[0]?.link || null;
+
+        // Проверяем наличие блока answer_box для погоды
+        if (searchResults.answer_box?.type === "weather_result") {
+          const weather = searchResults.answer_box;
+          resultText = `Погода в ${weather.location} на ${weather.date}: ${weather.weather}, температура ${weather.temperature}°${weather.unit}, осадки ${weather.precipitation}, влажность ${weather.humidity}, ветер ${weather.wind}.`;
+          if (firstLink) {
+            resultText += ` Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
+          }
+        } else if (searchResults.organic_results && searchResults.organic_results.length > 0) {
           const result = searchResults.organic_results[0];
           resultText = "";
           if (result.title) {
@@ -246,72 +255,17 @@ async function handleTextQuery(message, socket) {
           if (result.snippet) {
             resultText += result.snippet;
           }
-          resultText = resultText.trim();
-        }
-        // Новая функция для извлечения релевантной информации
-        function extractRelevantInfo(text, query, firstLink) {
-          const lowerQuery = query.toLowerCase();
-
-          // Обработка запросов о погоде или температуре
-          if (lowerQuery.includes("погода") || lowerQuery.includes("температура")) {
-            // Попробуем найти температуру в тексте
-            const matches = [...text.matchAll(/([+-]?\d+(?:[.,]\d+)?)\s*(°|градус(?:ов)?|C|F)/gi)];
-            if (matches.length) {
-              const temps = matches.map(m => parseFloat(m[1])).filter(val => val > -50 && val < 60);
-              if (temps.length) {
-                const temperature = `Температура: ${temps[0]}°C`;
-                if (firstLink) {
-                  return `${temperature}. Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
-                }
-                return temperature;
-              }
-            }
-
-            // Если температура не найдена, возвращаем ссылку на погоду
-            if (firstLink) {
-              return `Погода: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
-            }
-            return "Информация о погоде недоступна.";
-          }
-
-          // Обработка запросов о продуктах, моделях, брендах
-          if (
-            lowerQuery.includes("новый") ||
-            lowerQuery.includes("последний") ||
-            lowerQuery.includes("модель") ||
-            lowerQuery.includes("этого года")
-          ) {
-            const productMatch = text.match(/(?:новый|последний|модель|этого года)\s+([\w\s\-]+)/i);
-            if (productMatch) {
-              const productInfo = `Найдено: ${productMatch[1].trim()}`;
-              if (firstLink) {
-                return `${productInfo}. Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
-              }
-              return productInfo;
-            }
-
-            if (firstLink) {
-              return `Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
-            }
-            return "Информация о продукте недоступна.";
-          }
-
-          // Если ничего не найдено, возвращаем первую ссылку, если она доступна
           if (firstLink) {
-            return `Результаты поиска: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
+            resultText += ` Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
           }
-
-          // Если ссылки нет, возвращаем весь текст
-          return text;
         }
-        // Вызов функции extractRelevantInfo с передачей первой ссылки
-        let firstLink = searchResults.organic_results?.[0]?.link || null;
-        resultText = extractRelevantInfo(resultText, query, firstLink);
+
         console.log(`[Search] Результаты: ${resultText}`);
         socket.emit('message', resultText);
-        // Генерируем голосовой ответ всегда
+
+        // Генерируем голосовой ответ
         const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
-        await generateSpeech(resultText, audioFilePath);
+        await generateSpeech(resultText.replace(/<[^>]+>/g, ''), audioFilePath); // Убираем HTML-теги для TTS
         socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
       } catch (err) {
         console.error("Ошибка поискового запроса:", err);
