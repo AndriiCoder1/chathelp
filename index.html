@@ -2,198 +2,200 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
   <title>Chat-Help</title>
-  <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script> 
+
   <style>
+    /* Основные стили для страницы */
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f7fa;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      height: 100vh;
-      margin: 0;
-      transition: background-color 0.3s, color 0.3s;
+      font-family: Arial, sans-serif; 
+      background-color: #f4f7fa;  
+      display: flex;  
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: space-between; 
+      height: 100vh; 
+      margin: 0; 
+      transition: background-color 0.3s, color 0.3s; 
     }
-
+    /* Стили для заголовка */
     h1 {
-      color: #333;
-      margin-top: 20px;
-      transition: color 0.3s;
+      color: #333; 
+      margin-top: 20px; 
+      transition: color 0.3s; 
     }
-
+    /* Стили для области чата */
     #chat-log {
-      width: 100%;
-      max-width: 600px;
-      height: calc(100vh - 140px);
-      overflow-y: auto;
-      border: 1px solid #ccc;
-      padding: 10px;
-      background-color: #fff;
-      margin-bottom: 20px;
-      transition: background-color 0.3s, border-color 0.3s;
+      width: 100%; 
+      max-width: 600px; 
+      height: calc(100vh - 140px); 
+      overflow-y: auto; 
+      border: 1px solid #ccc; 
+      padding: 10px; 
+      background-color: #fff; 
+      margin-bottom: 20px; 
+      transition: background-color 0.3s, border-color 0.3s; 
     }
-
+    /* Стили для сообщений бота */
     #message-input {
-      border: 3px solid green;
-      width: 95%;
-      min-height: 20px; /* увеличена минимальная высота */
-      padding: 10px 10px 10px 10px;
-      font-size: 18px;
-      margin-right: 10px;
-      border-radius: 10px;
-      outline: none;
-      transition: border-color 0.4s, background-color 0.4s;
-      resize: none;
-      overflow: hidden;
+      border: 3px solid green; 
+      width: 95%; 
+      min-height: 20px; 
+      padding: 10px 10px 10px 10px; 
+      font-size: 18px; 
+      margin-right: 10px; 
+      border-radius: 10px; 
+      outline: none; 
+      transition: border-color 0.4s, background-color 0.4s; 
+      resize: none; 
+      overflow: hidden; 
     }
-
+    /* Стили для темной темы */
     .dark-theme #message-input {
-      background-color: #343541;
-      border: 1px solid #444;
-      color: #e8e8e8;
+      background-color: #343541; 
+      border: 1px solid #444; 
+      color: #e8e8e8; 
     }
-
-    #message-input:placeholder-shown {
-      border-color: green;
+    /* Стили для изменения цвета границы в зависимости от состояния */
+    #message-input:placeholder-shown { 
+      border-color: green; 
     }
-
+    
     #message-input:not(:placeholder-shown) {
-      border-color: orangered;
+      border-color: orangered; 
     }
-
+    /* Стили для изменения цвета границы при фокусе */
     #message-input:focus {
-      border-color: #4285f4;
+      border-color: #4285f4; 
     }
-
+    /* Стили для сообщений бота */
     #send-button {
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
-      background-image: url('/images/rabbit_1.png');
-      background-size: cover;
-      width: 60px;
-      height: 60px;
+      padding: 10px 20px; 
+      font-size: 16px; 
+      background-color: #007bff; 
+      color: white; 
+      border: none; 
+      border-radius: 50%; 
+      cursor: pointer; 
+      background-image: url('/images/rabbit_1.png'); 
+      background-size: cover; 
+      width: 60px;  
+      height: 60px; 
     }
-
+    /* Стили для кнопки отправки при наведении */
     #send-button.sending {
-      background-image: url('/images/send_icon.png');
+      background-image: url('/images/send_icon.png'); 
     }
-
+    /* Стили для кнопки записи при наведении */
     #send-button.recording {
-      background-color: #dc3545;
-      animation: pulse 1s infinite;
+      background-color: #dc3545; 
+      animation: pulse 1s infinite; 
     }
-
+    /* Красные точки на кнопке записи(глаза моего чудика) */
     #send-button.recording::before {
-      content: '';
-      position: absolute;
+      content: ''; 
+      position: absolute; 
       top: 15px; 
-      left: 15px; 
-      width: 10px;
-      height: 10px;
-      background-color: red;
-      border-radius: 50%;
+      left: 15px;
+      width: 10px; 
+      height: 10px; 
+      background-color: red; 
+      border-radius: 50%; 
       box-shadow: 25px 0 0 red; 
     }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
+    /* Анимация пульсации кнопки во время записи */
+    @keyframes pulse { 
+      0% { transform: scale(1); } 
+      50% { transform: scale(1.1); } 
+      100% { transform: scale(1); } 
     }
-
+    /* Стили для контейнера ввода */
     .input-container {
-      width: 100%;
-      max-width: 600px;
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
+      width: 100%; 
+      max-width: 600px; 
+      display: flex; 
+      align-items: center; 
+      margin-bottom: 10px; 
     }
-
+    /* Стили для обертки текстового поля и кнопки поиска */
     .input-wrapper {
-      position: relative;
-      flex: 1;
-      margin-right: 10px;
+      position: relative; 
+      flex: 1; 
+      margin-right: 10px; 
     }
-
+    /* Стили для кнопки переключения темы */
     #theme-toggle {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 14px;
-      z-index: 1000;
+      position: fixed; 
+      top: 10px;  
+      right: 10px; 
+      background-color: #007bff; 
+      color: white; 
+      border: none; 
+      padding: 5px 10px; 
+      border-radius: 5px; 
+      cursor: pointer; 
+      font-size: 14px; 
+      z-index: 1000; 
     }
-
+    /* Адаптивные стили для мобильных устройств */
     @media (max-width: 768px) {
       #theme-toggle {
-        font-size: 12px;
-        padding: 5px 8px;
+        font-size: 12px; 
+        padding: 5px 8px; 
       }
     }
-
+    /* Стили для темной темы */
     .dark-theme {
-      background-color: #202123;
-      color: #e8e8e8;
+      background-color: #202123; 
+      color: #e8e8e8; 
     }
-
+    
     .dark-theme #chat-log {
-      background-color: #343541;
+      background-color: #343541; 
       border-color: #444;
     }
-
+    
     .dark-theme #chat-log p {
-      color: #e8e8e8;
+      color: #e8e8e8; 
     }
-
+    /* Стили для сообщений бота в темной теме */
     .dark-theme .bot-message {
-      color: #b0bec5;
+      color: #b0bec5; 
     }
-
+    /* Стили для заголовка в темной теме */
     .dark-theme #send-button {
-      background-color: #3c3f42;
-      color: #e8e8e8;
+      background-color: #3c3f42; 
+      color: #e8e8e8; 
     }
-
+    /* Стили для кнопки отправки при наведении в темной теме */
     .dark-theme #send-button:hover {
-      background-color: #4a4e51;
+      background-color: #4a4e51; 
     }
-
+    /* Стили для кнопки записи при наведении в темной теме */
     #recording-timer {
-      display: none;
+      display: none; 
     }
-
+    /* Скрываем таймер в темной теме */
     .dark-theme #recording-timer {
-      display: none;
+      display: none; 
     }
-
+    /* Скрываем аудио плеер по умолчанию */
     #audio-player {
-      display: none;
+      display: none; 
     }
-
+    /* Стили для кнопки поиска */
     #search-button {
-      position: absolute;
-      right: 5px;
-      bottom: 5px;
-      background: none;
-      border: none;
+      position: absolute; 
+      right: 5px; 
+      bottom: 5px; 
+      background: none; 
+      border: none; 
       font-size: 24px;
-      cursor: pointer;
-      padding: 0;
+      cursor: pointer; 
+      padding: 0; 
       margin: 0;
-      z-index: 2;
+      z-index: 2; 
     }
   </style>
 </head>
@@ -202,165 +204,165 @@
   <div id="recording-timer"></div>
   
   <!-- Элемент аудио -->
-  <audio id="audio-player" controls style="display: none;"></audio>
-  
-  <h1>Chat-Help</h1>
-  <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div>
-  <button id="theme-toggle">L / D</button>
-  <div id="chat-log"></div>
+  <audio id="audio-player" controls style="display: none;"></audio> 
+ 
+  <h1>Chat-Help</h1>   
+  <div id="datetime" style="font-size: 18px; margin-bottom: 10px;"></div> 
+  <button id="theme-toggle">L / D</button> 
+  <div id="chat-log"></div> 
   <div class="input-container">
-    <div class="input-wrapper">
-      <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea>
-      <button id="search-button" title="Suche im Internet">🌐</button>
-    </div>
-    <button id="send-button" title="Senden Sie eine Nachricht oder starten Sie die Aufnahme"></button>
+    <div class="input-wrapper"> 
+      <textarea id="message-input" placeholder="Eingabe nachricht..."></textarea> 
+      <button id="search-button" title="Suche im Internet">🌐</button> 
+    </div> 
+    <button id="send-button" title="Senden Sie eine Nachricht oder starten Sie die Aufnahme"></button> 
   </div>
-
   <script>
-    const socket = io();
-    const themeToggleButton = document.getElementById('theme-toggle');
-    const bodyElement = document.body;
+    const socket = io(); 
+    const themeToggleButton = document.getElementById('theme-toggle'); 
+    const bodyElement = document.body; 
     const sendButton = document.getElementById('send-button');
-    const recordingTimer = document.getElementById('recording-timer');
-    const audioPlayer = document.getElementById('audio-player');
-    const messageInput = document.getElementById('message-input');
+    const recordingTimer = document.getElementById('recording-timer'); 
+    const audioPlayer = document.getElementById('audio-player'); 
+    const messageInput = document.getElementById('message-input'); 
     
-    let recognition = null;
-    let autoSendTimer = null; // новый таймер для автосабмита
-    let recordingTimeout = null;
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let isRecording = false;
-    let silenceTimeout = null;
-    let isRecognizing = false; // новый флаг запуска голосового режима
-    let isVoiceInput = false;  // новый флаг, сигнализирующий, что сообщение получено голосовым вводом
+    // Переменные состояния
+    let recognition = null; 
+    let autoSendTimer = null; 
+    let recordingTimeout = null; 
+    let mediaRecorder = null; 
+    let audioChunks = []; 
+    let isRecording = false; 
+    let silenceTimeout = null; 
+    let isRecognizing = false; 
+    let isVoiceInput = false; 
 
-    // Инициализация аудиозаписи
+    // Функция инициализацияи аудиозаписи
     async function startAudioRecording() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); 
+        mediaRecorder = new MediaRecorder(stream); 
+        // Таймер для остановки записи через 30 секунд 
         mediaRecorder.ondataavailable = (e) => {
-          audioChunks.push(e.data);
+          audioChunks.push(e.data); 
         };
-
+       // Функция обработки остановки записи 
         mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          console.log(`[Recording] Аудиофайл создан: ${audioBlob.size} байт`);
-          await sendAudioToServer(audioBlob);
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); 
+          console.log(`[Recording] Аудиофайл создан: ${audioBlob.size} байт`); 
+          await sendAudioToServer(audioBlob); 
           audioChunks = [];
         };
-
+      // Обработка ошибок записи 
         mediaRecorder.onerror = (e) => {
-          console.error('Ошибка записи аудио:', e);
-          stopRecording();
+          console.error('Ошибка записи аудио:', e); 
+          stopRecording(); 
         };
-
-        mediaRecorder.start();
-        isRecording = true;
-        sendButton.classList.add('recording');
-        console.log('[Recording] Начало записи');
+        // Функция запуска записи 
+        mediaRecorder.start(); 
+        isRecording = true; 
+        sendButton.classList.add('recording'); 
+        console.log('[Recording] Начало записи'); 
       } catch (error) {
-        console.error('Ошибка доступа к микрофону:', error);
-        alert('Разрешите доступ к микрофону в настройках браузера!');
+        console.error('Ошибка доступа к микрофону:', error); 
+        alert('Разрешите доступ к микрофону в настройках браузера!'); 
       }
     }
 
-    // Отправка аудио на сервер
+    // Функция отправки аудио на сервер
     async function sendAudioToServer(audioBlob) {
       try {
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'recording.webm');
-        
+        const formData = new FormData(); 
+        formData.append('audio', audioBlob, 'recording.webm');  
         const response = await fetch('/process-audio', {
-          method: 'POST',
-          body: formData
-        });
+          method: 'POST', 
+          body: formData 
+        }); 
         
-        const { transcription } = await response.json();
-        document.getElementById('message-input').value = transcription;
+        const { transcription } = await response.json(); 
+        document.getElementById('message-input').value = transcription; 
         sendMessage();
       } catch (error) {
-        console.error('Ошибка отправки аудио:', error);
+        console.error('Ошибка отправки аудио:', error); 
       }
     }
 
-    // Остановка записи
+    // функция остановки записи
     function stopRecording() {
       if (mediaRecorder && isRecording) {
-        mediaRecorder.stop();
-        isRecording = false;
-        sendButton.classList.remove('recording');
-        console.log('[Recording] Остановка записи');
+        mediaRecorder.stop(); 
+        isRecording = false;  
+        sendButton.classList.remove('recording'); 
+        console.log('[Recording] Остановка записи'); 
       }
       if (recognition) {
-        recognition.stop();
+        recognition.stop(); 
       }
     }
 
     // Обновленная инициализация распознавания речи
     function initSpeechRecognition() {
-      window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      
+      window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
+      // Проверяем поддержку SpeechRecognition 
       if (!window.SpeechRecognition) {
-        sendButton.style.display = 'none';
-        console.warn('Голосовой ввод не поддерживается');
+        sendButton.style.display = 'none'; 
+        console.warn('Голосовой ввод не поддерживается'); 
         return;
       }
-
-      recognition = new window.SpeechRecognition();
-      recognition.lang = 'ru-RU'; // Русский язык
-      recognition.continuous = false; // отключаем постоянное прослушивание
-      recognition.interimResults = false;
-
+     // Инициализация объекта распознавания речи 
+      recognition = new window.SpeechRecognition(); 
+      recognition.lang = 'ru-RU'; // Установка языка
+      recognition.continuous = false; 
+      recognition.interimResults = false; 
+      // Обработчики событий распознавания речи 
       recognition.onstart = () => {
-        isRecognizing = true;
+        isRecognizing = true; 
         sendButton.classList.add('recording');
-        console.log('[Speech] Начало распознавания');
+        console.log('[Speech] Начало распознавания'); 
+        
         if (autoSendTimer) {
           clearTimeout(autoSendTimer);
           autoSendTimer = null;
         }
-      };
-
+      }; 
+      // Обработка результатов распознавания 
       recognition.onresult = (event) => {
         const transcript = Array.from(event.results)
-          .map(result => result[0].transcript)
-          .join('');
-        messageInput.value = transcript;
-        isVoiceInput = true; // помечаем, что сообщение получено голосом
-        console.log('[Speech] Результат:', transcript);
-      };
-
+          .map(result => result[0].transcript) 
+          .join(''); 
+        messageInput.value = transcript; 
+        isVoiceInput = true; 
+        console.log('[Speech] Результат:', transcript); 
+      }; 
+      // Обработка ошибок распознавания 
       recognition.onerror = (event) => {
-        console.error('Ошибка распознавания:', event.error);
-        stopRecognition();
+        console.error('Ошибка распознавания:', event.error); 
+        stopRecognition(); 
       };
-
+      // Обработка завершения распознавания 
       recognition.onend = () => {
-        console.log('[Speech] Завершено');
-        isRecognizing = false;
-        sendButton.classList.remove('recording');
+        console.log('[Speech] Завершено'); 
+        isRecognizing = false; 
+        sendButton.classList.remove('recording'); 
         // Если голосовой ввод был получен и текст не пуст, ждем 3 секунды и отправляем
         if (isVoiceInput && messageInput.value.trim() !== "") {
           autoSendTimer = setTimeout(() => {
-            console.log('[Speech] Автоматическая отправка сообщения');
-            sendMessage();
-          }, 3000);
+            console.log('[Speech] Автоматическая отправка сообщения'); 
+            sendMessage(); 
+          }, 3000); 
         }
-      };
+      }; 
     }
-
+    // Инициализация распознавания речи при загрузке страницы 
     function stopRecognition() {
       if (recognition && isRecognizing) {
-        recognition.stop();
+        recognition.stop(); 
       }
-      isRecognizing = false;
-      sendButton.classList.remove('recording');
+      isRecognizing = false; 
+      sendButton.classList.remove('recording'); 
       if (autoSendTimer) {
-        clearTimeout(autoSendTimer);
-        autoSendTimer = null;
+        clearTimeout(autoSendTimer); и
+        autoSendTimer = null; 
       }
     }
 
@@ -368,153 +370,156 @@
     sendButton.addEventListener('click', () => {
       // Если аудио плеер виден (то есть бот говорит), не запускаем голосовой ввод
       if (audioPlayer.style.display === 'block') {
-        console.log('[UI] Сейчас воспроизводится ответ бота, голосовой ввод не запускается');
-        return;
+        console.log('[UI] Сейчас воспроизводится ответ бота, голосовой ввод не запускается'); 
+        return; 
       }
+      // Если поле ввода пустое, запускаем или останавливаем распознавание речи  
       if (messageInput.value.trim() === '') {
         if (!isRecognizing) {
-          if (recognition) recognition.start();
+          if (recognition) recognition.start(); 
         } else {
-          stopRecognition();
-          sendMessage();
+          stopRecognition(); 
+          sendMessage(); 
         }
       } else {
-        sendMessage();
+        sendMessage(); 
       }
     });
 
     // Обработчик изменения текста в поле ввода
     messageInput.addEventListener('input', () => {
       if (messageInput.value.trim() === '') {
-        sendButton.classList.remove('sending');
+        sendButton.classList.remove('sending'); 
       } else {
-        sendButton.classList.add('sending');
+        sendButton.classList.add('sending'); 
       }
     });
 
-    // Добавляем обработчик для кнопки поиска
+    // Обработчик кнопки поиска
     document.getElementById('search-button').addEventListener('click', () => {
-      let query = messageInput.value.trim();
+      let query = messageInput.value.trim(); 
       if (query) {
-        let searchQuery = "SEARCH: " + query;
-        addMessageToChat(searchQuery);
-        console.log('Отправка поискового запроса:', searchQuery);
-        socket.emit('message', searchQuery);
-        messageInput.value = "";
-      }
-    });
+        let searchQuery = "SEARCH: " + query; 
+        addMessageToChat(searchQuery); 
+        console.log('Отправка поискового запроса:', searchQuery); 
+        socket.emit('message', searchQuery); 
+        messageInput.value = ""; 
+      } 
+    }); 
 
     // Функция добавленния сообщения в чат
     function addMessageToChat(message, isBot = false) {
-      const chatLog = document.getElementById('chat-log');
-      const messageElement = document.createElement('p');
-      messageElement.textContent = message;
+      const chatLog = document.getElementById('chat-log'); 
+      const messageElement = document.createElement('p'); 
+      messageElement.textContent = message; 
 
+    // Если сообщение от бота, добавляем соответствующий класс
       if (isBot) {
-        messageElement.classList.add('bot-message');
+        messageElement.classList.add('bot-message');  
       }
 
-      chatLog.appendChild(messageElement);
-      chatLog.scrollTop = chatLog.scrollHeight;
+      chatLog.appendChild(messageElement); 
+      chatLog.scrollTop = chatLog.scrollHeight; 
     }
-
+    // Обработчики событий Socket.IO
     socket.on('connect', () => {
-      console.log('Подключено к серверу');
-    });
-
+      console.log('Подключено к серверу'); 
+    }); 
+    // Обработка отключения от сервера 
     socket.on('disconnect', () => {
-      console.log('Отключено от сервера');
+      console.log('Отключено от сервера'); 
     });
-
+    // Обработка ошибок соединения 
     socket.on('message', (message) => {
       console.log('Получено сообщение:', message);
       if (message === 'undefined') {
-        console.warn('Получено сообщение undefined');
+        console.warn('Получено сообщение undefined'); 
       }
-      addMessageToChat(message, true);
-    });
+      addMessageToChat(message, true); 
+    }); 
 
     // Обработка аудиосообщений
     socket.on('audio', (audioUrl) => {
-      console.log('Получено аудио:', audioUrl);
-      stopRecording(); // Остановка записи перед воспроизведением аудио
-      if (recognition) recognition.stop(); // Остановка распознавания речи
-      audioPlayer.src = audioUrl;
-      audioPlayer.style.display = 'block';
-      audioPlayer.play();
+      console.log('Получено аудио:', audioUrl); 
+      stopRecording(); 
+      if (recognition) recognition.stop(); 
+      audioPlayer.src = audioUrl; 
+      audioPlayer.style.display = 'block'; 
+      audioPlayer.play();  
       audioPlayer.onended = () => {
-        console.log('Аудио завершено');
-        audioPlayer.style.display = 'none'; // Скрытие плеера после завершения
-        socket.emit('audio-ended');
-      };
-    });
-
+        console.log('Аудио завершено'); 
+        audioPlayer.style.display = 'none'; 
+        socket.emit('audio-ended'); 
+      }; 
+    }); 
+    // Обработка ошибок Socket.IO
     document.getElementById('message-input').addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
-        sendMessage();
+        sendMessage(); 
       }
-    });
-
+    }); 
+    // Функция отправки сообщения
     function sendMessage() {
-      let message = document.getElementById('message-input').value.trim();
+      let message = document.getElementById('message-input').value.trim(); 
       if (!message) {
-        console.warn('Пустое сообщение не отправлено');
-        return;
+        console.warn('Пустое сообщение не отправлено'); 
+        return; 
       }
-      let displayMessage = message;
+      let displayMessage = message; 
       // Если сообщение отправлено голосовым вводом, добавляем метку для сервера,
       // но для отображения убираем суффикс " audio"
       if (isVoiceInput && !message.includes(' audio')) {
-        message += ' audio';
-        displayMessage = message.replace(/ audio$/, '');
+        message += ' audio'; 
+        displayMessage = message.replace(/ audio$/, ''); 
       }
-      addMessageToChat(displayMessage);
-      console.log('Отправка сообщения:', message);
+      //Функция добавления сообщение пользователя в чат 
+      addMessageToChat(displayMessage); 
+      console.log('Отправка сообщения:', message); 
       socket.emit('message', message);
-      document.getElementById('message-input').value = '';
-      isVoiceInput = false;
+      document.getElementById('message-input').value = ''; 
+      isVoiceInput = false; 
       if (autoSendTimer) {
-        clearTimeout(autoSendTimer);
-        autoSendTimer = null;
+        clearTimeout(autoSendTimer); 
+        autoSendTimer = null; 
       }
     }
 
     // Фунуция переключения темы
     function toggleTheme() {
-      const isDarkMode = bodyElement.classList.toggle('dark-theme');
+      const isDarkMode = bodyElement.classList.toggle('dark-theme'); 
       themeToggleButton.textContent = isDarkMode ? 'Light' : 'Dark';
-      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+      localStorage.setItem('theme', isDarkMode ? 'dark' : 'light'); 
     }
-
-    themeToggleButton.addEventListener('click', toggleTheme);
-
+   // Обработчик кнопки переключения темы
+    themeToggleButton.addEventListener('click', toggleTheme); 
+   // Применяем сохраненную тему при загрузке страницы
     if (localStorage.getItem('theme') === 'dark') {
-      bodyElement.classList.add('dark-theme');
-      themeToggleButton.textContent = 'Light';
+      bodyElement.classList.add('dark-theme'); 
+      themeToggleButton.textContent = 'Light'; 
     }
 
     // Функция обновления даты и времени
     function updateDateTime() {
       const datetimeElement = document.getElementById('datetime');
-      const now = new Date();
+      const now = new Date(); 
       const options = {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
       };
-      // Используем локальные настройки устройства
-      datetimeElement.textContent = now.toLocaleString("de-DE", options);
+      
+      datetimeElement.textContent = now.toLocaleString("de-DE", options); 
     }
 
     // Инициализация при загрузке
-    initSpeechRecognition();
-    setInterval(updateDateTime, 1000);
-    updateDateTime();
+    initSpeechRecognition(); 
+    setInterval(updateDateTime, 1000); 
+    updateDateTime(); 
   </script>
 </body>
 </html>

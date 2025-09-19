@@ -1,3 +1,16 @@
+/* =====================================================================
+   Инициализация и подключение необходимых модулей.
+   - dotenv: загрузка переменных окружения.
+   - express, http, socket.io: настройка сервера для работы в реальном времени.
+   - openai: взаимодействие с API OpenAI.
+   - path, fs: работа с файловой системой.
+   - multer: обработка загрузки аудиофайлов.
+   - child_process.exec: выполнение внешних скриптов (транскрипция аудио через Python).
+   - cors: настройка политики доступа сервера.
+   - google-tts-api: генерация синтезированной речи.
+   - crypto: реализация механизма кэширования запросов.
+   ===================================================================== */
+
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -10,9 +23,9 @@ const { exec } = require('child_process');
 const cors = require('cors');
 const googleTTS = require('google-tts-api');
 const { getAllAudioUrls } = require('google-tts-api');
-const crypto = require('crypto'); // добавлено для кеширования
+const crypto = require('crypto');
 
-// Логирование загрузки ключей
+// Проверка ключей API:
 console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
 console.log("[Сервер] SerpAPI Key:", process.env.SERPAPI_KEY ? "OK" : "Отсутствует");
 
@@ -58,15 +71,15 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 25 * 1024 * 1024, // 25 MB
+    fileSize: 25 * 1024 * 1024,  // 25 MB Максимальный размер файла
     files: 1
   }
 });
 
-// Middleware
+// Middleware для обработки JSON и статических файлов
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/images', express.static(path.join(__dirname, 'images'))); // Раздача статических файлов из папки images
-app.use('/audio', express.static(path.join(__dirname, 'audio'))); // Раздача аудиофайлов
+app.use('/images', express.static(path.join(__dirname, 'images')));
+app.use('/audio', express.static(path.join(__dirname, 'audio')));
 app.use(express.json({ limit: '25mb' }));
 
 // Проверка и создание директории для аудиофайлов
@@ -104,6 +117,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
     const audioPath = req.file.path;
     console.log(`[Аудио] Обработка файла: ${audioPath} (${req.file.size} байт)`);
 
+    // Проверка на пустой файл
     if (req.file.size === 0) {
       console.error('[Аудио] Файл пустой');
       fs.unlinkSync(audioPath);
@@ -125,7 +139,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
           details: stderr
         });
       }
-
+      // Проверка на пустой ответ
       if (!stdout?.trim()) {
         console.warn('[Python] Пустой ответ');
         return res.status(500).json({ error: 'Не удалось распознать речь' });
@@ -133,7 +147,8 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
       console.log('[Python] Успешная транскрипция');
       res.json({ transcription: stdout.trim() });
-      // Генерация голосового ответа
+
+      // Генерация голосового ответа 
       const audioFilePath = path.join(audioDir, `${req.file.filename}.mp3`);
       generateSpeech(stdout.trim(), audioFilePath).then(() => {
         io.emit('audio', `/audio/${req.file.filename}.mp3`);
@@ -151,7 +166,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
   }
 });
 
-// Обработка текстовых запросов
+// Функция обработки текстовых запросов
 function splitText(text, maxLength = 200) {
   const parts = [];
   for (let i = 0; i < text.length; i += maxLength) {
@@ -160,15 +175,16 @@ function splitText(text, maxLength = 200) {
   return parts;
 }
 
+// Функция генерации речи с использованием google-tts-api
 async function generateSpeech(text, outputFilePath) {
   console.log(`[generateSpeech] Генерация речи для текста: ${text}`);
   try {
-    // Используем полный текст без ограничения (удалена логика обрезания до 200 символов)
     const urls = getAllAudioUrls(text, {
-      lang: 'ru',
+      lang: 'ru', // Смена языка 
       slow: false,
       host: 'https://translate.google.com',
     });
+    // Преобразование аудио в единый файл
     const buffers = [];
     for (const item of urls) {
       const url = typeof item === 'string' ? item : item.url;
@@ -185,7 +201,7 @@ async function generateSpeech(text, outputFilePath) {
   }
 }
 
-// Изменения в функции handleTextQuery: меняем модель на gpt-4o-mini
+// Обработка текстовых запросов с кэшированием и поиском
 async function handleTextQuery(message, socket) {
   try {
     if (!message || message.trim() === '' || message === 'undefined') {
@@ -194,7 +210,7 @@ async function handleTextQuery(message, socket) {
     }
     message = message.trim();
 
-    // Добавляем проверку кэша
+    // Добавляем проверку кэша 
     const hash = crypto.createHash('md5').update(message).digest('hex');
     const cacheFile = path.join(cacheFolder, `${hash}.json`);
     if (fs.existsSync(cacheFile)) {
@@ -215,8 +231,9 @@ async function handleTextQuery(message, socket) {
       const query = message.slice(7).trim();
       const GoogleSearch = require("google-search-results-nodejs").GoogleSearch;
       const search = new GoogleSearch(process.env.SERPAPI_KEY);
-      const params = { q: query, hl: "ru", gl: "ru" };
-      // Задаем локацию в зависимости от текста запроса
+      const params = { q: query, hl: "ru", gl: "ru" }; // Настраиваемые параметры поиска
+
+      // Определяем локацию по контексту запроса
       if (query.toLowerCase().includes("погода")) {
         console.log("[Search] Запрос о погоде – не ограничиваем поиск по локации");
       } else if (query.toLowerCase().includes("киев")) {
@@ -226,9 +243,10 @@ async function handleTextQuery(message, socket) {
       } else if (query.toLowerCase().includes("лондон")) {
         params.location = "London, United Kingdom";
       } else {
-        params.location = "En"; // По умолчанию - англоязычные результаты
+        params.location = "En"; // Англоязычные параметры поиска по умолчанию 
       }
       try {
+        // Выполняем поиск
         const searchResults = await new Promise((resolve, reject) => {
           search.json(params, (data) => {
             if (!data) return reject(new Error("Пустой ответ от сервиса"));
@@ -261,11 +279,14 @@ async function handleTextQuery(message, socket) {
         }
 
         console.log(`[Search] Результаты: ${resultText}`);
+
+        // Кэшируем и отправляем результат поиска  
+        fs.writeFileSync(cacheFile, JSON.stringify({ response: resultText }));
         socket.emit('message', resultText);
 
         // Генерируем голосовой ответ
         const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
-        await generateSpeech(resultText.replace(/<[^>]+>/g, ''), audioFilePath); // Убираем HTML-теги для TTS
+        await generateSpeech(resultText.replace(/<[^>]+>/g, ''), audioFilePath);
         socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
       } catch (err) {
         console.error("Ошибка поискового запроса:", err);
@@ -279,10 +300,13 @@ async function handleTextQuery(message, socket) {
       message.toLowerCase().includes("какой сегодня день") ||
       message.toLowerCase().includes("сколько сейчас время")
     ) {
+      // Текущее время
       const now = new Date();
-      const localTime = now.toLocaleString("ru-RU", { timeZone: "Europe/Berlin" }); // явная таймзона
+      const localTime = now.toLocaleString("ru-RU", { timeZone: "Europe/Berlin" });
       console.log(`[LocalTime] Отправка локального времени: ${localTime}`);
       socket.emit('message', localTime);
+      // Кэшируем ответ
+      fs.writeFileSync(cacheFile, JSON.stringify({ response: localTime }));
       if (message.includes('audio')) {
         const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
         await generateSpeech(localTime, audioFilePath);
@@ -291,27 +315,32 @@ async function handleTextQuery(message, socket) {
       return;
     }
 
-    // ...existing код сессии и вызова OpenAI...
     const session = userSessions.get(socket.id) || [];
+    // Проверяем на дублирование последнего сообщения
     const lastMessage = session[session.length - 1];
     if (lastMessage && lastMessage.content === message) {
       console.warn('[WebSocket] Дублирующееся сообщение');
       return;
     }
+    // Обновляем сессию
     const messages = [...session, { role: 'user', content: message }];
+
+    // Вызов OpenAI 
+    console.log(`[GPT] Отправка запроса: ${message}`);
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: messages,
-      temperature: 0.7,
-      max_tokens: 500
+      temperature: 0.7, // Температура для креативности ответов
+      max_tokens: 500 // Количество токенов в ответе
     });
+    // Ответ бота
     const botResponse = response.choices[0].message.content;
     console.log(`[Bot] Ответ: ${botResponse}`);
+    // Обновляем сессию пользователя
     userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
-
     // Кэшируем ответ
     fs.writeFileSync(cacheFile, JSON.stringify({ response: botResponse }));
-
+    // Отправляем ответ пользователю
     socket.emit('message', botResponse);
     if (message.includes('audio')) {
       const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
@@ -339,85 +368,39 @@ async function processMessageQueue(socket) {
   await handleTextQuery(message, socket);
 
   messageQueues.set(socket.id, queue);
+
   if (queue.length > 0) {
     setTimeout(() => processMessageQueue(socket), 0);
   }
 }
 
-// WebSocket логика
+// Socket.IO события
 io.on('connection', (socket) => {
-  // Получаем реальный IP из заголовка X-Forwarded-For, если он передан
-  const clientIp = socket.handshake.headers['x-forwarded-for'] || socket.handshake.address;
-  console.log(`[WebSocket] Новое подключение: ${socket.id}, IP: ${clientIp}`);
-  userSessions.set(socket.id, []);
-  messageQueues.set(socket.id, []);
-  activeResponses.set(socket.id, null);
-
-  socket.on('message', async (message) => {
-    try {
-      console.log(`[WebSocket] Сообщение от ${socket.id}: ${message}`);
-
-      if (/жест|видео|распознай/i.test(message)) {
-        return socket.emit('message', '🎥 Отправьте видеофайл для анализа жестов');
-      }
-
-      const queue = messageQueues.get(socket.id) || [];
-      queue.push(message);
-      messageQueues.set(socket.id, queue);
-
-      if (queue.length === 1) {
-        await processMessageQueue(socket);
-      }
-    } catch (error) {
-      console.error(`[WebSocket] Ошибка: ${error.message}`);
-      socket.emit('message', '⚠️ Ошибка обработки сообщения');
-    }
-  });
-
-  socket.on('audio-ended', () => {
-    console.log(`[WebSocket] Аудио завершено для: ${socket.id}`);
-    activeResponses.set(socket.id, null);
-    const queue = messageQueues.get(socket.id) || [];
-    if (queue.length > 0) {
-      processMessageQueue(socket);
-    }
-  });
+  console.log(`[Socket] Подключен: ${socket.id}`);
 
   socket.on('disconnect', () => {
-    console.log(`[WebSocket] Отключение: ${socket.id}`);
+    console.log(`[Socket] Отключен: ${socket.id}`);
     userSessions.delete(socket.id);
     messageQueues.delete(socket.id);
     activeResponses.delete(socket.id);
   });
+  // Очистка данных при отключении
+  socket.on('message', (message) => {
+    console.log(`[Сообщение] ${socket.id}: ${message}`);
+
+    // Добавляем сообщение в очередь
+    const queue = messageQueues.get(socket.id) || [];
+    queue.push(message);
+    messageQueues.set(socket.id, queue);
+
+    // Обрабатываем очередь сообщений
+    if (queue.length === 1) {
+      processMessageQueue(socket);
+    }
+  });
 });
 
-// Запуск сервера
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`[Сервер] Запущен на порту ${PORT}`);
-  console.log('[Сервер] Режим:', process.env.NODE_ENV || 'development');
-});
-
-function sendMessage() {
-  let message = document.getElementById('message-input').value.trim();
-  if (!message) {
-    console.warn('Пустое сообщение не отправлено');
-    return;
-  }
-  let displayMessage = message;
-  // Если сообщение отправлено голосом, добавляем метку для сервера,
-  // но для отображения убираем суффикс " audio"
-  if (isVoiceInput && !message.includes(' audio')) {
-    message += ' audio';
-    displayMessage = message.replace(/ audio$/, '');
-  }
-  addMessageToChat(displayMessage);
-  console.log('Отправка сообщения:', message);
-  socket.emit('message', message);
-  document.getElementById('message-input').value = '';
-  isVoiceInput = false;
-  if (autoSendTimer) {
-    clearTimeout(autoSendTimer);
-    autoSendTimer = null;
-  }
-}
+  console.log(`[Сервер] Запуск на порту ${PORT}`);
+}); 
