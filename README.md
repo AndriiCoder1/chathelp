@@ -1,45 +1,43 @@
-# Personal AI Chat Assistant ChatHelp
+# Personal AI Chat Assistant (ChatHelp)
+A personal chat assistant with voice input and AI responses. The project is designed for daily use in language learning and task solving.
 
-Персональный чат-помощник с голосовым вводом и AI-ответами.
-Проект создан для ежедневного использования в изучении языков и решения задач.
+## 🚀 Key Features
 
-## 🚀 Основные функции
+- **Voice input** with automatic audio-to-text transcription
+- **Text chat** with AI assistant (OpenAI GPT-3.5)
+- **Internet search** through search API integration
+- **Voice responses** with text-to-speech synthesis
+- **Dark/light theme** interface
 
-- **Голосовой ввод** с автоматической транскрипцией аудио в текст
-- **Текстовый чат** с AI-ассистентом (OpenAI GPT-3.5)
-- **Поиск в интернете** через интеграцию с поисковыми API
-- **Голосовые ответы** с синтезом речи (Text-to-Speech)
-- **Темная/светлая тема** интерфейса
-
-## 🛠️ Технологический стек
+## 🛠️ Technology Stack
 
 ### Frontend
-- **Vanilla JavaScript** (чистый JS без фреймворков)
-- **HTML5, CSS3** - адаптивный интерфейс
-- **Web Speech API** - распознавание речи в браузере
-- **Socket.IO Client** - реальное время
+- **Vanilla JavaScript** (pure JS without frameworks)
+- **HTML5, CSS3** - responsive interface
+- **Web Speech API** - speech recognition in browser
+- **Socket.IO Client** - real-time communication
 
 ### Backend (Node.js)
-- **Express.js** - веб-сервер
-- **Socket.IO** - WebSocket соединения
-- **OpenAI API** - AI-ассистент (GPT-3.5-turbo)
-- **Google TTS API** - синтез голосовых ответов
-- **SerpAPI** - поисковые запросы
+- **Express.js** - web server
+- **Socket.IO** - WebSocket connections
+- **OpenAI API** - AI assistant (GPT-3.5-turbo)
+- **Google TTS API** - voice response synthesis
+- **SerpAPI** - search queries
 
 ### Audio Processing (Python)
-- **OpenAI Whisper** - транскрипция аудио → текст
-- **pydub** - конвертация аудиоформатов
+- **OpenAI Whisper** - audio-to-text transcription
+- **pydub** - audio format conversion
 
-## 🏗️ Архитектура проекта
+## 🏗️ Project Architecture
 
-Проект использует гибридный подход к распознаванию речи:
+The project uses a hybrid approach to speech recognition:
 
-### Клиентская часть (браузер)
-- **Web Speech API** - быстрый захват голоса в реальном времени
-- **MediaRecorder API** - запись аудио для последующей обработки
+### Client-side (browser)
+- **Web Speech API** - fast real-time voice capture
+- **MediaRecorder API** - audio recording for subsequent processing
 
-### Серверная обработка (Python)
-- **OpenAI Whisper** - высокоточная транскрипция аудиофайлов
-- **pydub** - конвертация аудиоформатов для совместимости
+### Server-side processing (Python)
+- **OpenAI Whisper** - high-precision audio file transcription
+- **pydub** - audio format conversion for compatibility
 
-Такая архитектура обеспечивает баланс между скоростью и точностью распознавания.
+This architecture provides a balance between speed and recognition accuracy.
