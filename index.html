@@ -411,9 +411,14 @@
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log'); 
       const messageElement = document.createElement('p'); 
-      messageElement.textContent = message; 
+  
+      // Проверяем, есть ли HTML-теги
+      if (message.includes('<a href=')) {
+        messageElement.innerHTML = message; 
+      } else {
+        messageElement.textContent = message; 
+      }
 
-    // Если сообщение от бота, добавляем соответствующий класс
       if (isBot) {
         messageElement.classList.add('bot-message');  
       }
