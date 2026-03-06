@@ -25,10 +25,8 @@ propcache==0.2.0
 pydantic==2.10.6
 pydantic_core==2.27.2
 pydub==0.25.1
-pypiwin32==223
 python-dotenv==1.0.0
 pyttsx3==2.90
-pywin32==310
 requests==2.32.3
 setuptools==56.0.0
 simpleaudio==1.0.4
