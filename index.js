@@ -329,10 +329,10 @@ async function handleTextQuery(message, socket) {
     try {
       // Вызов Space на Hugging Face
       const spaceResponse = await axios.post('https://Andrii1-my-chat-model.hf.space/chat', {
-        text: message,
+        text: `Ответь кратко и по существу. Вопрос: ${message}`,
         type: 'text'
       }, {
-        timeout: 60000 // 60 секунд таймаут
+        timeout: 120000 // 120 секунд таймаут
       });
 
       const botResponse = spaceResponse.data.response;
