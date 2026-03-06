@@ -15,7 +15,6 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-//const { OpenAI } = require('openai');
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
@@ -27,11 +26,7 @@ const { getAllAudioUrls } = require('google-tts-api');
 const crypto = require('crypto');
 
 // Проверка ключей API:
-//console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
 console.log("[Сервер] SerpAPI Key:", process.env.SERPAPI_KEY ? "OK" : "Отсутствует");
-
-// Инициализация OpenAI
-//const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Проверка ключей
 if (!process.env.SERPAPI_KEY) {
@@ -59,7 +54,7 @@ const io = new Server(server, {
   }
 });
 
-// Улучшенная конфигурация Multer
+// Конфигурация Multer
 const upload = multer({
   dest: 'uploads/',
   fileFilter: (req, file, cb) => {
@@ -227,7 +222,7 @@ async function handleTextQuery(message, socket) {
       return;
     }
 
-    // Новая логика: если запрос начинается с "SEARCH:"
+    // Логика если запрос начинается с "SEARCH:"
     if (message.toLowerCase().startsWith("search:")) {
       const query = message.slice(7).trim();
       const GoogleSearch = require("google-search-results-nodejs").GoogleSearch;
@@ -271,7 +266,7 @@ async function handleTextQuery(message, socket) {
           const displayText = resultText + (firstLink ? ` Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>` : '');
 
           // Для озвучки убираем HTML и ссылку
-          const speechText = resultText; // Без ссылки и HTML
+          const speechText = resultText;
 
           console.log(`[Search] Результаты: ${displayText}`);
 
@@ -321,7 +316,7 @@ async function handleTextQuery(message, socket) {
       return;
     }
 
-    // Новая логика: если запрос о дне или времени – используем системное время
+    // Логика если запрос о дне или времени – используем системное время
     if (
       message.toLowerCase().includes("какой сегодня день") ||
       message.toLowerCase().includes("сколько сейчас время")
