@@ -262,9 +262,28 @@ async function handleTextQuery(message, socket) {
         if (searchResults.answer_box?.type === "weather_result") {
           const weather = searchResults.answer_box;
           resultText = `Погода в ${weather.location} на ${weather.date}: ${weather.weather}, температура ${weather.temperature}°${weather.unit}, осадки ${weather.precipitation}, влажность ${weather.humidity}, ветер ${weather.wind}.`;
-          if (firstLink) {
-            resultText += ` Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
-          }
+
+
+          // Сохраняем ссылку отдельно для текстового ответа
+          const linkText = firstLink ? ` Подробнее: ${firstLink}` : '';
+
+          // Для отображения в чате оставляем HTML
+          const displayText = resultText + (firstLink ? ` Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>` : '');
+
+          // Для озвучки убираем HTML и ссылку
+          const speechText = resultText; // Без ссылки и HTML
+
+          console.log(`[Search] Результаты: ${displayText}`);
+
+          // Кэшируем и отправляем результат поиска  
+          fs.writeFileSync(cacheFile, JSON.stringify({ response: displayText }));
+          socket.emit('message', displayText);
+
+          // Генерируем голосовой ответ без ссылки и HTML
+          const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+          await generateSpeech(speechText, audioFilePath);
+          socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
+
         } else if (searchResults.organic_results && searchResults.organic_results.length > 0) {
           const result = searchResults.organic_results[0];
           resultText = "";
@@ -274,21 +293,27 @@ async function handleTextQuery(message, socket) {
           if (result.snippet) {
             resultText += result.snippet;
           }
-          if (firstLink) {
-            resultText += ` Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>`;
-          }
+
+          // Для отображения в чате
+          const displayText = resultText + (firstLink ? ` Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>` : '');
+
+          // Для озвучки (без ссылки)
+          const speechText = resultText;
+
+          console.log(`[Search] Результаты: ${displayText}`);
+
+          // Кэшируем и отправляем
+          fs.writeFileSync(cacheFile, JSON.stringify({ response: displayText }));
+          socket.emit('message', displayText);
+
+          // Генерируем голосовой ответ
+          const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+          await generateSpeech(speechText, audioFilePath);
+          socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
+        } else {
+          socket.emit('message', "Ничего не найдено по вашему запросу.");
         }
 
-        console.log(`[Search] Результаты: ${resultText}`);
-
-        // Кэшируем и отправляем результат поиска  
-        fs.writeFileSync(cacheFile, JSON.stringify({ response: resultText }));
-        socket.emit('message', resultText);
-
-        // Генерируем голосовой ответ
-        const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
-        await generateSpeech(resultText.replace(/<[^>]+>/g, ''), audioFilePath);
-        socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
       } catch (err) {
         console.error("Ошибка поискового запроса:", err);
         socket.emit('message', "Ошибка при поиске в интернете.");
