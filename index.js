@@ -15,7 +15,8 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const { OpenAI } = require('openai');
+//const { OpenAI } = require('openai');
+const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
@@ -26,11 +27,11 @@ const { getAllAudioUrls } = require('google-tts-api');
 const crypto = require('crypto');
 
 // Проверка ключей API:
-console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
+//console.log("[Сервер] OpenAI API Key:", process.env.OPENAI_API_KEY ? "OK" : "Отсутствует");
 console.log("[Сервер] SerpAPI Key:", process.env.SERPAPI_KEY ? "OK" : "Отсутствует");
 
 // Инициализация OpenAI
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+//const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Проверка ключей
 if (!process.env.SERPAPI_KEY) {
@@ -315,47 +316,66 @@ async function handleTextQuery(message, socket) {
       return;
     }
 
+    // Проверка на дублирующиеся сообщения
     const session = userSessions.get(socket.id) || [];
-    // Проверяем на дублирование последнего сообщения
     const lastMessage = session[session.length - 1];
     if (lastMessage && lastMessage.content === message) {
       console.warn('[WebSocket] Дублирующееся сообщение');
       return;
     }
-    // Обновляем сессию
-    const messages = [...session, { role: 'user', content: message }];
 
-    // Вызов OpenAI 
-    console.log(`[GPT] Отправка запроса: ${message}`);
-    const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: messages,
-      temperature: 0.7, // Температура для креативности ответов
-      max_tokens: 500 // Количество токенов в ответе
-    });
-    // Ответ бота
-    const botResponse = response.choices[0].message.content;
-    console.log(`[Bot] Ответ: ${botResponse}`);
-    // Обновляем сессию пользователя
-    userSessions.set(socket.id, [...messages, { role: 'assistant', content: botResponse }]);
-    // Кэшируем ответ
-    fs.writeFileSync(cacheFile, JSON.stringify({ response: botResponse }));
-    // Отправляем ответ пользователю
-    socket.emit('message', botResponse);
-    if (message.includes('audio')) {
-      const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
-      try {
-        await generateSpeech(botResponse, audioFilePath);
-        activeResponses.set(socket.id, audioFilePath);
-        socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
-      } catch (error) {
-        console.error('Ошибка генерации речи:', error.message);
-        socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
+    console.log(`[HF] Отправка запроса в Hugging Face Space: ${message}`);
+
+    try {
+      // Вызов Space на Hugging Face
+      const spaceResponse = await axios.post('https://Andrii1-my-chat-model.hf.space/chat', {
+        text: message,
+        type: 'text'
+      }, {
+        timeout: 60000 // 60 секунд таймаут
+      });
+
+      const botResponse = spaceResponse.data.response;
+      console.log(`[Bot] Ответ от Hugging Face: ${botResponse}`);
+
+      // Обновляем сессию пользователя (для контекста)
+      userSessions.set(socket.id, [...session, { role: 'user', content: message }, { role: 'assistant', content: botResponse }]);
+
+      // Кэшируем ответ
+      fs.writeFileSync(cacheFile, JSON.stringify({ response: botResponse }));
+
+      // Отправляем ответ пользователю
+      socket.emit('message', botResponse);
+
+      // Если запрос был голосовым, генерируем речь
+      if (message.includes('audio')) {
+        const audioFilePath = path.join(audioDir, `${socket.id}.mp3`);
+        try {
+          await generateSpeech(botResponse, audioFilePath);
+          activeResponses.set(socket.id, audioFilePath);
+          socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
+        } catch (error) {
+          console.error('Ошибка генерации речи:', error.message);
+          socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
+        }
+      }
+
+    } catch (error) {
+      console.error(`[HF] Ошибка: ${error.message}`);
+
+      // Обработка различных ошибок
+      if (error.code === 'ECONNABORTED') {
+        socket.emit('message', '⚠️ Сервис AI отвечает слишком долго. Попробуйте еще раз.');
+      } else if (error.code === 'ECONNREFUSED') {
+        socket.emit('message', '⚠️ Сервис AI временно недоступен. Попробуйте позже.');
+      } else {
+        socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
       }
     }
+
   } catch (error) {
-    console.error(`[GPT] Ошибка: ${error.message}`);
-    socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
+    console.error(`[Критическая ошибка] ${error.message}`);
+    socket.emit('message', '⚠️ Произошла критическая ошибка при обработке запроса');
   }
 }
 

@@ -21,20 +21,20 @@
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-node": "^4.22.0",
-    "axios": "^1.7.9",
+    "axios": "^1.13.6",
     "cheerio": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "fs": "^0.0.1-security",
+    "google-search-results-nodejs": "^2.1.0",
     "google-tts-api": "^2.0.1",
     "lru-cache": "^10.4.3",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
     "openai": "^4.82.0",
     "serpapi": "^2.1.0",
-    "socket.io": "^4.8.1",
-    "google-search-results-nodejs": "^2.1.0"
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

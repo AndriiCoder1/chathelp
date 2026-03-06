@@ -1,118 +1,171 @@
-import sys 
-import os 
+import sys
+import os
 import traceback
-from dotenv import load_dotenv 
-import openai  
-from openai import error as openai_error  
-from pydub import AudioSegment 
-from gtts import gTTS 
-from typing import Any, Dict            
-
-# transcribe.py - Модуль для обработки аудиофайлов: конверсия, транскрипция через OpenAI API, и генерация синтезированной речи.
-# Использует библиотеки: openai, pydub, gTTS, dotenv    
-# Основные функции:
-#   - check_dependencies: Проверка установленных зависимостей.
-#   - convert_audio: Конвертация входного аудиофайла в формат WAV с определёнными параметрами.
-#   - transcribe_audio: Транскрипция аудиофайла с использованием модели Whisper от OpenAI.
-#   - generate_speech: Генерация аудиоречи из текста с использованием gTTS.
+import requests
+from dotenv import load_dotenv
+from pydub import AudioSegment
+from typing import Optional
+import tempfile
 
 load_dotenv()
 
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    raise ValueError("Не удалось найти переменную окружения OPENAI_API_KEY")
+HF_TOKEN = os.getenv("HF_TOKEN")
+# Используем самую мощную модель
+WHISPER_MODEL = "openai/whisper-large-v3"  # Можно заменить на medium/small/tiny
 
-openai.api_key = api_key
+# Альтернативно можно использовать мультиязычную модель от OpenAI
+# WHISPER_MODEL = "openai/whisper-large-v3"  # Поддерживает 100+ языков
 
-# Проверка наличия необходимых зависимостей
-def check_dependencies(): 
+def detect_language_from_text(text: str) -> str:
+    """
+    Простое определение языка по первым словам
+    Можно заменить на более сложную логику
+    """
+    # Простейшая эвристика
+    ru_chars = set('абвгдеёжзийклмнопрстуфхцчшщъыьэюя')
+    de_chars = set('äöüß')
+    
+    text_lower = text.lower()
+    ru_count = sum(1 for c in text_lower if c in ru_chars)
+    de_count = sum(1 for c in text_lower if c in de_chars)
+    
+    if ru_count > de_count:
+        return 'ru'
+    elif de_count > ru_count:
+        return 'de'
+    return 'en'
+
+def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
+    """
+    Распознаёт аудио с указанием языка (опционально)
+    """
     try:
-        import openai 
-        import pydub
-        import gtts
-        print("[Проверка зависимостей] Все зависимости установлены.", file=sys.stderr) 
-    except ImportError as e: 
-        print(f"[Ошибка] Отсутствует зависимость: {str(e)}", file=sys.stderr) 
-        sys.exit(1) 
+        # Конвертируем аудио в нужный формат если необходимо
+        audio = AudioSegment.from_file(file_path)
+        
+        # Сохраняем во временный файл в правильном формате
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
+            audio.export(tmp_file.name, format='wav')
+            
+            with open(tmp_file.name, 'rb') as f:
+                data = f.read()
+        
+        # Подготавливаем запрос к Hugging Face
+        headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+        
+        # Можно указать язык для более точного распознавания
+        params = {}
+        if language:
+            params = {"parameters": {"language": language}}
+        
+        response = requests.post(
+            f"https://api-inference.huggingface.co/models/{WHISPER_MODEL}",
+            headers=headers,
+            data=data,
+            params=params,
+            timeout=60
+        )
+        
+        # Очищаем временный файл
+        os.unlink(tmp_file.name)
+        
+        if response.status_code == 200:
+            result = response.json()
+            text = result.get("text", "")
+            
+            # Автоматически определяем язык если не указан
+            if not language:
+                detected_lang = detect_language_from_text(text)
+                print(f"[Whisper] Определён язык: {detected_lang}", file=sys.stderr)
+            
+            return text
+        else:
+            print(f"[Ошибка] Hugging Face API: {response.status_code}", file=sys.stderr)
+            return "Ошибка распознавания речи"
+            
+    except Exception as e:
+        print(f"[Ошибка] Транскрипция: {e}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+        return "Ошибка распознавания речи"
 
-# Конвертация аудио в WAV 16kHz моно
-def convert_audio(input_path: str) -> str: 
+def convert_audio(input_path: str) -> str:
+    """
+    Конвертирует аудио в WAV 16kHz моно
+    """
     try:
-        print(f"[Конвертация] Начало обработки: {input_path}", file=sys.stderr) 
-        audio = AudioSegment.from_file(input_path) 
-        audio = audio.set_frame_rate(16000).set_channels(1) 
-        output_path = "temp_converted.wav" 
-        audio.export(output_path, format="wav") 
-        if os.path.getsize(output_path) == 0: 
-            raise Exception("Конвертированный файл пустой. Проверьте наличие ffmpeg.") 
-        print(f"[Конвертация] Успешно: {output_path}", file=sys.stderr) 
-        return output_path 
-    except Exception as e: 
-        print(f"[Ошибка] Конвертация аудио: {e}", file=sys.stderr) 
-        sys.exit(1) 
-
-# Транскрипция аудио с помощью OpenAI Whisper
-def transcribe_audio(file_path: str) -> str: 
-    try:
-        with open(file_path, "rb") as audio_file:
-            print("[Transcribe] Отправка в OpenAI...", file=sys.stderr) 
-            # Приводим результат к типу Dict[str, Any] для лучшей типизации
-            response: Dict[str, Any] = openai.Audio.transcribe( # type: ignore
-                model="whisper-1", 
-                file=audio_file, 
-                response_format="json", 
-                temperature=0.2, # Меняем температуру для креативности ответа
-            )
-            print("[Transcribe] Response:", response, file=sys.stderr)
-            detected_language = response.get("language", "unknown").upper() 
-            print(f"[Transcribe] Определен язык: {detected_language}", file=sys.stderr) 
-            return response["text"]  
-    except openai_error.PermissionError as e: 
-        error_msg = "[Ошибка] Доступ к модели отсутствует: " + str(e) 
-        print(error_msg, file=sys.stderr) 
-        return "Ошибка транскрипции: Нет доступа к модели whisper-1. Проверьте настройки доступа в вашем аккаунте OpenAI." 
-    except Exception as e: 
-        error_msg = "[Ошибка] OpenAI API:\n" + traceback.format_exc() 
-        print(error_msg, file=sys.stderr) 
-        return "Ошибка транскрипции: " + str(e)                      
-
-# Генерация речи из текста с помощью gTTS
-def generate_speech(text, output_path): 
-    try:
-        print(f"[Генерация речи] Начало генерации: {text}", file=sys.stderr) 
-        tts = gTTS(text, lang='ru') 
-        tts.save(output_path) 
-        print(f"[Генерация речи] Успешно: {output_path}", file=sys.stderr) 
-    except Exception as e:   
-        print(f"[Ошибка] Генерация речи: {str(e)}", file=sys.stderr)
+        print(f"[Конвертация] Начало обработки: {input_path}", file=sys.stderr)
+        
+        # Проверяем наличие ffmpeg
+        audio = AudioSegment.from_file(input_path)
+        audio = audio.set_frame_rate(16000).set_channels(1)
+        
+        output_path = "temp_converted.wav"
+        audio.export(output_path, format="wav")
+        
+        if os.path.getsize(output_path) == 0:
+            raise Exception("Конвертированный файл пустой")
+            
+        print(f"[Конвертация] Успешно: {output_path}", file=sys.stderr)
+        return output_path
+        
+    except Exception as e:
+        print(f"[Ошибка] Конвертация аудио: {e}", file=sys.stderr)
         sys.exit(1)
 
-# Точка входа для запуска скрипта в командной строке
-if __name__ == "__main__": 
-    converted_path = None  
+def generate_speech(text: str, output_path: str, lang: str = 'ru'):
+    """
+    Генерирует речь из текста (оставляем gTTS)
+    """
     try:
-
-        # Проверка зависимостей отключена для продакшена во избежание лишнего вывода 
-
-        if len(sys.argv) < 3: 
-            raise ValueError("Usage: python transcribe.py <input_audio_path> <output_audio_path>") 
-    
-        input_path = sys.argv[1] 
-        output_path = sys.argv[2] 
-        print(f"[Main] Обработка файла: {input_path}", file=sys.stderr) 
-    
-        converted_path = convert_audio(input_path) 
-        transcription = transcribe_audio(converted_path) 
-        generate_speech(transcription, output_path) 
-    
+        from gtts import gTTS
+        print(f"[Генерация речи] Текст: {text[:50]}...", file=sys.stderr)
         
+        # Определяем язык для озвучки
+        if not lang:
+            lang = detect_language_from_text(text)
+        
+        tts = gTTS(text, lang=lang)
+        tts.save(output_path)
+        print(f"[Генерация речи] Успешно: {output_path}", file=sys.stderr)
+        
+    except Exception as e:
+        print(f"[Ошибка] Генерация речи: {e}", file=sys.stderr)
+        sys.exit(1)
+
+# Точка входа
+if __name__ == "__main__":
+    converted_path = None
+    
+    try:
+        if len(sys.argv) < 3:
+            raise ValueError("Usage: python transcribe.py <input_audio_path> <output_audio_path> [language]")
+        
+        input_path = sys.argv[1]
+        output_path = sys.argv[2]
+        language = sys.argv[3] if len(sys.argv) > 3 else None
+        
+        print(f"[Main] Обработка файла: {input_path}", file=sys.stderr)
+        if language:
+            print(f"[Main] Указан язык: {language}", file=sys.stderr)
+        
+        # Конвертируем аудио
+        converted_path = convert_audio(input_path)
+        
+        # Распознаём речь
+        transcription = transcribe_audio(converted_path, language)
+        
+        # Генерируем речь в ответ
+        generate_speech(transcription, output_path)
+        
+        # Возвращаем транскрипцию
         sys.stdout.write(transcription)
-    
-    except Exception as e: 
-        print(f"[Критическая ошибка] {str(e)}", file=sys.stderr) 
-        sys.exit(1) 
-    
+        
+    except Exception as e:
+        print(f"[Критическая ошибка] {e}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(1)
+        
     finally:
-        if converted_path and os.path.exists(converted_path): 
+        if converted_path and os.path.exists(converted_path):
             os.remove(converted_path)
-            print(f"[Очистка] Удален временный файл: {converted_path}", file=sys.stderr) 
+            print(f"[Очистка] Удален временный файл: {converted_path}", file=sys.stderr)
