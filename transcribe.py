@@ -92,7 +92,7 @@ def convert_audio(input_path: str) -> str:
     Конвертирует аудио в WAV 16kHz моно
     """
     try:
-        #print(f"[Конвертация] Начало обработки: {input_path}", file=sys.stderr)
+        print(f"[Конвертация] Начало обработки: {input_path}", file=sys.stderr)
         
         # Проверяем наличие ffmpeg
         audio = AudioSegment.from_file(input_path)
@@ -104,11 +104,11 @@ def convert_audio(input_path: str) -> str:
         if os.path.getsize(output_path) == 0:
             raise Exception("Конвертированный файл пустой")
             
-        #print(f"[Конвертация] Успешно: {output_path}", file=sys.stderr)
+        print(f"[Конвертация] Успешно: {output_path}", file=sys.stderr)
         return output_path
         
     except Exception as e:
-        #print(f"[Ошибка] Конвертация аудио: {e}", file=sys.stderr)
+        print(f"[Ошибка] Конвертация аудио: {e}", file=sys.stderr)
         sys.exit(1)
 
 def generate_speech(text: str, output_path: str, lang: str = 'ru'):
@@ -117,7 +117,7 @@ def generate_speech(text: str, output_path: str, lang: str = 'ru'):
     """
     try:
         from gtts import gTTS
-        #print(f"[Генерация речи] Текст: {text[:50]}...", file=sys.stderr)
+        print(f"[Генерация речи] Текст: {text[:50]}...", file=sys.stderr)
         
         # Определяем язык для озвучки
         if not lang:
@@ -125,10 +125,10 @@ def generate_speech(text: str, output_path: str, lang: str = 'ru'):
         
         tts = gTTS(text, lang=lang)
         tts.save(output_path)
-        #print(f"[Генерация речи] Успешно: {output_path}", file=sys.stderr)
+        print(f"[Генерация речи] Успешно: {output_path}", file=sys.stderr)
         
     except Exception as e:
-        #print(f"[Ошибка] Генерация речи: {e}", file=sys.stderr)
+        print(f"[Ошибка] Генерация речи: {e}", file=sys.stderr)
         sys.exit(1)
 
 # Точка входа
@@ -143,9 +143,10 @@ if __name__ == "__main__":
         output_path = sys.argv[2]
         language = sys.argv[3] if len(sys.argv) > 3 else None
         
-        #print(f"[Main] Обработка файла: {input_path}", file=sys.stderr)
+        print(f"[Main] Обработка файла: {input_path}", file=sys.stderr)
         if language:
-            #print(f"[Main] Указан язык: {language}", file=sys.stderr)
+            pass
+            print(f"[Main] Указан язык: {language}", file=sys.stderr)
         
         # Конвертируем аудио
         converted_path = convert_audio(input_path)
@@ -160,11 +161,11 @@ if __name__ == "__main__":
         sys.stdout.write(transcription)
         
     except Exception as e:
-        #print(f"[Критическая ошибка] {e}", file=sys.stderr)
+        print(f"[Критическая ошибка] {e}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
         
     finally:
         if converted_path and os.path.exists(converted_path):
             os.remove(converted_path)
-            #print(f"[Очистка] Удален временный файл: {converted_path}", file=sys.stderr)
+            print(f"[Очистка] Удален временный файл: {converted_path}", file=sys.stderr)
