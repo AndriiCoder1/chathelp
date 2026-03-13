@@ -8,7 +8,9 @@ from typing import Optional
 import tempfile
 import functools
 print = functools.partial(print, file=sys.stdout, flush=True)
-
+print("=== TRANSCRIBE.PY ЗАПУЩЕН ===")
+print(f"Python version: {sys.version}")
+print(f"Arguments: {sys.argv}")
 load_dotenv()
 
 HF_TOKEN = os.getenv("HF_TOKEN")
