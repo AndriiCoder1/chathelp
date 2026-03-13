@@ -27,10 +27,16 @@ const crypto = require('crypto');
 
 // Проверка ключей API:
 console.log("[Сервер] SerpAPI Key:", process.env.SERPAPI_KEY ? "OK" : "Отсутствует");
+console.log("[Сервер] HF_TOKEN:", process.env.HF_TOKEN ? "OK" : "Отсутствует");
 
 // Проверка ключей
 if (!process.env.SERPAPI_KEY) {
   console.error("[Сервер] SerpAPI Key отсутствует!");
+  process.exit(1);
+}
+
+if (!process.env.HF_TOKEN) {
+  console.error("[Сервер] HF_TOKEN отсутствует!");
   process.exit(1);
 }
 
@@ -122,7 +128,7 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
 
     // Запуск транскрипции
     const pythonPath = process.env.PYTHON_PATH || 'python3';
-    const command = `"${pythonPath}" "${path.join(__dirname, 'transcribe.py')}" "${audioPath}" "${audioPath.replace('.webm', '.mp3')}"`;
+    const command = `"${pythonPath}" "${path.join(__dirname, 'transcribe.py')}" "${audioPath}" "${audioPath.replace('.webm', '.mp3')}" "ru"`;
 
     exec(command, { encoding: 'utf-8' }, (error, stdout, stderr) => {
       // Очистка временных файлов

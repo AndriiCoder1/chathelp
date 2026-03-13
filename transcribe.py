@@ -11,6 +11,10 @@ load_dotenv()
 
 HF_TOKEN = os.getenv("HF_TOKEN")
 
+if not HF_TOKEN:
+    print("[Ошибка] HF_TOKEN отсутствует в переменных окружения", file=sys.stderr)
+    sys.exit(1)
+
 # Название модели на Hugging Face
 WHISPER_MODEL = "openai/whisper-large-v3"  
 
@@ -38,6 +42,8 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
     Распознаёт аудио с указанием языка (опционально)
     """
     try:
+        print(f"[Whisper] Начало обработки файла: {file_path}", file=sys.stderr)
+        
         # Конвертируем аудио в нужный формат если необходимо
         audio = AudioSegment.from_file(file_path)
         
@@ -47,6 +53,8 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
             
             with open(tmp_file.name, 'rb') as f:
                 data = f.read()
+        
+        print(f"[Whisper] Отправка запроса в Hugging Face API (язык: {language or 'авто'})", file=sys.stderr)
         
         # Подготавливаем запрос к Hugging Face
         headers = {"Authorization": f"Bearer {HF_TOKEN}"}
@@ -64,13 +72,21 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
             timeout=60
         )
         
+        print(f"[Whisper] Статус ответа: {response.status_code}", file=sys.stderr)
+        
         # Очищаем временный файл
         os.unlink(tmp_file.name)
         
         if response.status_code == 200:
             result = response.json()
-            print(f"[DEBUG] Hugging Face ответ: {result}", file=sys.stderr)
-            text = result.get("text", "")
+            print(f"[Whisper] Успешный ответ: {result}", file=sys.stderr)
+            text = result.get("text", "").strip()
+            
+            if not text:
+                print("[Whisper] Пустой текст в ответе", file=sys.stderr)
+                return "Ошибка распознавания речи"
+            
+            print(f"[Whisper] Распознанный текст: '{text}'", file=sys.stderr)
             
             # Автоматически определяем язык если не указан
             if not language:
@@ -79,11 +95,11 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
             
             return text
         else:
-            print(f"[Ошибка] Hugging Face API: {response.status_code}", file=sys.stderr)
+            print(f"[Whisper] Ошибка API: {response.status_code} - {response.text}", file=sys.stderr)
             return "Ошибка распознавания речи"
             
     except Exception as e:
-        print(f"[Ошибка] Транскрипция: {e}", file=sys.stderr)
+        print(f"[Whisper] Исключение: {e}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         return "Ошибка распознавания речи"
 
