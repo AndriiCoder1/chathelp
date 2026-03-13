@@ -227,14 +227,14 @@
     const messageInput = document.getElementById('message-input'); 
     
     // Переменные состояния
-    let recognition = null; 
+    //let recognition = null; 
     let autoSendTimer = null; 
     let recordingTimeout = null; 
     let mediaRecorder = null; 
     let audioChunks = []; 
     let isRecording = false; 
     let silenceTimeout = null; 
-    let isRecognizing = false; 
+    //let isRecognizing = false; 
     let isVoiceInput = false; 
 
     // Функция инициализацияи аудиозаписи
@@ -262,7 +262,14 @@
         mediaRecorder.start(); 
         isRecording = true; 
         sendButton.classList.add('recording'); 
-        console.log('[Recording] Начало записи'); 
+        console.log('[Recording] Начало записи');
+        
+        // Автоматически останавливаем через 10 секунд
+        setTimeout(() => {
+          if (isRecording) {
+            stopRecording();
+          }
+        }, 10000);
       } catch (error) {
         console.error('Ошибка доступа к микрофону:', error); 
         alert('Разрешите доступ к микрофону в настройках браузера!'); 
@@ -301,70 +308,70 @@
     }
 
     // Обновленная инициализация распознавания речи
-    function initSpeechRecognition() {
-      window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
+    //function initSpeechRecognition() {
+      //window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
       // Проверяем поддержку SpeechRecognition 
-      if (!window.SpeechRecognition) {
-        sendButton.style.display = 'none'; 
-        console.warn('Голосовой ввод не поддерживается'); 
-        return;
-      }
+      //if (!window.SpeechRecognition) {
+        //sendButton.style.display = 'none'; 
+        //console.warn('Голосовой ввод не поддерживается'); 
+        //return;
+      //}
      // Инициализация объекта распознавания речи 
-      recognition = new window.SpeechRecognition(); 
-      recognition.lang = 'ru-RU'; // Установка языка
-      recognition.continuous = false; 
-      recognition.interimResults = false; 
+      //recognition = new window.SpeechRecognition(); 
+      //recognition.lang = 'ru-RU'; // Установка языка
+      //recognition.continuous = false; 
+      //recognition.interimResults = false; 
       // Обработчики событий распознавания речи 
-      recognition.onstart = () => {
-        isRecognizing = true; 
-        sendButton.classList.add('recording');
-        console.log('[Speech] Начало распознавания'); 
+      //recognition.onstart = () => {
+        //isRecognizing = true; 
+        //sendButton.classList.add('recording');
+        //console.log('[Speech] Начало распознавания'); 
         
-        if (autoSendTimer) {
-          clearTimeout(autoSendTimer);
-          autoSendTimer = null;
-        }
-      }; 
+        //if (autoSendTimer) {
+          //clearTimeout(autoSendTimer);
+          //autoSendTimer = null;
+        //}
+      //}; 
       // Обработка результатов распознавания 
-      recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0].transcript) 
-          .join(''); 
-        messageInput.value = transcript; 
-        isVoiceInput = true; 
-        console.log('[Speech] Результат:', transcript); 
-      }; 
+      //recognition.onresult = (event) => {
+        //const transcript = Array.from(event.results)
+          //.map(result => result[0].transcript) 
+          //.join(''); 
+        //messageInput.value = transcript; 
+        //isVoiceInput = true; 
+        //console.log('[Speech] Результат:', transcript); 
+      //}; 
       // Обработка ошибок распознавания 
-      recognition.onerror = (event) => {
-        console.error('Ошибка распознавания:', event.error); 
-        stopRecognition(); 
-      };
+      //recognition.onerror = (event) => {
+        //console.error('Ошибка распознавания:', event.error); 
+        //stopRecognition(); 
+      //};
       // Обработка завершения распознавания 
-      recognition.onend = () => {
-        console.log('[Speech] Завершено'); 
-        isRecognizing = false; 
-        sendButton.classList.remove('recording'); 
+      //recognition.onend = () => {
+        //console.log('[Speech] Завершено'); 
+        //isRecognizing = false; 
+        //sendButton.classList.remove('recording'); 
         // Если голосовой ввод был получен и текст не пуст, ждем 3 секунды и отправляем
-        if (isVoiceInput && messageInput.value.trim() !== "") {
-          autoSendTimer = setTimeout(() => {
-            console.log('[Speech] Автоматическая отправка сообщения'); 
-            sendMessage(); 
-          }, 3000); 
-        }
-      }; 
-    }
+        //if (isVoiceInput && messageInput.value.trim() !== "") {
+          //autoSendTimer = setTimeout(() => {
+            //console.log('[Speech] Автоматическая отправка сообщения'); 
+            //sendMessage(); 
+          //}, 3000); 
+        //}
+      //}; 
+    //}
     // Инициализация распознавания речи при загрузке страницы 
-    function stopRecognition() {
-      if (recognition && isRecognizing) {
-        recognition.stop(); 
-      }
-      isRecognizing = false; 
-      sendButton.classList.remove('recording'); 
-      if (autoSendTimer) {
-        clearTimeout(autoSendTimer); и
-        autoSendTimer = null; 
-      }
-    }
+    //function stopRecognition() {
+      //if (recognition && isRecognizing) {
+        //recognition.stop(); 
+      //}
+      //isRecognizing = false; 
+      //sendButton.classList.remove('recording'); 
+      //if (autoSendTimer) {
+        //clearTimeout(autoSendTimer); и
+        //autoSendTimer = null; 
+      //}
+    //}
 
     // Обработчик кнопки отправки/записи
     sendButton.addEventListener('click', () => {
@@ -373,13 +380,12 @@
         console.log('[UI] Сейчас воспроизводится ответ бота, голосовой ввод не запускается'); 
         return; 
       }
-      // Если поле ввода пустое, запускаем или останавливаем распознавание речи  
+      // Если поле ввода пустое - начинаем запись аудио
       if (messageInput.value.trim() === '') {
-        if (!isRecognizing) {
-          if (recognition) recognition.start(); 
+        if (!isRecording) {
+          startAudioRecording(); 
         } else {
-          stopRecognition(); 
-          sendMessage(); 
+          stopRecording(); 
         }
       } else {
         sendMessage(); 
@@ -522,7 +528,7 @@
     }
 
     // Инициализация при загрузке
-    initSpeechRecognition(); 
+    //initSpeechRecognition(); 
     setInterval(updateDateTime, 1000); 
     updateDateTime(); 
   </script>
