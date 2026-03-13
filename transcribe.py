@@ -38,6 +38,9 @@ def detect_language_from_text(text: str) -> str:
     return 'en'
 
 def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
+    print(f"[Transcribe] Начало обработки файла: {file_path}", file=sys.stderr)
+    print(f"[Transcribe] Язык: {language}", file=sys.stderr)
+    print(f"[Transcribe] HF_TOKEN: {'установлен' if HF_TOKEN else 'ОТСУТСТВУЕТ'}", file=sys.stderr)
     """
     Распознаёт аудио с указанием языка (опционально)
     """
@@ -55,7 +58,8 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
                 data = f.read()
         
         print(f"[Whisper] Отправка запроса в Hugging Face API (язык: {language or 'авто'})", file=sys.stderr)
-        
+        print(f"[Transcribe] Отправка запроса в Hugging Face API", file=sys.stderr)
+        print(f"[Transcribe] URL: https://api-inference.huggingface.co/models/{WHISPER_MODEL}", file=sys.stderr)
         # Подготавливаем запрос к Hugging Face
         headers = {"Authorization": f"Bearer {HF_TOKEN}"}
         
