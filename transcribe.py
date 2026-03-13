@@ -73,7 +73,7 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
             params = {"parameters": {"language": language}}
         
         response = requests.post(
-            f"https://api-inference.huggingface.co/models/{WHISPER_MODEL}",
+            f"https://router.huggingface.co/hf-inference/models/{WHISPER_MODEL}",
             headers=headers,
             data=data,
             params=params,
