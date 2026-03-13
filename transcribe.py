@@ -2,21 +2,21 @@ import sys
 import os
 import traceback
 import requests
+import io
 from dotenv import load_dotenv
 from pydub import AudioSegment
 from typing import Optional
 import tempfile
-import functools
-print = functools.partial(print, file=sys.stdout, flush=True)
-print("=== TRANSCRIBE.PY ЗАПУЩЕН ===")
-print(f"Python version: {sys.version}")
-print(f"Arguments: {sys.argv}")
+
+# Обеспечиваем правильную кодировку для вывода
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 load_dotenv()
 
 HF_TOKEN = os.getenv("HF_TOKEN")
 
 if not HF_TOKEN:
-    print("[Ошибка] HF_TOKEN отсутствует в переменных окружения")
     sys.exit(1)
 
 # Название модели на Hugging Face
@@ -27,7 +27,6 @@ def detect_language_from_text(text: str) -> str:
     """
     Простое определение языка по первым словам
     """
-    # Простейшая эвристика
     ru_chars = set('абвгдеёжзийклмнопрстуфхцчшщъыьэюя')
     de_chars = set('äöüß')
     
@@ -42,14 +41,11 @@ def detect_language_from_text(text: str) -> str:
     return 'en'
 
 def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
-    print(f"[Transcribe] Начало обработки файла: {file_path}")
-    print(f"[Transcribe] Язык: {language}")
-    print(f"[Transcribe] HF_TOKEN: {'установлен' if HF_TOKEN else 'ОТСУТСТВУЕТ'}")
     """
     Распознаёт аудио с указанием языка (опционально)
     """
     try:
-        print(f"[Whisper] Начало обработки файла: {file_path}")
+        #print(f"[Whisper] Начало обработки файла: {file_path}", file=sys.stderr)
         
         # Конвертируем аудио в нужный формат если необходимо
         audio = AudioSegment.from_file(file_path)
@@ -61,53 +57,60 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
             with open(tmp_file.name, 'rb') as f:
                 data = f.read()
         
-        print(f"[Whisper] Отправка запроса в Hugging Face API (язык: {language or 'авто'})")
-        print(f"[Transcribe] Отправка запроса в Hugging Face API")
-        print(f"[Transcribe] URL: https://api-inference.huggingface.co/models/{WHISPER_MODEL}")
-        # Подготавливаем запрос к Hugging Face
-        headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-        
-        # Добавляем параметр языка если указан
-        params = {}
-        if language:
-            params = {"parameters": {"language": language}}
-        
+        #print(f"[Whisper] Отправка запроса в Hugging Face API (язык: {language or 'авто'})", file=sys.stderr)
+
+       
+        url = f"https://router.huggingface.co/hf-inference/models/{WHISPER_MODEL}"
+
+        headers = {
+            "Authorization": f"Bearer {HF_TOKEN}",
+            "Content-Type": "audio/wav"
+        }
         response = requests.post(
-            f"https://router.huggingface.co/hf-inference/models/{WHISPER_MODEL}",
+            url,
             headers=headers,
-            data=data,
-            params=params,
-            timeout=60
+            data=data,  
+            timeout=120
         )
         
-        print(f"[Whisper] Статус ответа: {response.status_code}")
+        #print(f"[Whisper] Статус ответа: {response.status_code}", file=sys.stderr)
         
         # Очищаем временный файл
-        os.unlink(tmp_file.name)
+        if os.path.exists(tmp_file.name):
+            os.unlink(tmp_file.name)
         
         if response.status_code == 200:
-            result = response.json()
-            print(f"[Whisper] Успешный ответ: {result}")
-            text = result.get("text", "").strip()
-            
-            if not text:
-                print("[Whisper] Пустой текст в ответе")
+            # Для audio/wav ответа
+            if response.headers.get('Content-Type', '').startswith('audio/'):
+                #print("[Whisper] Получен аудио-ответ, а не JSON", file=sys.stderr)
+                return "Ошибка распознавания речи"
+    
+            # Пытаемся распарсить JSON
+            try:
+                result = response.json()
+                #print(f"[Whisper] Успешный ответ JSON: {result}", file=sys.stderr)
+            except:
+                #print("[Whisper] Ответ не является JSON", file=sys.stderr)
                 return "Ошибка распознавания речи"
             
-            print(f"[Whisper] Распознанный текст: '{text}'")
+            # Обработка разных форматов ответа (словарь или список)
+            text = ""
+            if isinstance(result, list) and len(result) > 0:
+                text = result[0].get("text", "").strip()
+            elif isinstance(result, dict):
+                text = result.get("text", "").strip()
             
-            # Автоматически определяем язык если не указан
-            if not language:
-                detected_lang = detect_language_from_text(text)
-                print(f"[Whisper] Определён язык: {detected_lang}")
+            if not text:
+                #print(f"[Whisper] Пустой текст в ответе. Тип ответа: {type(result)}", file=sys.stderr)
+                return "Ошибка распознавания речи"
             
+            #print(f"[Whisper] Распознанный текст: '{text}'", file=sys.stderr)
             return text
         else:
-            print(f"[Whisper] Ошибка API: {response.status_code} - {response.text}")
+            
             return "Ошибка распознавания речи"
             
     except Exception as e:
-        print(f"[Whisper] Исключение: {e}")
         traceback.print_exc(file=sys.stderr)
         return "Ошибка распознавания речи"
 
@@ -116,43 +119,16 @@ def convert_audio(input_path: str) -> str:
     Конвертирует аудио в WAV 16kHz моно
     """
     try:
-        print(f"[Конвертация] Начало обработки: {input_path}")
-        
-        # Проверяем наличие ffmpeg
         audio = AudioSegment.from_file(input_path)
         audio = audio.set_frame_rate(16000).set_channels(1)
         
-        output_path = "temp_converted.wav"
+        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+        output_path = tmp.name
+        tmp.close()
         audio.export(output_path, format="wav")
-        
-        if os.path.getsize(output_path) == 0:
-            raise Exception("Конвертированный файл пустой")
-            
-        print(f"[Конвертация] Успешно: {output_path}")
         return output_path
         
     except Exception as e:
-        print(f"[Ошибка] Конвертация аудио: {e}")
-        sys.exit(1)
-
-def generate_speech(text: str, output_path: str, lang: str = 'ru'):
-    """
-    Генерирует речь из текста (оставляем gTTS)
-    """
-    try:
-        from gtts import gTTS
-        print(f"[Генерация речи] Текст: {text[:50]}...")
-        
-        # Определяем язык для озвучки
-        if not lang:
-            lang = detect_language_from_text(text)
-        
-        tts = gTTS(text, lang=lang)
-        tts.save(output_path)
-        print(f"[Генерация речи] Успешно: {output_path}")
-        
-    except Exception as e:
-        print(f"[Ошибка] Генерация речи: {e}")
         sys.exit(1)
 
 # Точка входа
@@ -164,13 +140,7 @@ if __name__ == "__main__":
             raise ValueError("Usage: python transcribe.py <input_audio_path> <output_audio_path> [language]")
         
         input_path = sys.argv[1]
-        output_path = sys.argv[2]
         language = sys.argv[3] if len(sys.argv) > 3 else None
-        
-        print(f"[Main] Обработка файла: {input_path}")
-        if language:
-            pass
-            print(f"[Main] Указан язык: {language}")
         
         # Конвертируем аудио
         converted_path = convert_audio(input_path)
@@ -178,18 +148,17 @@ if __name__ == "__main__":
         # Распознаём речь
         transcription = transcribe_audio(converted_path, language)
         
-        # Генерируем речь в ответ
-        generate_speech(transcription, output_path)
-        
-        # Возвращаем транскрипцию
+        # Возвращаем транскрипцию ТОЛЬКО в stdout
         sys.stdout.write(transcription)
+        sys.stdout.flush()
         
     except Exception as e:
-        print(f"[Критическая ошибка] {e}")
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
         
     finally:
         if converted_path and os.path.exists(converted_path):
-            os.remove(converted_path)
-            print(f"[Очистка] Удален временный файл: {converted_path}")
+            try:
+                os.remove(converted_path)
+            except:
+                pass

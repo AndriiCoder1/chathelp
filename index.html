@@ -286,8 +286,14 @@
           body: formData 
         }); 
         
-        const { transcription } = await response.json(); 
-        document.getElementById('message-input').value = transcription; 
+        const data = await response.json();
+        console.log('[sendAudioToServer] Ответ сервера:', data);
+    
+        const transcription = data.transcription;
+        console.log('[sendAudioToServer] Транскрипция:', transcription);
+    
+        document.getElementById('message-input').value = transcription;
+        isVoiceInput = true;  
         sendMessage();
       } catch (error) {
         console.error('Ошибка отправки аудио:', error); 
@@ -302,9 +308,9 @@
         sendButton.classList.remove('recording'); 
         console.log('[Recording] Остановка записи'); 
       }
-      if (recognition) {
-        recognition.stop(); 
-      }
+      //if (recognition) {
+        //recognition.stop(); 
+      //}
     }
 
     // Обновленная инициализация распознавания речи
@@ -452,8 +458,7 @@
     // Обработка аудиосообщений
     socket.on('audio', (audioUrl) => {
       console.log('Получено аудио:', audioUrl); 
-      stopRecording(); 
-      if (recognition) recognition.stop(); 
+      stopRecording();  
       audioPlayer.src = audioUrl; 
       audioPlayer.style.display = 'block'; 
       audioPlayer.play();  
@@ -487,9 +492,13 @@
       //Функция добавления сообщение пользователя в чат 
       addMessageToChat(displayMessage); 
       console.log('Отправка сообщения:', message); 
-      socket.emit('message', message);
-      document.getElementById('message-input').value = ''; 
-      isVoiceInput = false; 
+      socket.emit('message', { text: message, isVoice: isVoiceInput });
+      document.getElementById('message-input').value = '';
+      
+      setTimeout(() => {
+        isVoiceInput = false; 
+      }, 1000);
+      //isVoiceInput = false; 
       if (autoSendTimer) {
         clearTimeout(autoSendTimer); 
         autoSendTimer = null; 
