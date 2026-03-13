@@ -18,7 +18,6 @@ WHISPER_MODEL = "openai/whisper-large-v3"
 def detect_language_from_text(text: str) -> str:
     """
     Простое определение языка по первым словам
-    Можно заменить на более сложную логику
     """
     # Простейшая эвристика
     ru_chars = set('абвгдеёжзийклмнопрстуфхцчшщъыьэюя')
@@ -70,20 +69,21 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
         
         if response.status_code == 200:
             result = response.json()
+            print(f"[DEBUG] Hugging Face ответ: {result}", file=sys.stderr)
             text = result.get("text", "")
             
             # Автоматически определяем язык если не указан
             if not language:
                 detected_lang = detect_language_from_text(text)
-                #print(f"[Whisper] Определён язык: {detected_lang}", file=sys.stderr)
+                print(f"[Whisper] Определён язык: {detected_lang}", file=sys.stderr)
             
             return text
         else:
-            #print(f"[Ошибка] Hugging Face API: {response.status_code}", file=sys.stderr)
+            print(f"[Ошибка] Hugging Face API: {response.status_code}", file=sys.stderr)
             return "Ошибка распознавания речи"
             
     except Exception as e:
-        #print(f"[Ошибка] Транскрипция: {e}", file=sys.stderr)
+        print(f"[Ошибка] Транскрипция: {e}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         return "Ошибка распознавания речи"
 
