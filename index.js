@@ -236,6 +236,9 @@ function shouldSearchInternet(message) {
     '2026', '2025', '2024', // текущие года
     'цены на', 'курс', 'доллар', 'евро', 'биткоин',
     'выборы', 'президент', 'чемпион', 'победитель',
+    'купить', 'продажа', 'магазин', 'велосипед', 'сайт',
+    'где', 'адрес', 'номер телефона', 'контакты', 'часы',
+    'bike', 'shop', 'store', 'buy', 'sell', 'картины',
     'вышел', 'вышла', 'вышло' // новые фильмы/альбомы
   ];
 
@@ -254,6 +257,70 @@ function shouldSearchInternet(message) {
   }
 
   return false;
+}
+
+// Функция определения типа запроса
+function determineQueryType(message) {
+  const lowerMsg = message.toLowerCase();
+
+  const types = {
+    price: ['цена', 'стоит', 'курс', 'price', 'cost', 'сколько стоит', 'биткоин', 'bitcoin'],
+    weather: ['погода', 'weather', 'температура'],
+    time: ['время', 'time', 'час', 'который'],
+    date: ['дата', 'date', 'день', 'число'],
+    product: ['купить', 'продажа', 'buy', 'sell', 'магазин', 'порошок', 'кошачий корм'],
+    event: ['билет', 'ticket', 'мероприятие', 'театр', 'кино', 'концерт'],
+    news: ['новости', 'последние', 'свежие', 'news'],
+    comparison: ['лучше чем', 'сравнить', 'compare', 'vs', 'или']
+  };
+
+  for (const [type, keywords] of Object.entries(types)) {
+    if (keywords.some(k => lowerMsg.includes(k))) {
+      return type;
+    }
+  }
+  return 'general';
+}
+
+// Функция оптимизации поискового запроса
+function optimizeSearchQuery(message, type) {
+  const optimizers = {
+    price: message + " цена стоимость прайс 2026",
+    product: message + " купить отзывы цена характеристики",
+    event: message + " афиша билеты расписание",
+    general: message
+  };
+  return optimizers[type] || message;
+}
+
+// Функция извлечения ответа с помощью AI
+async function extractAnswerWithAI(searchResults, originalQuestion, type) {
+  // Фильтруем только релевантные результаты (не PDF, не словари)
+  const relevantResults = searchResults.organic_results
+    .filter(r => !r.link.includes('.pdf') &&
+      !r.title.toLowerCase().includes('словарь') &&
+      !r.snippet?.toLowerCase().includes('словарь'))
+    .slice(0, 3);
+
+  if (relevantResults.length === 0) {
+    return "Не удалось найти релевантную информацию.";
+  }
+
+  const snippets = relevantResults
+    .map(r => `[${r.title}]: ${r.snippet}`)
+    .join('\n\n');
+
+  const prompt = `Найди в этих результатах ответ на вопрос: "${originalQuestion}". Если есть магазины, сайты, цены — укажи их. Игнорируй словари и PDF. Ответь кратко.`;
+
+  try {
+    const response = await axios.post('https://Andrii1-my-chat-model.hf.space/chat', {
+      text: `${prompt}\n\nРезультаты поиска:\n${snippets}`,
+      type: 'text'
+    }, { timeout: 15000 });
+    return response.data.response;
+  } catch {
+    return searchResults.organic_results[0]?.snippet || "Не удалось найти информацию";
+  }
 }
 
 // Обработка текстовых запросов с кэшированием и поиском
@@ -340,10 +407,14 @@ async function handleTextQuery(message, socket) {
     if (shouldSearchInternet(messageText)) {
       console.log('[Search] Автоматический поиск в интернете');
 
-      // Отправляем запрос через тот же механизм поиска
+      // Определяем тип запроса
+      const queryType = determineQueryType(messageText);
+      const optimizedQuery = optimizeSearchQuery(messageText, queryType);
+
+      // Отправляем запрос через SerpAPI
       const GoogleSearch = require("google-search-results-nodejs").GoogleSearch;
       const search = new GoogleSearch(process.env.SERPAPI_KEY);
-      const params = { q: messageText, hl: "ru", gl: "ru" };
+      const params = { q: optimizedQuery, hl: "ru", gl: "ru" };
 
       try {
         const searchResults = await new Promise((resolve, reject) => {
@@ -354,18 +425,9 @@ async function handleTextQuery(message, socket) {
           });
         });
 
-        let resultText = "Результаты поиска не найдены.";
+        // Извлекаем ответ с помощью AI
+        let resultText = await extractAnswerWithAI(searchResults, messageText, queryType);
         let firstLink = searchResults.organic_results?.[0]?.link || null;
-
-        if (searchResults.answer_box?.type === "weather_result") {
-          const weather = searchResults.answer_box;
-          resultText = `Погода в ${weather.location} на ${weather.date}: ${weather.weather}, температура ${weather.temperature}°${weather.unit}, осадки ${weather.precipitation}, влажность ${weather.humidity}, ветер ${weather.wind}.`;
-        } else if (searchResults.organic_results && searchResults.organic_results.length > 0) {
-          const result = searchResults.organic_results[0];
-          resultText = "";
-          if (result.title) resultText += result.title + ". ";
-          if (result.snippet) resultText += result.snippet;
-        }
 
         const displayText = resultText + (firstLink ? ` Подробнее: <a href="${firstLink}" target="_blank">${firstLink}</a>` : '');
         const speechText = resultText;
