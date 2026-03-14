@@ -236,43 +236,122 @@
     let silenceTimeout = null; 
     //let isRecognizing = false; 
     let isVoiceInput = false; 
+    let audioStream = null;
 
     // Функция инициализацияи аудиозаписи
     async function startAudioRecording() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); 
-        mediaRecorder = new MediaRecorder(stream); 
-        // Таймер для остановки записи через 30 секунд 
+        // Закрываем предыдущий поток если был
+        if (window.audioStream) {
+          window.audioStream.getTracks().forEach(track => track.stop());
+        }
+        
+        window.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true }); 
+        mediaRecorder = new MediaRecorder(window.audioStream);  
+    
+        // Создаем анализатор для детектора тишины
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(window.audioStream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+    
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    
+        // Функция проверки уровня громкости
+        function checkSilence() {
+          if (!isRecording) return;
+      
+          // Получаем данные о звуке
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+          }
+          let average = sum / dataArray.length;
+          
+          // Если тихо (уровень < 10) и есть таймер тишины
+          if (average < 10) {
+            if (!silenceTimeout) {
+              silenceTimeout = setTimeout(() => {
+                console.log('[Recording] Тишина 3 секунды, останавливаем запись');
+                stopRecording();
+              }, 3000);
+            }
+          } else {
+            // Если есть звук, сбрасываем таймер
+            if (silenceTimeout) {
+              clearTimeout(silenceTimeout);
+              silenceTimeout = null;
+            }
+          }
+      
+          // Продолжаем проверять каждые 500мс
+          setTimeout(checkSilence, 500);
+        }
+    
         mediaRecorder.ondataavailable = (e) => {
           audioChunks.push(e.data); 
         };
-       // Функция обработки остановки записи 
+    
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); 
           console.log(`[Recording] Аудиофайл создан: ${audioBlob.size} байт`); 
           await sendAudioToServer(audioBlob); 
           audioChunks = [];
+          
+          // Закрываем AudioContext
+          if (audioContext) {
+            audioContext.close();
+          }
         };
-      // Обработка ошибок записи 
+        
         mediaRecorder.onerror = (e) => {
           console.error('Ошибка записи аудио:', e); 
           stopRecording(); 
         };
-        // Функция запуска записи 
+        
         mediaRecorder.start(); 
         isRecording = true; 
         sendButton.classList.add('recording'); 
         console.log('[Recording] Начало записи');
         
-        // Автоматически останавливаем через 10 секунд
+        // Запускаем детектор тишины
+        checkSilence();
+        
+        // Максимальная длительность записи 30 секунд
         setTimeout(() => {
           if (isRecording) {
+            console.log('[Recording] Максимальное время записи (30 сек)');
             stopRecording();
           }
-        }, 10000);
+        }, 30000);
+        
       } catch (error) {
         console.error('Ошибка доступа к микрофону:', error); 
         alert('Разрешите доступ к микрофону в настройках браузера!'); 
+      }
+    }
+
+    // Обновленная функция остановки записи
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop(); 
+        isRecording = false;  
+        sendButton.classList.remove('recording'); 
+        console.log('[Recording] Остановка записи');
+        
+        // Закрываем поток микрофона (важно для iOS)
+        if (window.audioStream) {
+          window.audioStream.getTracks().forEach(track => track.stop());
+          window.audioStream = null;
+        }
+        
+        // Сбрасываем таймер тишины
+        if (silenceTimeout) {
+          clearTimeout(silenceTimeout);
+          silenceTimeout = null;
+        }
       }
     }
 
@@ -298,19 +377,6 @@
       } catch (error) {
         console.error('Ошибка отправки аудио:', error); 
       }
-    }
-
-    // функция остановки записи
-    function stopRecording() {
-      if (mediaRecorder && isRecording) {
-        mediaRecorder.stop(); 
-        isRecording = false;  
-        sendButton.classList.remove('recording'); 
-        console.log('[Recording] Остановка записи'); 
-      }
-      //if (recognition) {
-        //recognition.stop(); 
-      //}
     }
 
     // Обновленная инициализация распознавания речи
