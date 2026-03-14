@@ -60,7 +60,7 @@
 
 ### Локальная разработка
 
-``bash
+```bash
 # Клонировать репозиторий
 git clone https://github.com/AndriiCoder1/chathelp.git
 cd chathelp
@@ -90,16 +90,19 @@ SERPAPI_KEY - ключ для поиска
 Автоматический деплой при пушах
 
 🔑 Необходимые API ключи
+
 HF_TOKEN - получить на huggingface.co/settings/tokens
 
 SERPAPI_KEY - получить на serpapi.com
 
 🧠 Используемые модели
+
 LLaMA 3.1 8B - основная языковая модель (хостится на Hugging Face)
 
 Whisper Large V3 - распознавание речи (через Hugging Face Inference API)
 
 📁 Структура проекта
+
 chathelp/
 ├── index.html          # Клиентский интерфейс
 ├── index.js            # Node.js сервер
@@ -112,6 +115,7 @@ chathelp/
 └── uploads/            # загруженные аудио
 
 ✨ Особенности реализации
+
 ✅ Детектор тишины - автоматическая остановка записи через 3 секунды молчания
 
 ✅ Кэширование - повторные вопросы отвечают мгновенно
