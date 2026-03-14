@@ -1,0 +1,1 @@
+{"response":"def reply_hello_audio():\n    return \"Привет!\"\n\nprint(reply_hello_audio())"}

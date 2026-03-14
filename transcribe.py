@@ -8,7 +8,7 @@ from pydub import AudioSegment
 from typing import Optional
 import tempfile
 
-# Обеспечиваем правильную кодировку для вывода
+# Кодировка для вывода
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -45,9 +45,7 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
     Распознаёт аудио с указанием языка (опционально)
     """
     try:
-        #print(f"[Whisper] Начало обработки файла: {file_path}", file=sys.stderr)
-        
-        # Конвертируем аудио в нужный формат если необходимо
+        # Конвертируем аудио 
         audio = AudioSegment.from_file(file_path)
         
         # Сохраняем во временный файл в правильном формате
@@ -57,8 +55,6 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
             with open(tmp_file.name, 'rb') as f:
                 data = f.read()
         
-        #print(f"[Whisper] Отправка запроса в Hugging Face API (язык: {language or 'авто'})", file=sys.stderr)
-
        
         url = f"https://router.huggingface.co/hf-inference/models/{WHISPER_MODEL}"
 
@@ -72,9 +68,7 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
             data=data,  
             timeout=120
         )
-        
-        #print(f"[Whisper] Статус ответа: {response.status_code}", file=sys.stderr)
-        
+    
         # Очищаем временный файл
         if os.path.exists(tmp_file.name):
             os.unlink(tmp_file.name)
@@ -82,15 +76,12 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
         if response.status_code == 200:
             # Для audio/wav ответа
             if response.headers.get('Content-Type', '').startswith('audio/'):
-                #print("[Whisper] Получен аудио-ответ, а не JSON", file=sys.stderr)
                 return "Ошибка распознавания речи"
     
-            # Пытаемся распарсить JSON
+            # Парсим JSON
             try:
                 result = response.json()
-                #print(f"[Whisper] Успешный ответ JSON: {result}", file=sys.stderr)
             except:
-                #print("[Whisper] Ответ не является JSON", file=sys.stderr)
                 return "Ошибка распознавания речи"
             
             # Обработка разных форматов ответа (словарь или список)
@@ -101,10 +92,8 @@ def transcribe_audio(file_path: str, language: Optional[str] = None) -> str:
                 text = result.get("text", "").strip()
             
             if not text:
-                #print(f"[Whisper] Пустой текст в ответе. Тип ответа: {type(result)}", file=sys.stderr)
                 return "Ошибка распознавания речи"
             
-            #print(f"[Whisper] Распознанный текст: '{text}'", file=sys.stderr)
             return text
         else:
             
@@ -148,7 +137,7 @@ if __name__ == "__main__":
         # Распознаём речь
         transcription = transcribe_audio(converted_path, language)
         
-        # Возвращаем транскрипцию ТОЛЬКО в stdout
+        # Возвращаем транскрипцию в stdout
         sys.stdout.write(transcription)
         sys.stdout.flush()
         

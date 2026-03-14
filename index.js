@@ -24,7 +24,7 @@ const googleTTS = require('google-tts-api');
 const { getAllAudioUrls } = require('google-tts-api');
 const crypto = require('crypto');
 
-// Проверка ключей API:
+// Проверка ключей 
 console.log("[Сервер] SerpAPI Key:", process.env.SERPAPI_KEY ? "OK" : "Отсутствует");
 console.log("[Сервер] HF_TOKEN:", process.env.HF_TOKEN ? "OK" : "Отсутствует");
 
@@ -72,7 +72,7 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 25 * 1024 * 1024,  // 25 MB Максимальный размер файла
+    fileSize: 25 * 1024 * 1024,
     files: 1
   }
 });
@@ -161,13 +161,6 @@ app.post('/process-audio', upload.single('audio'), async (req, res) => {
       console.log('[Python] Успешная транскрипция');
       res.json({ transcription: transcription });
 
-      // Генерация голосового ответа (озвучка того, что сказал пользователь)
-      //const audioFilePath = path.join(audioDir, `${req.file.filename}.mp3`);
-      //generateSpeech(transcription, audioFilePath).then(() => {
-      //io.emit('audio', `/audio/${req.file.filename}.mp3`);
-      //}).catch(err => {
-      //console.error('Ошибка генерации речи:', err.message);
-      //});
     });
 
   } catch (error) {
@@ -194,9 +187,9 @@ async function generateSpeech(text, outputFilePath) {
   // Определяем язык по тексту
   let lang = 'ru'; // по умолчанию
   if (/[a-zA-Z]/.test(text) && !/[а-яА-Я]/.test(text)) {
-    lang = 'en'; // английский
+    lang = 'en';
   } else if (/[äöüß]/.test(text)) {
-    lang = 'de'; // немецкий
+    lang = 'de';
   }
 
   console.log(`[generateSpeech] Определён язык: ${lang}`);
@@ -227,7 +220,7 @@ async function generateSpeech(text, outputFilePath) {
 function shouldSearchInternet(message) {
   const lowerMsg = message.toLowerCase();
 
-  // Ключевые слова, указывающие на необходимость свежих данных
+  // Ключевые слова, указывающие на необходимость поиска в интернете
   const searchTriggers = [
     'какой сегодня', 'сколько сейчас', 'погода', 'новости',
     'последние', 'свежие', 'новый', 'новое', 'новые',
@@ -522,7 +515,6 @@ async function handleTextQuery(message, socket) {
     }
 
     // Проверка на дублирующиеся сообщения
-    //const session = userSessions.get(socket.id) || [];
     const lastMessage = session[session.length - 1];
     if (lastMessage && lastMessage.content === messageText) {
       console.warn('[WebSocket] Дублирующееся сообщение');
@@ -535,13 +527,25 @@ async function handleTextQuery(message, socket) {
     const isCodeRequest = messageText.toLowerCase().includes('код') ||
       messageText.toLowerCase().includes('function') ||
       messageText.toLowerCase().includes('def ') ||
-      messageText.toLowerCase().includes('напиши');
+      messageText.toLowerCase().includes('напиши') ||
+      messageText.toLowerCase().includes('функцию');
+
 
     let prompt;
     if (isCodeRequest) {
-      prompt = `Ты — AI-помощник, который отвечает ТОЛЬКО кодом на Python. 
-              Если просят написать функцию, возвращай только код без пояснений.
-              Вопрос: ${messageText}`;
+      prompt = `Ты — AI-помощник, специализирующийся на написании кода на Python и JavaScript.
+      Правила:
+      1. Отвечай ТОЛЬКО кодом, без пояснений и комментариев
+      2. Используй латинские буквы для названий функций и переменных
+      3. Пиши полные, рабочие функции
+      4. Для Python: используй def и return
+      5. Для JavaScript: используй function или async function, console.log для вывода
+      6. Если просят конкретный язык — используй его
+      7. Код должен быть готов к копированию и запуску
+      
+      Запрос: ${messageText}
+  
+      Код:`;
     } else {
       prompt = `Ответь кратко и по существу. Вопрос: ${messageText}`;
     }
@@ -552,7 +556,7 @@ async function handleTextQuery(message, socket) {
         text: prompt,
         type: 'text'
       }, {
-        timeout: 120000
+        timeout: 300000
       });
 
       const botResponse = spaceResponse.data.response;

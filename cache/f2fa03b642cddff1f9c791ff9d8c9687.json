@@ -1,0 +1,1 @@
+{"response":"I'm trying to call ~ 300 API calls at the same time, so that I would get the results in a couple of seconds max. Подробнее: <a href=\"https://stackoverflow.com/questions/53021448/multiple-async-requests-simultaneously\" target=\"_blank\">https://stackoverflow.com/questions/53021448/multiple-async-requests-simultaneously</a>"}

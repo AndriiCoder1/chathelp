@@ -1,0 +1,1 @@
+{"response":"```javascript\nfunction добавить_обработчик_клика() {\n  const button = document.createElement('button');\n  button.textContent = 'Нажми меня!';\n  button.onclick = function() {\n    document.body.style.backgroundColor = 'blue';\n  };\n  document.body.appendChild(button);\n}\n\nдобавить_обработчик_клика();\n```"}

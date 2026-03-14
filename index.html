@@ -226,15 +226,13 @@
     const audioPlayer = document.getElementById('audio-player'); 
     const messageInput = document.getElementById('message-input'); 
     
-    // Переменные состояния
-    //let recognition = null; 
+    // Переменные состояния 
     let autoSendTimer = null; 
     let recordingTimeout = null; 
     let mediaRecorder = null; 
     let audioChunks = []; 
     let isRecording = false; 
-    let silenceTimeout = null; 
-    //let isRecognizing = false; 
+    let silenceTimeout = null;  
     let isVoiceInput = false; 
     let audioStream = null;
 
@@ -379,72 +377,6 @@
       }
     }
 
-    // Обновленная инициализация распознавания речи
-    //function initSpeechRecognition() {
-      //window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
-      // Проверяем поддержку SpeechRecognition 
-      //if (!window.SpeechRecognition) {
-        //sendButton.style.display = 'none'; 
-        //console.warn('Голосовой ввод не поддерживается'); 
-        //return;
-      //}
-     // Инициализация объекта распознавания речи 
-      //recognition = new window.SpeechRecognition(); 
-      //recognition.lang = 'ru-RU'; // Установка языка
-      //recognition.continuous = false; 
-      //recognition.interimResults = false; 
-      // Обработчики событий распознавания речи 
-      //recognition.onstart = () => {
-        //isRecognizing = true; 
-        //sendButton.classList.add('recording');
-        //console.log('[Speech] Начало распознавания'); 
-        
-        //if (autoSendTimer) {
-          //clearTimeout(autoSendTimer);
-          //autoSendTimer = null;
-        //}
-      //}; 
-      // Обработка результатов распознавания 
-      //recognition.onresult = (event) => {
-        //const transcript = Array.from(event.results)
-          //.map(result => result[0].transcript) 
-          //.join(''); 
-        //messageInput.value = transcript; 
-        //isVoiceInput = true; 
-        //console.log('[Speech] Результат:', transcript); 
-      //}; 
-      // Обработка ошибок распознавания 
-      //recognition.onerror = (event) => {
-        //console.error('Ошибка распознавания:', event.error); 
-        //stopRecognition(); 
-      //};
-      // Обработка завершения распознавания 
-      //recognition.onend = () => {
-        //console.log('[Speech] Завершено'); 
-        //isRecognizing = false; 
-        //sendButton.classList.remove('recording'); 
-        // Если голосовой ввод был получен и текст не пуст, ждем 3 секунды и отправляем
-        //if (isVoiceInput && messageInput.value.trim() !== "") {
-          //autoSendTimer = setTimeout(() => {
-            //console.log('[Speech] Автоматическая отправка сообщения'); 
-            //sendMessage(); 
-          //}, 3000); 
-        //}
-      //}; 
-    //}
-    // Инициализация распознавания речи при загрузке страницы 
-    //function stopRecognition() {
-      //if (recognition && isRecognizing) {
-        //recognition.stop(); 
-      //}
-      //isRecognizing = false; 
-      //sendButton.classList.remove('recording'); 
-      //if (autoSendTimer) {
-        //clearTimeout(autoSendTimer); и
-        //autoSendTimer = null; 
-      //}
-    //}
-
     // Обработчик кнопки отправки/записи
     sendButton.addEventListener('click', () => {
       // Если аудио плеер виден (то есть бот говорит), не запускаем голосовой ввод
@@ -485,26 +417,43 @@
       } 
     }); 
 
-    // Функция добавленния сообщения в чат
+    // Функция добавления сообщения в чат
     function addMessageToChat(message, isBot = false) {
       const chatLog = document.getElementById('chat-log'); 
-      const messageElement = document.createElement('p'); 
-  
-      // Проверяем, есть ли HTML-теги
-      if (message.includes('<a href=')) {
+      const messageElement = document.createElement('div'); 
+      messageElement.style.marginBottom = '15px';
+      
+      // Проверяем, является ли сообщение кодом 
+      const isCode = message.includes('```');
+      
+      if (isCode) {
+        // Извлекаем только код без маркеров
+        const codeMatch = message.match(/```(?:\w+)?\n?([\s\S]*?)```/);
+        const codeContent = codeMatch ? codeMatch[1].trim() : message;
+        
+        // Создаем элемент для кода
+        const preElement = document.createElement('pre');
+        preElement.style.fontFamily = 'monospace';
+        preElement.style.whiteSpace = 'pre-wrap';
+        preElement.style.margin = '5px 0';
+        preElement.textContent = codeContent;
+        
+        messageElement.appendChild(preElement);
+      } 
+      else if (message.includes('<a href=')) {
         messageElement.innerHTML = message; 
-      } else {
+      } 
+      else {
         messageElement.textContent = message; 
       }
-
       if (isBot) {
         messageElement.classList.add('bot-message');  
       }
-
+      // Добавляем сообщение 
       chatLog.appendChild(messageElement); 
       chatLog.scrollTop = chatLog.scrollHeight; 
     }
-    // Обработчики событий Socket.IO
+    // Обработка событий Socket.IO
     socket.on('connect', () => {
       console.log('Подключено к серверу'); 
     }); 
@@ -549,8 +498,7 @@
         return; 
       }
       let displayMessage = message; 
-      // Если сообщение отправлено голосовым вводом, добавляем метку для сервера,
-      // но для отображения убираем суффикс " audio"
+      // Если сообщение отправлено голосовым вводом, добавляем метку для сервера, но для отображения убираем суффикс " audio" 
       if (isVoiceInput && !message.includes(' audio')) {
         message += ' audio'; 
         displayMessage = message.replace(/ audio$/, ''); 
@@ -602,8 +550,7 @@
       datetimeElement.textContent = now.toLocaleString("de-DE", options); 
     }
 
-    // Инициализация при загрузке
-    //initSpeechRecognition(); 
+    // Инициализация при загрузке 
     setInterval(updateDateTime, 1000); 
     updateDateTime(); 
   </script>

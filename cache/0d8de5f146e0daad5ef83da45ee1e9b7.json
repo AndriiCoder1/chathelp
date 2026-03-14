@@ -1,0 +1,1 @@
+{"response":"```javascript\nfunction sumNumbers(a, b) {\n  return a + b;\n}\n\nconsole.log(sumNumbers(5, 7));\n```"}

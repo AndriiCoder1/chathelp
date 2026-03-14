@@ -1,0 +1,1 @@
+{"response":"```javascript\nasync function fetchData(url) {\n  try {\n    const response = await fetch(url);\n    if (!response.ok) {\n      throw new Error(`HTTP error! status: ${response.status}`);\n    }\n    const data = await response.json();\n    return data;\n  } catch (e) {\n    console.error(e);\n  }\n}\n```"}

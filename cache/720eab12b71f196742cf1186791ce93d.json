@@ -1,0 +1,1 @@
+{"response":"```python\nclass CustomError(Exception):\n    pass\n\ndef check_condition(num):\n    if num > 10:\n        raise CustomError(\"Custom error message\")\n    else:\n        return num\n\ntry:\n    num = 15\n    result = check_condition(num)\n    print(result)\nexcept CustomError as e:\n    print(f\"Error: {e}\")\n```"}

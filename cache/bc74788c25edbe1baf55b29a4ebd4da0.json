@@ -1,0 +1,1 @@
+{"response":"```javascript\nfunction getDaysDifference(date) {\n  const currentDate = new Date();\n  const dateObject = new Date(date);\n  const difference = Math.round((currentDate - dateObject) / (1000 * 3600 * 24));\n  return difference;\n}\n\nconsole.log(getDaysDifference('2022-01-01'));\n```"}
