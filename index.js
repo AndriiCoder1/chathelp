@@ -531,10 +531,25 @@ async function handleTextQuery(message, socket) {
 
     console.log(`[HF] Отправка запроса в Hugging Face Space: ${messageText}`);
 
+    // Определяем, нужен ли код
+    const isCodeRequest = messageText.toLowerCase().includes('код') ||
+      messageText.toLowerCase().includes('function') ||
+      messageText.toLowerCase().includes('def ') ||
+      messageText.toLowerCase().includes('напиши');
+
+    let prompt;
+    if (isCodeRequest) {
+      prompt = `Ты — AI-помощник, который отвечает ТОЛЬКО кодом на Python. 
+              Если просят написать функцию, возвращай только код без пояснений.
+              Вопрос: ${messageText}`;
+    } else {
+      prompt = `Ответь кратко и по существу. Вопрос: ${messageText}`;
+    }
+
     try {
       // Вызов Space на Hugging Face
       const spaceResponse = await axios.post('https://Andrii1-my-chat-model.hf.space/chat', {
-        text: `Ответь кратко и по существу. Вопрос: ${messageText}`,
+        text: prompt,
         type: 'text'
       }, {
         timeout: 120000
