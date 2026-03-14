@@ -60,7 +60,7 @@ Question → type detection → query optimization → SerpAPI → AI answer ext
 
 ### Local Development
 
-``bash
+```bash
 # Clone repository
 git clone https://github.com/AndriiCoder1/chathelp.git
 cd chathelp
@@ -90,16 +90,19 @@ SERPAPI_KEY - search API key
 Automatic deploy on push
 
 🔑 Required API Keys
+
 HF_TOKEN - get from huggingface.co/settings/tokens
 
 SERPAPI_KEY - get from serpapi.com
 
 🧠 AI Models Used
+
 LLaMA 3.1 8B - main language model (hosted on Hugging Face)
 
 Whisper Large V3 - speech recognition (via Hugging Face Inference API)
 
 📁 Project Structure
+
 chathelp/
 ├── index.html          # Client interface
 ├── index.js            # Node.js server
@@ -112,6 +115,7 @@ chathelp/
 └── uploads/            # Uploaded audio files
 
 ✨ Implementation Highlights
+
 ✅ Silence detection - auto-stop recording after 3 seconds of silence
 
 ✅ Caching - repeated questions answered instantly
