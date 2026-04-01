@@ -77,8 +77,10 @@ cp .env.example .env
 
 # Start server
 npm start
+```
 
 Deploy to Render
+
 Connect GitHub repository
 
 Add environment variables:
@@ -102,7 +104,7 @@ LLaMA 3.1 8B - main language model (hosted on Hugging Face)
 Whisper Large V3 - speech recognition (via Hugging Face Inference API)
 
 📁 Project Structure
-
+```
 chathelp/
 ├── index.html          # Client interface
 ├── index.js            # Node.js server
@@ -113,7 +115,7 @@ chathelp/
 ├── cache/              # Response cache (auto-generated)
 ├── audio/              # Temporary audio files
 └── uploads/            # Uploaded audio files
-
+```
 ✨ Implementation Highlights
 
 ✅ Silence detection - auto-stop recording after 3 seconds of silence
