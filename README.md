@@ -132,7 +132,7 @@ chathelp/
 ✅ Answer extraction - AI picks the most relevant information
 
 ✅ Multi-language TTS - voice in the correct language
----
+
 
 🤝 Contributing
 
