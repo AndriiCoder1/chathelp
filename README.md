@@ -91,19 +91,24 @@ HF_TOKEN - Hugging Face token
 SERPAPI_KEY - search API key
 
 Automatic deploy on push
+
 ---
+
 🔑 Required API Keys
 
 HF_TOKEN - get from huggingface.co/settings/tokens
 
 SERPAPI_KEY - get from serpapi.com
+
 ---
+
 🧠 AI Models Used
 
 LLaMA 3.1 8B - main language model (hosted on Hugging Face)
 
 Whisper Large V3 - speech recognition (via Hugging Face Inference API)
 
+---
 
 📁 Project Structure
 ```
@@ -118,7 +123,9 @@ chathelp/
 ├── audio/              # Temporary audio files
 └── uploads/            # Uploaded audio files
 ```
+
 ---
+
 ✨ Implementation Highlights
 
 ✅ Silence detection - auto-stop recording after 3 seconds of silence
@@ -133,10 +140,13 @@ chathelp/
 
 ✅ Multi-language TTS - voice in the correct language
 
+---
 
 🤝 Contributing
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+
+---
 
 🙏 Acknowledgements
 
