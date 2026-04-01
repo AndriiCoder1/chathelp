@@ -91,19 +91,19 @@ HF_TOKEN - Hugging Face token
 SERPAPI_KEY - search API key
 
 Automatic deploy on push
-
+---
 🔑 Required API Keys
 
 HF_TOKEN - get from huggingface.co/settings/tokens
 
 SERPAPI_KEY - get from serpapi.com
-
+---
 🧠 AI Models Used
 
 LLaMA 3.1 8B - main language model (hosted on Hugging Face)
 
 Whisper Large V3 - speech recognition (via Hugging Face Inference API)
----
+
 
 📁 Project Structure
 ```
