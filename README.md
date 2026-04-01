@@ -143,3 +143,46 @@ OpenAI - for Whisper
 Render - for free hosting
 
 SerpAPI - for search API
+
+---
+
+## 👨‍💻 About the Author
+
+This project was created by **Andrii Kovalov** ([@AndriiCoder1](https://github.com/AndriiCoder1)).
+
+- **Purpose:** Personal AI assistant for daily tasks, language learning, and quick answers
+- **Tech Stack:** Node.js, Express, Socket.IO, Hugging Face (LLaMA 3.1 8B, Whisper), SerpAPI, Google TTS
+- **License:** MIT
+
+If you find this project useful, feel free to **star ⭐** the repository or fork it for your own needs!
+
+---
+
+## 🔗 Related Projects
+
+Part of my portfolio of open-source projects:
+
+| Project | Description | Tech Stack |
+|---------|-------------|------------|
+| [**EverRest**](https://github.com/AndriiCoder1/copy_everest) | Digital memorial platform (SaaS) | Django, PostgreSQL, Docker, Celery, Ollama AI |
+| [**Video Chat with Sign Language**](https://github.com/AndriiCoder1/video-chat) | Real-time sign language translation | React, Three.js, MediaPipe, WebRTC |
+| [**ChatHelp**](https://github.com/AndriiCoder1/chathelp) | Personal AI assistant with voice | Node.js, Hugging Face, Whisper |
+
+---
+
+## 📫 Contact & Social
+
+- **GitHub:** [github.com/AndriiCoder1](https://github.com/AndriiCoder1)
+- **Email:** [denisov20051985@gmail.com](mailto:denisov20051985@gmail.com)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2024 Andrii Kovalov
+
+---
+
+*Built with ❤️ for the open-source community*
