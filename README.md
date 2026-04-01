@@ -78,6 +78,7 @@ cp .env.example .env
 # Start server
 npm start
 ```
+---
 
 Deploy to Render
 
@@ -102,6 +103,7 @@ SERPAPI_KEY - get from serpapi.com
 LLaMA 3.1 8B - main language model (hosted on Hugging Face)
 
 Whisper Large V3 - speech recognition (via Hugging Face Inference API)
+---
 
 📁 Project Structure
 ```
@@ -116,6 +118,7 @@ chathelp/
 ├── audio/              # Temporary audio files
 └── uploads/            # Uploaded audio files
 ```
+---
 ✨ Implementation Highlights
 
 ✅ Silence detection - auto-stop recording after 3 seconds of silence
@@ -129,6 +132,7 @@ chathelp/
 ✅ Answer extraction - AI picks the most relevant information
 
 ✅ Multi-language TTS - voice in the correct language
+---
 
 🤝 Contributing
 
