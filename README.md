@@ -2,20 +2,20 @@
 
 A personal chat assistant with voice input and AI responses. The project is designed for daily use in language learning and task solving. Completely free, powered by Hugging Face Spaces.
 
-## 🚀 Key Features
+##  Key Features
 
-- 🎤 **Voice input** with automatic transcription via Whisper
-- 💬 **Text chat** with AI assistant (LLaMA 3.1 8B)
-- 🌐 **Internet search** through SerpAPI (weather, rates, news)
-- 🔊 **Voice responses** with Google TTS
-- 🧠 **Smart search** with query type detection (prices, products, events)
-- 📝 **Code generation** in Python and JavaScript
-- 🌍 **Multi-language support** (Russian, English, German)
-- ⏰ **Local time and date** with language detection
-- 💾 **Response caching** for speed
-- 🌓 **Dark/light theme** interface
+-  **Voice input** with automatic transcription via Whisper
+-  **Text chat** with AI assistant (LLaMA 3.1 8B)
+-  **Internet search** through SerpAPI (weather, rates, news)
+-  **Voice responses** with Google TTS
+-  **Smart search** with query type detection (prices, products, events)
+-  **Code generation** in Python and JavaScript
+-  **Multi-language support** (Russian, English, German)
+-  **Local time and date** with language detection
+-  **Response caching** for speed
+-  **Dark/light theme** interface
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 ### Frontend
 - **Vanilla JavaScript** (pure JS without frameworks)
@@ -37,7 +37,7 @@ A personal chat assistant with voice input and AI responses. The project is desi
 - **OpenAI Whisper** - audio transcription (via Hugging Face)
 - **gTTS** - speech synthesis
 
-## 🏗️ Project Architecture
+##  Project Architecture
 
 The project uses a distributed architecture:
 
@@ -56,7 +56,7 @@ Text → Node.js → Hugging Face Space (LLaMA) → response → TTS → browser
 Question → type detection → query optimization → SerpAPI → AI answer extraction
 
 
-## 📦 Installation & Setup
+##  Installation & Setup
 
 ### Local Development
 
@@ -94,7 +94,7 @@ Automatic deploy on push
 
 ---
 
-🔑 Required API Keys
+ Required API Keys
 
 HF_TOKEN - get from huggingface.co/settings/tokens
 
@@ -102,7 +102,7 @@ SERPAPI_KEY - get from serpapi.com
 
 ---
 
-🧠 AI Models Used
+ AI Models Used
 
 LLaMA 3.1 8B - main language model (hosted on Hugging Face)
 
@@ -110,7 +110,7 @@ Whisper Large V3 - speech recognition (via Hugging Face Inference API)
 
 ---
 
-📁 Project Structure
+ Project Structure
 ```
 chathelp/
 ├── index.html          # Client interface
@@ -126,7 +126,7 @@ chathelp/
 
 ---
 
-✨ Implementation Highlights
+ Implementation Highlights
 
 ✅ Silence detection - auto-stop recording after 3 seconds of silence
 
@@ -142,13 +142,13 @@ chathelp/
 
 ---
 
-🤝 Contributing
+ Contributing
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
 
 ---
 
-🙏 Acknowledgements
+ Acknowledgements
 
 Hugging Face - for free AI model hosting
 
@@ -162,7 +162,7 @@ SerpAPI - for search API
 
 ---
 
-## 👨‍💻 About the Author
+##  About the Author
 
 This project was created by **Andrii Kovalov** ([@AndriiCoder1](https://github.com/AndriiCoder1)).
 
@@ -174,7 +174,7 @@ If you find this project useful, feel free to **star ⭐** the repository or for
 
 ---
 
-## 🔗 Related Projects
+##  Related Projects
 
 Part of my portfolio of open-source projects:
 
@@ -186,14 +186,14 @@ Part of my portfolio of open-source projects:
 
 ---
 
-## 📫 Contact & Social
+##  Contact & Social
 
 - **GitHub:** [github.com/AndriiCoder1](https://github.com/AndriiCoder1)
 - **Email:** [denisov20051985@gmail.com](mailto:denisov20051985@gmail.com)
 
 ---
 
-## 📄 License
+##  License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
