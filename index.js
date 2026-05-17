@@ -328,7 +328,7 @@ async function handleTextQuery(message, socket) {
 
     if (!messageText || messageText.trim() === '' || messageText === 'undefined') {
       console.warn('[WebSocket] Пустое или некорректное сообщение');
-      return socket.emit('message', '⚠️ Пустое или некорректное сообщение не может быть обработано');
+      return socket.emit('message', ' Пустое или некорректное сообщение не может быть обработано');
     }
     // Получаем сессию пользователя
     let session = userSessions.get(socket.id) || [];
@@ -580,7 +580,7 @@ async function handleTextQuery(message, socket) {
           socket.emit('audio', `/audio/${socket.id}.mp3?ts=${Date.now()}`);
         } catch (error) {
           console.error('Ошибка генерации речи:', error.message);
-          socket.emit('message', '⚠️ Произошла ошибка при генерации речи. Попробуйте еще раз.');
+          socket.emit('message', ' Произошла ошибка при генерации речи. Попробуйте еще раз.');
         }
       }
 
@@ -588,17 +588,17 @@ async function handleTextQuery(message, socket) {
       console.error(`[HF] Ошибка: ${error.message}`);
 
       if (error.code === 'ECONNABORTED') {
-        socket.emit('message', '⚠️ Сервис AI отвечает слишком долго. Попробуйте еще раз.');
+        socket.emit('message', ' Сервис AI отвечает слишком долго. Попробуйте еще раз.');
       } else if (error.code === 'ECONNREFUSED') {
-        socket.emit('message', '⚠️ Сервис AI временно недоступен. Попробуйте позже.');
+        socket.emit('message', ' Сервис AI временно недоступен. Попробуйте позже.');
       } else {
-        socket.emit('message', '⚠️ Произошла ошибка при обработке запроса');
+        socket.emit('message', ' Произошла ошибка при обработке запроса');
       }
     }
 
   } catch (error) {
     console.error(`[Критическая ошибка] ${error.message}`);
-    socket.emit('message', '⚠️ Произошла критическая ошибка при обработке запроса');
+    socket.emit('message', ' Произошла критическая ошибка при обработке запроса');
   }
 }
 
